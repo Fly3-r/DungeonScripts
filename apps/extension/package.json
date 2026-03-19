@@ -1,0 +1,5 @@
+{
+  "name": "@aid-oneclick/extension",
+  "private": true,
+  "type": "module"
+}

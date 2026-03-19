@@ -1,0 +1,13 @@
+{
+  "id": "demo-inner-self",
+  "name": "Demo Inner Self",
+  "version": "0.1.0",
+  "description": "Sample script package used to verify catalog and extension plumbing.",
+  "author": "AID-OneClick",
+  "minInstallerVersion": "0.1.0",
+  "hash": "sha256-not-yet-computed",
+  "sharedLibrary": "function demoHelper() { return 'demo'; }\n",
+  "onInput": "state.demoEnabled = true;\nreturn { text };\n",
+  "onModelContext": "return { text };\n",
+  "onOutput": "return { text };\n"
+}

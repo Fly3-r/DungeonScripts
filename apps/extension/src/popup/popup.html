@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AID One-Click</title>
+    <link rel="stylesheet" href="./popup.css">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">Chrome Extension</p>
+        <h1>AID One-Click</h1>
+        <p class="lede">
+          Scaffolded popup for the one-click installer. The install engine, backup flow, and
+          telemetry queue are not wired in yet.
+        </p>
+      </section>
+
+      <section class="panel">
+        <h2>Status</h2>
+        <dl class="status-grid">
+          <div>
+            <dt>Editor Page</dt>
+            <dd id="editor-state">Checking...</dd>
+          </div>
+          <div>
+            <dt>Scenario Root</dt>
+            <dd id="root-short-id">Checking...</dd>
+          </div>
+          <div>
+            <dt>Catalog Origin</dt>
+            <dd id="catalog-origin-display">Checking...</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="panel">
+        <h2>Catalog</h2>
+        <label for="catalog-origin">Catalog origin</label>
+        <input id="catalog-origin" type="url" placeholder="http://127.0.0.1:3000">
+        <div class="actions">
+          <button id="save-origin" type="button">Save Origin</button>
+          <button id="open-catalog" type="button" class="secondary">Open Catalog</button>
+        </div>
+        <p id="notice" class="notice">Ready.</p>
+      </section>
+    </main>
+
+    <script type="module" src="./popup.js"></script>
+  </body>
+</html>

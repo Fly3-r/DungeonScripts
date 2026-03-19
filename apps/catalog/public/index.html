@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AID One-Click Catalog</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">External Catalog/API</p>
+        <h1>AID One-Click</h1>
+        <p class="lede">
+          Minimal catalog service for local development. The Chrome extension fetches package
+          manifests from here and posts one anonymous install-success event after a full install.
+        </p>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Sample Packages</h2>
+          <code>GET /api/packages</code>
+        </div>
+        <div id="package-list" class="package-list">
+          <p class="muted">Loading packages...</p>
+        </div>
+      </section>
+
+      <section class="panel endpoints">
+        <div class="panel-header">
+          <h2>API Endpoints</h2>
+        </div>
+        <ul>
+          <li><code>GET /health</code></li>
+          <li><code>GET /api/packages</code></li>
+          <li><code>GET /api/packages/:id</code></li>
+          <li><code>POST /api/telemetry/install-success</code></li>
+        </ul>
+      </section>
+    </main>
+
+    <script>
+      const list = document.getElementById("package-list");
+
+      const render = async () => {
+        try {
+          const response = await fetch("/api/packages");
+          const data = await response.json();
+
+          if (!Array.isArray(data.packages) || data.packages.length === 0) {
+            list.innerHTML = "<p class='muted'>No packages found.</p>";
+            return;
+          }
+
+          list.innerHTML = data.packages
+            .map(
+              (pkg) => `
+                <article class="package-card">
+                  <div>
+                    <h3>${pkg.name}</h3>
+                    <p>${pkg.description || "No description provided."}</p>
+                  </div>
+                  <dl>
+                    <div><dt>ID</dt><dd><code>${pkg.id}</code></dd></div>
+                    <div><dt>Version</dt><dd>${pkg.version}</dd></div>
+                    <div><dt>Author</dt><dd>${pkg.author}</dd></div>
+                  </dl>
+                </article>
+              `
+            )
+            .join("");
+        } catch (error) {
+          list.innerHTML = `<p class="muted">Failed to load packages: ${error.message}</p>`;
+        }
+      };
+
+      render();
+    </script>
+  </body>
+</html>

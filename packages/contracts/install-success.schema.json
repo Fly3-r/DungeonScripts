@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aid-oneclick.local/schemas/install-success.schema.json",
+  "title": "AID One-Click Install Success Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event",
+    "installId",
+    "packageId",
+    "packageVersion",
+    "leafCount",
+    "timestamp"
+  ],
+  "properties": {
+    "event": {
+      "const": "script_install_succeeded"
+    },
+    "installId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "packageId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "packageVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "leafCount": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

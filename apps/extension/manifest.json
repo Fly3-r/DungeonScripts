@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "AID One-Click",
+  "version": "0.1.0",
+  "description": "One-click script installs for AI Dungeon scenario leaves.",
+  "permissions": [
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://play.aidungeon.com/*",
+    "https://beta.aidungeon.com/*",
+    "https://alpha.aidungeon.com/*",
+    "https://api.aidungeon.com/*",
+    "https://api-beta.aidungeon.com/*",
+    "https://api-alpha.aidungeon.com/*",
+    "http://127.0.0.1:3000/*",
+    "http://localhost:3000/*"
+  ],
+  "background": {
+    "service_worker": "src/background/index.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://play.aidungeon.com/*",
+        "https://beta.aidungeon.com/*",
+        "https://alpha.aidungeon.com/*"
+      ],
+      "js": [
+        "src/content/index.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "AID One-Click",
+    "default_popup": "src/popup/popup.html"
+  }
+}
