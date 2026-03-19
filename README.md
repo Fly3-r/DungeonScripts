@@ -1,4 +1,4 @@
-# AID-OneClick
+﻿# AID-OneClick
 
 Scaffold for the AI Dungeon one-click installer project.
 
@@ -57,7 +57,7 @@ docs/
 
 6. Click `One-Click Install` from the catalog page or `Install To Leaves` from the popup.
 
-7. If needed, click `Rollback Latest` in the popup to restore the most recent pre-install snapshot.
+7. If needed, click `Rollback Latest` in the popup or from the matching catalog card to restore the most recent pre-install snapshot.
 
 ## Current State
 
@@ -68,7 +68,7 @@ This scaffold includes:
 - authenticated AI Dungeon scenario reads and leaf discovery
 - restore-point capture before script mutations
 - catalog package fetch and install-to-leaf execution
-- rollback of the latest restore point from the popup
+- rollback of the latest restore point from the popup and matching catalog card
 - best-effort anonymous install-success telemetry POSTs to the external catalog/API
 - browsable catalog homepage on `/` with thumbnail cards and install counters
 - versioned JSON API under `/api/v1/*`

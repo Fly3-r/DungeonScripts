@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   color-scheme: light;
   --bg: #efe7d6;
   --panel: rgba(255, 251, 243, 0.9);
@@ -153,6 +153,7 @@ dt {
 .package-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
   margin-top: auto;
   padding-top: 18px;
@@ -170,6 +171,10 @@ dt {
 
 .action-button.secondary {
   background: #1f2937;
+}
+
+.action-button.danger {
+  background: #991b1b;
 }
 
 .action-button:disabled {
@@ -197,8 +202,7 @@ code {
   }
 
   .panel-header,
-  .package-card,
-  .package-actions {
+  .package-card {
     display: block;
   }
 
@@ -206,9 +210,15 @@ code {
     grid-template-columns: 1fr;
   }
 
+  .package-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .package-actions code {
-    display: inline-block;
-    margin-top: 10px;
+    align-self: flex-start;
+    margin-top: 2px;
   }
 
   .action-button {

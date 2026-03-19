@@ -1,4 +1,4 @@
-# Catalog Service
+﻿# Catalog Service
 
 This app is the external website and API used by the Chrome extension.
 
@@ -50,6 +50,7 @@ When the extension is installed and has access to the catalog origin, the catalo
 - show the current scenario root and title
 - confirm the install target before writing scripts
 - trigger `One-Click Install` directly from catalog cards
+- trigger `Rollback Latest` from the matching package card when a restore point exists for that package
 
 If the catalog moves to a new external domain, save that origin in the extension popup so the extension can request access and register the catalog-site bridge there too.
 

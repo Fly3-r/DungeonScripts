@@ -1,4 +1,4 @@
-# Agent Decisions
+﻿# Agent Decisions
 
 This file records workflow, implementation-process, and agent-execution decisions for AID-OneClick.
 
@@ -91,3 +91,11 @@ The catalog-site bridge should rely on explicit refreshes and polling instead of
 
 Reason:
 A broad MutationObserver can end up retriggering itself while updating status text and button labels, which makes the catalog page unstable and can mask unrelated network behavior.
+
+### Reuse the existing status payload for page-level rollback
+
+Decision:
+The catalog page rollback button should key off the existing `latestRestorePoint` field in the extension status response instead of adding a new bridge-specific API.
+
+Reason:
+The page already polls the extension for status. Reusing that payload keeps the bridge small, avoids extra background message types, and ensures the popup and catalog page reflect the same rollback state.

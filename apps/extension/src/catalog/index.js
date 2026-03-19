@@ -1,6 +1,7 @@
-const MESSAGE_TYPES = {
+﻿const MESSAGE_TYPES = {
   GET_STATUS: "GET_STATUS",
-  INSTALL_PACKAGE: "INSTALL_PACKAGE"
+  INSTALL_PACKAGE: "INSTALL_PACKAGE",
+  ROLLBACK_LATEST: "ROLLBACK_LATEST"
 };
 
 const SELECTORS = {
@@ -10,7 +11,8 @@ const SELECTORS = {
   leafCount: "#extension-leaf-count",
   installState: "#extension-install-state",
   refresh: "[data-oneclick-refresh]",
-  installButton: "[data-oneclick-install]"
+  installButton: "[data-oneclick-install]",
+  rollbackButton: "[data-oneclick-rollback]"
 };
 
 const POLL_MS = 5000;
@@ -21,7 +23,7 @@ if (!globalThis[BRIDGE_FLAG]) {
 
   let latestStatus = null;
   let transientNotice = "Checking extension status...";
-  let currentActionPackageId = null;
+  let currentAction = null;
 
   const formatInstallState = (installState) => {
     switch (installState?.status) {
@@ -38,6 +40,28 @@ if (!globalThis[BRIDGE_FLAG]) {
       default:
         return "Idle";
     }
+  };
+
+  const formatScenarioLabel = ({ rootTitle, rootShortId } = {}) => {
+    if (rootTitle && rootShortId) {
+      return `${rootTitle} (${rootShortId})`;
+    }
+
+    return rootShortId || rootTitle || "current scenario";
+  };
+
+  const formatPackageLabel = ({ packageName, packageId, packageVersion } = {}) => {
+    const baseName = packageName || packageId || "selected package";
+    return packageVersion ? `${baseName} v${packageVersion}` : baseName;
+  };
+
+  const getMatchingRestorePoint = (packageId) => {
+    const restorePoint = latestStatus?.latestRestorePoint;
+    if (!restorePoint || restorePoint.packageId !== packageId) {
+      return null;
+    }
+
+    return restorePoint;
   };
 
   const describeSummary = (status) => {
@@ -86,8 +110,9 @@ if (!globalThis[BRIDGE_FLAG]) {
     installState.textContent = formatInstallState(latestStatus?.installState);
   };
 
-  const updateInstallButtons = () => {
-    const buttons = Array.from(document.querySelectorAll(SELECTORS.installButton));
+  const updateActionButtons = () => {
+    const installButtons = Array.from(document.querySelectorAll(SELECTORS.installButton));
+    const rollbackButtons = Array.from(document.querySelectorAll(SELECTORS.rollbackButton));
     const canInstall =
       latestStatus?.ok &&
       latestStatus?.authState?.hasToken &&
@@ -95,12 +120,17 @@ if (!globalThis[BRIDGE_FLAG]) {
       Number.isInteger(latestStatus?.scenarioState?.leafCount) &&
       latestStatus.scenarioState.leafCount > 0 &&
       latestStatus?.settings?.catalogOrigin === window.location.origin;
+    const canRollback =
+      latestStatus?.ok &&
+      latestStatus?.authState?.hasToken &&
+      latestStatus?.settings?.catalogOrigin === window.location.origin;
     const isBusy =
       latestStatus?.installState?.status === "loading" ||
       latestStatus?.installState?.status === "rolling_back";
 
-    for (const button of buttons) {
-      const isCurrentAction = currentActionPackageId === button.dataset.packageId;
+    for (const button of installButtons) {
+      const isCurrentAction =
+        currentAction?.type === "install" && currentAction.packageId === button.dataset.packageId;
       button.disabled = !canInstall || isBusy;
 
       if (isBusy && isCurrentAction) {
@@ -109,6 +139,20 @@ if (!globalThis[BRIDGE_FLAG]) {
       }
 
       button.textContent = canInstall ? "One-Click Install" : "Open AI Dungeon Edit Page";
+    }
+
+    for (const button of rollbackButtons) {
+      const hasMatchingRestorePoint = Boolean(getMatchingRestorePoint(button.dataset.packageId));
+      const isCurrentAction =
+        currentAction?.type === "rollback" && currentAction.packageId === button.dataset.packageId;
+      button.disabled = !canRollback || !hasMatchingRestorePoint || isBusy;
+
+      if (isBusy && isCurrentAction) {
+        button.textContent = "Rolling Back...";
+        continue;
+      }
+
+      button.textContent = hasMatchingRestorePoint ? "Rollback Latest" : "Rollback Unavailable";
     }
   };
 
@@ -130,16 +174,17 @@ if (!globalThis[BRIDGE_FLAG]) {
     }
 
     updateStatusPanel();
-    updateInstallButtons();
+    updateActionButtons();
   };
 
   const installPackageFromPage = async (button) => {
     const packageId = button.dataset.packageId;
     const packageName = button.dataset.packageName || packageId;
     const scenarioState = latestStatus?.scenarioState;
-    const scenarioLabel = scenarioState?.rootTitle
-      ? `${scenarioState.rootTitle} (${scenarioState.rootShortId})`
-      : scenarioState?.rootShortId || "current scenario";
+    const scenarioLabel = formatScenarioLabel({
+      rootTitle: scenarioState?.rootTitle,
+      rootShortId: scenarioState?.rootShortId
+    });
 
     const confirmed = window.confirm(
       `Install \"${packageName}\" to ${scenarioLabel}? This will update ${scenarioState.leafCount} playable leaves.`
@@ -149,10 +194,13 @@ if (!globalThis[BRIDGE_FLAG]) {
       return;
     }
 
-    currentActionPackageId = packageId;
+    currentAction = {
+      type: "install",
+      packageId
+    };
     transientNotice = `Installing ${packageName} to ${scenarioLabel}...`;
     updateStatusPanel();
-    updateInstallButtons();
+    updateActionButtons();
 
     try {
       const response = await chrome.runtime.sendMessage({
@@ -168,7 +216,61 @@ if (!globalThis[BRIDGE_FLAG]) {
     } catch (error) {
       transientNotice = error.message;
     } finally {
-      currentActionPackageId = null;
+      currentAction = null;
+      await refreshExtensionState();
+    }
+  };
+
+  const rollbackPackageFromPage = async (button) => {
+    const restorePoint = getMatchingRestorePoint(button.dataset.packageId);
+    if (!restorePoint) {
+      transientNotice = "No matching restore point is available for this package yet.";
+      updateStatusPanel();
+      updateActionButtons();
+      return;
+    }
+
+    const packageLabel = formatPackageLabel({
+      packageName: restorePoint.packageName || button.dataset.packageName,
+      packageId: restorePoint.packageId,
+      packageVersion: restorePoint.packageVersion
+    });
+    const scenarioLabel = formatScenarioLabel({
+      rootTitle: restorePoint.rootTitle,
+      rootShortId: restorePoint.rootShortId
+    });
+    const leafCount = restorePoint.leafCount || 0;
+
+    const confirmed = window.confirm(
+      `Rollback ${packageLabel} on ${scenarioLabel}? This will restore ${leafCount} playable leaves to their saved pre-install state.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    currentAction = {
+      type: "rollback",
+      packageId: restorePoint.packageId
+    };
+    transientNotice = `Rolling back ${packageLabel} on ${scenarioLabel}...`;
+    updateStatusPanel();
+    updateActionButtons();
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: MESSAGE_TYPES.ROLLBACK_LATEST
+      });
+
+      if (!response?.ok) {
+        throw new Error(response?.error || "Rollback failed.");
+      }
+
+      transientNotice = `Rollback complete. Restored ${response.installState?.appliedCount || 0} playable leaves for ${packageLabel}.`;
+    } catch (error) {
+      transientNotice = error.message;
+    } finally {
+      currentAction = null;
       await refreshExtensionState();
     }
   };
@@ -182,25 +284,41 @@ if (!globalThis[BRIDGE_FLAG]) {
     }
 
     const installButton = event.target.closest(SELECTORS.installButton);
-    if (!installButton) {
+    if (installButton) {
+      event.preventDefault();
+
+      if (
+        !latestStatus?.ok ||
+        !latestStatus?.authState?.hasToken ||
+        latestStatus?.scenarioState?.status !== "ready"
+      ) {
+        transientNotice =
+          "Open an AI Dungeon scenario edit page and wait for the extension to finish loading the scenario tree.";
+        updateStatusPanel();
+        updateActionButtons();
+        return;
+      }
+
+      installPackageFromPage(installButton);
+      return;
+    }
+
+    const rollbackButton = event.target.closest(SELECTORS.rollbackButton);
+    if (!rollbackButton) {
       return;
     }
 
     event.preventDefault();
 
-    if (
-      !latestStatus?.ok ||
-      !latestStatus?.authState?.hasToken ||
-      latestStatus?.scenarioState?.status !== "ready"
-    ) {
+    if (!latestStatus?.ok || !latestStatus?.authState?.hasToken) {
       transientNotice =
-        "Open an AI Dungeon scenario edit page and wait for the extension to finish loading the scenario tree.";
+        "Open an AI Dungeon scenario edit page and wait for the extension to finish loading before rolling back.";
       updateStatusPanel();
-      updateInstallButtons();
+      updateActionButtons();
       return;
     }
 
-    installPackageFromPage(installButton);
+    rollbackPackageFromPage(rollbackButton);
   });
 
   window.addEventListener("focus", refreshExtensionState);

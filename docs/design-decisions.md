@@ -1,4 +1,4 @@
-# Design Decisions
+﻿# Design Decisions
 
 This file records product, architecture, and UX decisions for AID-OneClick.
 
@@ -131,3 +131,11 @@ The catalog-site bridge must be registered for future page loads and also inject
 
 Reason:
 Users should not need a full browser restart or guess that a reload is required before the site recognizes the extension. The bridge needs to become active as soon as the extension is ready.
+
+### Expose rollback from the catalog page only on the matching package card
+
+Decision:
+The catalog page should show a `Rollback Latest` button beside `One-Click Install`, but only enable it on the card whose package matches the extension's latest restore point.
+
+Reason:
+Rollback is global to the latest saved restore point, not to every catalog item. Matching the active button to the restore point keeps the page understandable and reduces the chance of restoring the wrong package by mistake.

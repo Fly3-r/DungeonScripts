@@ -72,10 +72,19 @@ const renderPackages = (packages) => {
     installButton.textContent = "Use Extension To Install";
     installButton.disabled = true;
 
+    const rollbackButton = document.createElement("button");
+    rollbackButton.type = "button";
+    rollbackButton.className = "action-button danger";
+    rollbackButton.dataset.oneclickRollback = "true";
+    rollbackButton.dataset.packageId = pkg.id;
+    rollbackButton.dataset.packageName = pkg.name;
+    rollbackButton.textContent = "Rollback Latest";
+    rollbackButton.disabled = true;
+
     const packageId = document.createElement("code");
     packageId.textContent = pkg.id;
 
-    actions.append(installButton, packageId);
+    actions.append(installButton, rollbackButton, packageId);
     header.append(title);
     body.append(header, description, meta, actions);
     media.append(thumbnail);
