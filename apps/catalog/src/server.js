@@ -25,6 +25,15 @@ const allowedEventKeys = [
   "leafCount",
   "timestamp"
 ];
+const API_BASE_PATH = "/api/v1";
+const CONTENT_TYPES = {
+  ".css": "text/css; charset=utf-8",
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml; charset=utf-8",
+  ".txt": "text/plain; charset=utf-8"
+};
 
 const json = (res, statusCode, payload) => {
   const body = JSON.stringify(payload, null, 2);
@@ -102,6 +111,56 @@ const storeDedupeIds = async (ids) => {
   await writeFile(dedupeFile, JSON.stringify(ids, null, 2));
 };
 
+const loadInstallCounts = async () => {
+  try {
+    const raw = await readFile(telemetryLogFile, "utf8");
+    const counts = new Map();
+
+    for (const line of raw.split(/\r?\n/)) {
+      if (!line.trim()) {
+        continue;
+      }
+
+      try {
+        const event = JSON.parse(line);
+        if (event?.event !== "script_install_succeeded" || typeof event.packageId !== "string") {
+          continue;
+        }
+
+        counts.set(event.packageId, (counts.get(event.packageId) || 0) + 1);
+      } catch {
+        // Ignore malformed telemetry lines.
+      }
+    }
+
+    return counts;
+  } catch {
+    return new Map();
+  }
+};
+
+const getPublicAssetUrl = (value) => {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return "";
+  }
+
+  try {
+    return new URL(value).toString();
+  } catch {
+    return new URL(value, publicBaseUrl).toString();
+  }
+};
+
+const buildPackageSummary = (entry, installCounts) => ({
+  id: entry.id,
+  name: entry.name,
+  version: entry.version,
+  description: entry.description,
+  author: entry.author,
+  thumbnailUrl: getPublicAssetUrl(entry.thumbnailUrl),
+  installCount: installCounts.get(entry.id) || 0
+});
+
 const validateInstallSuccessEvent = (payload) => {
   const keys = Object.keys(payload).sort();
   const expectedKeys = [...allowedEventKeys].sort();
@@ -122,7 +181,7 @@ const validateInstallSuccessEvent = (payload) => {
 
   for (const field of ["installId", "packageId", "packageVersion", "timestamp"]) {
     if (typeof payload[field] !== "string" || payload[field].trim().length === 0) {
-      throw new Error(`Telemetry field "${field}" must be a non-empty string.`);
+      throw new Error(`Telemetry field \"${field}\" must be a non-empty string.`);
     }
   }
 
@@ -158,10 +217,19 @@ const persistInstallSuccessEvent = async (event) => {
   return { deduped: false };
 };
 
-const serveStatic = async (res, filePath, contentType) => {
+const servePublicAsset = async (res, pathname) => {
+  const trimmed = pathname.replace(/^\/+/, "");
+  const resolved = path.resolve(publicDir, trimmed);
+
+  if (!resolved.startsWith(publicDir)) {
+    notFound(res);
+    return;
+  }
+
   try {
-    const body = await readFile(filePath, "utf8");
-    text(res, 200, body, contentType);
+    const body = await readFile(resolved, "utf8");
+    const extname = path.extname(resolved).toLowerCase();
+    text(res, 200, body, CONTENT_TYPES[extname] || "application/octet-stream");
   } catch {
     notFound(res);
   }
@@ -176,35 +244,49 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    if (req.method === "GET" && url.pathname === "/api/packages") {
-      const manifests = await loadPackages();
+    if (req.method === "GET" && (url.pathname === `${API_BASE_PATH}/packages` || url.pathname === "/api/packages")) {
+      const [manifests, installCounts] = await Promise.all([loadPackages(), loadInstallCounts()]);
       json(res, 200, {
         ok: true,
-        packages: manifests.map((entry) => ({
-          id: entry.id,
-          name: entry.name,
-          version: entry.version,
-          description: entry.description,
-          author: entry.author
-        }))
+        packages: manifests.map((entry) => buildPackageSummary(entry, installCounts))
       });
       return;
     }
 
-    if (req.method === "GET" && url.pathname.startsWith("/api/packages/")) {
-      const packageId = decodeURIComponent(url.pathname.replace("/api/packages/", ""));
-      const manifest = await loadPackageById(packageId);
+    if (
+      req.method === "GET" &&
+      (url.pathname.startsWith(`${API_BASE_PATH}/packages/`) || url.pathname.startsWith("/api/packages/"))
+    ) {
+      const prefix = url.pathname.startsWith(`${API_BASE_PATH}/packages/`)
+        ? `${API_BASE_PATH}/packages/`
+        : "/api/packages/";
+      const packageId = decodeURIComponent(url.pathname.replace(prefix, ""));
+      const [manifest, installCounts] = await Promise.all([
+        loadPackageById(packageId),
+        loadInstallCounts()
+      ]);
 
       if (!manifest) {
         notFound(res);
         return;
       }
 
-      json(res, 200, { ok: true, package: manifest });
+      json(res, 200, {
+        ok: true,
+        package: {
+          ...manifest,
+          thumbnailUrl: getPublicAssetUrl(manifest.thumbnailUrl),
+          installCount: installCounts.get(packageId) || 0
+        }
+      });
       return;
     }
 
-    if (req.method === "POST" && url.pathname === "/api/telemetry/install-success") {
+    if (
+      req.method === "POST" &&
+      (url.pathname === `${API_BASE_PATH}/telemetry/install-success` ||
+        url.pathname === "/api/telemetry/install-success")
+    ) {
       const payload = await parseJsonBody(req);
       const event = validateInstallSuccessEvent(payload);
       const result = await persistInstallSuccessEvent(event);
@@ -217,12 +299,12 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method === "GET" && url.pathname === "/") {
-      await serveStatic(res, path.join(publicDir, "index.html"), "text/html; charset=utf-8");
+      await servePublicAsset(res, "/index.html");
       return;
     }
 
-    if (req.method === "GET" && url.pathname === "/styles.css") {
-      await serveStatic(res, path.join(publicDir, "styles.css"), "text/css; charset=utf-8");
+    if (req.method === "GET") {
+      await servePublicAsset(res, url.pathname);
       return;
     }
 

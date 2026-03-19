@@ -8,4 +8,5 @@ Current contracts:
 
 These schemas are intentionally narrow:
 - package manifests describe script payloads fetched by the extension
+- manifests now include `thumbnailUrl` so the public catalog can render cards without a separate asset registry
 - install-success telemetry allows only the single anonymous success event

@@ -51,11 +51,13 @@ docs/
 - the auth token status is active
 - scenario access resolves successfully
 - the leaf count matches the current scenario tree
-- the catalog origin points at `http://127.0.0.1:3000`
+- the catalog origin points at your catalog site
 
-5. Select a package in the popup and click `Install To Leaves`.
+5. Open the catalog homepage at `/` and confirm the extension bridge shows the current scenario root before installing.
 
-6. If needed, click `Rollback Latest` to restore the most recent pre-install snapshot.
+6. Click `One-Click Install` from the catalog page or `Install To Leaves` from the popup.
+
+7. If needed, click `Rollback Latest` in the popup to restore the most recent pre-install snapshot.
 
 ## Current State
 
@@ -68,8 +70,11 @@ This scaffold includes:
 - catalog package fetch and install-to-leaf execution
 - rollback of the latest restore point from the popup
 - best-effort anonymous install-success telemetry POSTs to the external catalog/API
+- browsable catalog homepage on `/` with thumbnail cards and install counters
+- versioned JSON API under `/api/v1/*`
+- catalog-page extension bridge that shows the current scenario root and can trigger installs
 - repo-root Docker Compose stack for the external catalog/API
-- sample package manifest
+- sample package manifest and thumbnail asset
 - shared JSON schemas for package and telemetry payloads
 
 What is not implemented yet:
@@ -77,10 +82,13 @@ What is not implemented yet:
 - install diff preview before overwrite
 - restore-point browsing beyond the latest snapshot
 - automated test coverage for the install and rollback flow
+- public package detail pages beyond the homepage cards
 
 ## Catalog Runtime
 
 - The containerized catalog service is defined in [docker-compose.yml](/C:/github/AID-OneClick/docker-compose.yml).
+- The human-facing catalog is served from `/`.
+- The machine-facing API is served from `/api/v1/*`.
 - Runtime telemetry files are persisted under [apps/catalog/data/runtime](/C:/github/AID-OneClick/apps/catalog/data/runtime).
 - Catalog package manifests remain in [apps/catalog/data/packages](/C:/github/AID-OneClick/apps/catalog/data/packages).
 - Additional catalog runtime notes live in [apps/catalog/README.md](/C:/github/AID-OneClick/apps/catalog/README.md).

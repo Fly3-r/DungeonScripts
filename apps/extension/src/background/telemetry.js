@@ -1,7 +1,7 @@
-const INSTALL_SUCCESS_PATH = "/api/telemetry/install-success";
+const INSTALL_SUCCESS_PATH = "/api/v1/telemetry/install-success";
 
 export const postInstallSuccess = async (catalogOrigin, event) => {
-  const response = await fetch(`${catalogOrigin}${INSTALL_SUCCESS_PATH}`, {
+  const response = await fetch(new URL(INSTALL_SUCCESS_PATH, catalogOrigin), {
     method: "POST",
     headers: {
       "Content-Type": "application/json"

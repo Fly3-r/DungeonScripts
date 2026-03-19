@@ -8,74 +8,62 @@
   </head>
   <body>
     <main class="shell">
-      <section class="hero">
-        <p class="eyebrow">External Catalog/API</p>
-        <h1>AID One-Click</h1>
+      <section class="hero panel panel-hero">
+        <p class="eyebrow">External Catalog</p>
+        <h1>Install Scripts In One Click</h1>
         <p class="lede">
-          Minimal catalog service for local development. The Chrome extension fetches package
-          manifests from here and posts one anonymous install-success event after a full install.
+          Browse script packages, inspect authors and versions, and install directly into the
+          scenario currently loaded in the AID One-Click extension.
         </p>
       </section>
 
-      <section class="panel">
+      <section class="panel bridge-panel">
         <div class="panel-header">
-          <h2>Sample Packages</h2>
-          <code>GET /api/packages</code>
+          <div>
+            <p class="eyebrow">Extension Bridge</p>
+            <h2>Current Install Target</h2>
+          </div>
+          <button type="button" class="action-button secondary" data-oneclick-refresh>
+            Refresh Extension Status
+          </button>
+        </div>
+        <p id="extension-bridge-summary" class="bridge-summary">
+          Install the extension and open an AI Dungeon edit page to enable one-click install.
+        </p>
+        <dl class="bridge-grid">
+          <div>
+            <dt>Scenario Root</dt>
+            <dd id="extension-scenario-root">Unavailable</dd>
+          </div>
+          <div>
+            <dt>Scenario Title</dt>
+            <dd id="extension-scenario-title">Unavailable</dd>
+          </div>
+          <div>
+            <dt>Playable Leaves</dt>
+            <dd id="extension-leaf-count">Unavailable</dd>
+          </div>
+          <div>
+            <dt>Install State</dt>
+            <dd id="extension-install-state">Idle</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header panel-header-stack">
+          <div>
+            <p class="eyebrow">Catalog</p>
+            <h2>Available Packages</h2>
+          </div>
+          <p class="muted">Human-friendly cards on `/`, JSON under `/api/v1/*`.</p>
         </div>
         <div id="package-list" class="package-list">
           <p class="muted">Loading packages...</p>
         </div>
       </section>
-
-      <section class="panel endpoints">
-        <div class="panel-header">
-          <h2>API Endpoints</h2>
-        </div>
-        <ul>
-          <li><code>GET /health</code></li>
-          <li><code>GET /api/packages</code></li>
-          <li><code>GET /api/packages/:id</code></li>
-          <li><code>POST /api/telemetry/install-success</code></li>
-        </ul>
-      </section>
     </main>
 
-    <script>
-      const list = document.getElementById("package-list");
-
-      const render = async () => {
-        try {
-          const response = await fetch("/api/packages");
-          const data = await response.json();
-
-          if (!Array.isArray(data.packages) || data.packages.length === 0) {
-            list.innerHTML = "<p class='muted'>No packages found.</p>";
-            return;
-          }
-
-          list.innerHTML = data.packages
-            .map(
-              (pkg) => `
-                <article class="package-card">
-                  <div>
-                    <h3>${pkg.name}</h3>
-                    <p>${pkg.description || "No description provided."}</p>
-                  </div>
-                  <dl>
-                    <div><dt>ID</dt><dd><code>${pkg.id}</code></dd></div>
-                    <div><dt>Version</dt><dd>${pkg.version}</dd></div>
-                    <div><dt>Author</dt><dd>${pkg.author}</dd></div>
-                  </dl>
-                </article>
-              `
-            )
-            .join("");
-        } catch (error) {
-          list.innerHTML = `<p class="muted">Failed to load packages: ${error.message}</p>`;
-        }
-      };
-
-      render();
-    </script>
+    <script type="module" src="/app.js"></script>
   </body>
 </html>

@@ -1,3 +1,5 @@
+const API_BASE_PATH = "/api/v1";
+
 const assertPackageList = (payload) => {
   if (!payload?.ok || !Array.isArray(payload.packages)) {
     throw new Error("Catalog package list response was invalid.");
@@ -13,6 +15,7 @@ const assertPackageManifest = (payload) => {
     "name",
     "version",
     "author",
+    "thumbnailUrl",
     "sharedLibrary",
     "onInput",
     "onModelContext",
@@ -35,7 +38,7 @@ const assertPackageManifest = (payload) => {
 };
 
 export const fetchCatalogPackages = async (catalogOrigin) => {
-  const response = await fetch(`${catalogOrigin}/api/packages`);
+  const response = await fetch(new URL(`${API_BASE_PATH}/packages`, catalogOrigin));
   if (!response.ok) {
     throw new Error(`Catalog HTTP ${response.status}: ${response.statusText}`);
   }
@@ -46,7 +49,7 @@ export const fetchCatalogPackages = async (catalogOrigin) => {
 
 export const fetchCatalogPackage = async (catalogOrigin, packageId) => {
   const response = await fetch(
-    `${catalogOrigin}/api/packages/${encodeURIComponent(packageId)}`
+    new URL(`${API_BASE_PATH}/packages/${encodeURIComponent(packageId)}`, catalogOrigin)
   );
   if (!response.ok) {
     throw new Error(`Catalog HTTP ${response.status}: ${response.statusText}`);

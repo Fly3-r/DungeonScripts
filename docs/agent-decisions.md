@@ -67,3 +67,11 @@ The catalog container orchestration lives in the repo-root `docker-compose.yml`,
 
 Reason:
 The root is the operational entrypoint for the whole workspace, and keeping orchestration there avoids a second startup convention once more services are added.
+
+### Keep the public catalog usable without the extension and enhance it in place when the extension is present
+
+Decision:
+The catalog homepage should render and browse normally on its own, while the extension adds live scenario context and one-click install behavior when it is available on that origin.
+
+Reason:
+This avoids coupling the site to extension-only behavior while still delivering the richer workflow when the extension is installed.

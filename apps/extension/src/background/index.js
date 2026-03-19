@@ -27,6 +27,7 @@ import {
 import { postInstallSuccess } from "./telemetry.js";
 
 const BUSY_INSTALL_STATES = new Set(["loading", "rolling_back"]);
+const CATALOG_SITE_BRIDGE_ID = "catalog-site-bridge";
 
 const parseCatalogOrigin = (value) => {
   const parsed = new URL(value);
@@ -117,6 +118,51 @@ const requireInstallContext = ({ authState, scenarioState }) => {
   if (!scenarioState?.origin) {
     throw new Error("AI Dungeon origin is unavailable for this scenario.");
   }
+};
+
+const buildOriginPattern = (catalogOrigin) => `${catalogOrigin}/*`;
+
+const ensureCatalogOriginPermission = async (catalogOrigin, allowPrompt = false) => {
+  const origins = [buildOriginPattern(catalogOrigin)];
+  const hasAccess = await chrome.permissions.contains({ origins });
+
+  if (hasAccess) {
+    return true;
+  }
+
+  if (!allowPrompt) {
+    return false;
+  }
+
+  try {
+    return await chrome.permissions.request({ origins });
+  } catch {
+    return false;
+  }
+};
+
+const syncCatalogSiteBridge = async (catalogOrigin, { allowPrompt = false } = {}) => {
+  const hasPermission = await ensureCatalogOriginPermission(catalogOrigin, allowPrompt);
+  if (!hasPermission) {
+    return false;
+  }
+
+  try {
+    await chrome.scripting.unregisterContentScripts({ ids: [CATALOG_SITE_BRIDGE_ID] });
+  } catch {
+    // Ignore missing registrations.
+  }
+
+  await chrome.scripting.registerContentScripts([
+    {
+      id: CATALOG_SITE_BRIDGE_ID,
+      matches: [buildOriginPattern(catalogOrigin)],
+      js: ["src/catalog/index.js"],
+      runAt: "document_idle"
+    }
+  ]);
+
+  return true;
 };
 
 const refreshScenarioState = async () => {
@@ -406,11 +452,25 @@ const rollbackLatestInstall = async () => {
   }
 };
 
+const initCatalogBridge = async (catalogOrigin, { allowPrompt = false } = {}) => {
+  try {
+    return await syncCatalogSiteBridge(catalogOrigin, { allowPrompt });
+  } catch (error) {
+    console.warn("[catalog-bridge] failed to sync content script", error);
+    return false;
+  }
+};
+
 chrome.runtime.onInstalled.addListener(async () => {
   const settings = await loadSettings();
-  await saveSettings({
-    catalogOrigin: settings.catalogOrigin || DEFAULT_CATALOG_ORIGIN
-  });
+  const catalogOrigin = settings.catalogOrigin || DEFAULT_CATALOG_ORIGIN;
+  await saveSettings({ catalogOrigin });
+  await initCatalogBridge(catalogOrigin);
+});
+
+chrome.runtime.onStartup.addListener(async () => {
+  const settings = await loadSettings();
+  await initCatalogBridge(settings.catalogOrigin || DEFAULT_CATALOG_ORIGIN);
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -469,7 +529,14 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === MESSAGE_TYPES.SET_CATALOG_ORIGIN) {
     Promise.resolve()
       .then(() => parseCatalogOrigin(message.catalogOrigin))
-      .then((catalogOrigin) => saveSettings({ catalogOrigin }))
+      .then(async (catalogOrigin) => {
+        const bridgeReady = await initCatalogBridge(catalogOrigin, { allowPrompt: true });
+        if (!bridgeReady) {
+          throw new Error(`Permission to access ${catalogOrigin} was not granted.`);
+        }
+
+        await saveSettings({ catalogOrigin });
+      })
       .then(() => sendResponse({ ok: true }))
       .catch((error) => sendResponse({ ok: false, error: error.message }));
     return true;

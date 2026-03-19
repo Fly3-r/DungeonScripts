@@ -5,7 +5,8 @@
   "description": "One-click script installs for AI Dungeon scenario leaves.",
   "permissions": [
     "storage",
-    "tabs"
+    "tabs",
+    "scripting"
   ],
   "host_permissions": [
     "https://play.aidungeon.com/*",
@@ -16,6 +17,10 @@
     "https://api-alpha.aidungeon.com/*",
     "http://127.0.0.1:3000/*",
     "http://localhost:3000/*"
+  ],
+  "optional_host_permissions": [
+    "http://*/*",
+    "https://*/*"
   ],
   "background": {
     "service_worker": "src/background/index.js",

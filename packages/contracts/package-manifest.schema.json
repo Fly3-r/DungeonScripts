@@ -10,6 +10,7 @@
     "version",
     "description",
     "author",
+    "thumbnailUrl",
     "sharedLibrary",
     "onInput",
     "onModelContext",
@@ -34,6 +35,10 @@
       "type": "string"
     },
     "author": {
+      "type": "string",
+      "minLength": 1
+    },
+    "thumbnailUrl": {
       "type": "string",
       "minLength": 1
     },

@@ -99,3 +99,27 @@ The external catalog/API should be started primarily through a repo-root `docker
 
 Reason:
 Compose gives the project one consistent self-hosting command, keeps runtime persistence explicit, and leaves room for additional services without replacing the operational entrypoint later.
+
+### Serve the human catalog on `/` and version the JSON API under `/api/v1/*`
+
+Decision:
+The browsable catalog homepage lives at `/`, while machine-readable catalog and telemetry endpoints live under `/api/v1/*`.
+
+Reason:
+This cleanly separates user-facing pages from client-facing integrations, and it gives the API room to evolve without restructuring the public website later.
+
+### Compute install counters server-side instead of storing them in package manifests
+
+Decision:
+Package manifests remain the source of static package metadata, while install counters are derived from telemetry data on the server and attached to API responses.
+
+Reason:
+Install counts are dynamic operational data. Keeping them out of the manifests avoids noisy content churn and preserves a clean boundary between package definitions and runtime analytics.
+
+### Let the catalog page show the current extension target before install
+
+Decision:
+When the extension is present on the catalog site, it should surface the current scenario root, title, and playable leaf count directly on the page before the user confirms an install.
+
+Reason:
+The install site should make the target explicit. Showing the current scenario context reduces uncertainty and makes one-click install trustworthy enough to use from an external catalog page.
