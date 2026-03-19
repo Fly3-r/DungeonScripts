@@ -1,4 +1,4 @@
-{
+﻿{
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://aid-oneclick.local/schemas/package-manifest.schema.json",
   "title": "AID One-Click Package Manifest",
@@ -10,7 +10,6 @@
     "version",
     "description",
     "author",
-    "thumbnailUrl",
     "sharedLibrary",
     "onInput",
     "onModelContext",

@@ -1,4 +1,4 @@
-# Contracts
+﻿# Contracts
 
 Shared payload definitions for the AID One-Click scaffold.
 
@@ -8,5 +8,5 @@ Current contracts:
 
 These schemas are intentionally narrow:
 - package manifests describe script payloads fetched by the extension
-- manifests now include `thumbnailUrl` so the public catalog can render cards without a separate asset registry
+- `thumbnailUrl` is optional in source manifests because the catalog API applies a bundled fallback thumbnail when one is omitted
 - install-success telemetry allows only the single anonymous success event

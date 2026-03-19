@@ -1,4 +1,4 @@
-import { DEFAULT_CATALOG_ORIGIN } from "./constants.js";
+﻿import { DEFAULT_CATALOG_ORIGIN } from "./constants.js";
 
 const STORAGE_KEYS = {
   editorContext: "editorContext",

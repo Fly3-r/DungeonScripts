@@ -1,4 +1,4 @@
-import { getAidGraphqlUrl } from "./constants.js";
+﻿import { getAidGraphqlUrl } from "./constants.js";
 import { queryScenario } from "./query-scenario.js";
 
 export const discoverScenarioLeaves = async ({ token, origin, rootShortId }) => {
@@ -43,11 +43,14 @@ export const discoverScenarioLeaves = async ({ token, origin, rootShortId }) => 
 
   await walk(rootShortId);
 
+  const targetCount = new Set([rootShortId, ...leaves.map((leaf) => leaf.shortId)]).size;
+
   return {
     rootShortId,
     rootTitle: rootTitle || "Untitled",
     branchCount,
     leafCount: leaves.length,
+    targetCount,
     leaves
   };
 };

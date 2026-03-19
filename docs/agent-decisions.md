@@ -109,4 +109,21 @@ Reason:
 The extension already exposes enough status to know when rollback is relevant. Using visibility instead of a permanent disabled state reduces clutter without adding another render path.
 
 
+### Normalize thumbnail fallbacks in the catalog service instead of only in the page client
+
+Decision:
+The catalog service should inject the fallback thumbnail URL into package list and manifest responses, while the page keeps a client-side image-error fallback as a second line of defense.
+
+Reason:
+Normalizing the thumbnail at the API boundary keeps the catalog website and extension clients in sync, and the extra browser-side fallback still protects against broken asset URLs.
+
+### Reuse one deduped target set for snapshot, install, and rollback
+
+Decision:
+The extension should build a single deduped target list consisting of the root scenario plus playable leaves, and use that same list for restore-point capture, script writes, and rollback.
+
+Reason:
+Using one target set avoids root/leaf drift, prevents duplicate writes when the root is also a leaf, and keeps rollback coverage aligned with what the install actually changed.
+
+
 

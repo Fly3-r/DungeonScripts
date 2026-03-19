@@ -25,16 +25,54 @@ if (!globalThis[BRIDGE_FLAG]) {
   let transientNotice = "Checking extension status...";
   let currentAction = null;
 
+  const getScenarioTargetCount = (scenarioState) => {
+    if (Number.isInteger(scenarioState?.targetCount) && scenarioState.targetCount > 0) {
+      return scenarioState.targetCount;
+    }
+
+    if (Number.isInteger(scenarioState?.leafCount) && scenarioState.leafCount > 0) {
+      return scenarioState.leafCount;
+    }
+
+    return 0;
+  };
+
+  const getRestoreTargetCount = (restorePoint) => {
+    if (Number.isInteger(restorePoint?.targetCount) && restorePoint.targetCount > 0) {
+      return restorePoint.targetCount;
+    }
+
+    if (Number.isInteger(restorePoint?.leafCount) && restorePoint.leafCount > 0) {
+      return restorePoint.leafCount;
+    }
+
+    return 0;
+  };
+
+  const describeTargetCount = (targetCount, leafCount = null) => {
+    if (!Number.isInteger(targetCount) || targetCount <= 0) {
+      return "0 scenario targets";
+    }
+
+    const targetLabel = targetCount === 1 ? "target" : "targets";
+    if (Number.isInteger(leafCount) && targetCount > leafCount) {
+      const leafLabel = leafCount === 1 ? "leaf" : "leaves";
+      return `${targetCount} scenario ${targetLabel} (root + ${leafCount} playable ${leafLabel})`;
+    }
+
+    return `${targetCount} scenario ${targetLabel}`;
+  };
+
   const formatInstallState = (installState) => {
     switch (installState?.status) {
       case "loading":
         return "Installing...";
       case "ready":
-        return `Installed to ${installState.appliedCount || 0} leaves`;
+        return `Installed to ${describeTargetCount(installState.appliedCount)}`;
       case "rolling_back":
         return "Rolling back...";
       case "rolled_back":
-        return `Rolled back ${installState.appliedCount || 0} leaves`;
+        return `Rolled back ${describeTargetCount(installState.appliedCount)}`;
       case "error":
         return installState.error || "Install error";
       default:
@@ -87,7 +125,7 @@ if (!globalThis[BRIDGE_FLAG]) {
       return scenarioState?.error || "Extension detected. Waiting for the scenario tree to finish loading.";
     }
 
-    return `Extension ready. Installs will target ${scenarioState.leafCount} playable leaves under the current scenario.`;
+    return `Extension ready. Installs will target ${describeTargetCount(getScenarioTargetCount(scenarioState), scenarioState.leafCount)} under the current scenario.`;
   };
 
   const updateStatusPanel = () => {
@@ -117,8 +155,7 @@ if (!globalThis[BRIDGE_FLAG]) {
       latestStatus?.ok &&
       latestStatus?.authState?.hasToken &&
       latestStatus?.scenarioState?.status === "ready" &&
-      Number.isInteger(latestStatus?.scenarioState?.leafCount) &&
-      latestStatus.scenarioState.leafCount > 0 &&
+      getScenarioTargetCount(latestStatus?.scenarioState) > 0 &&
       latestStatus?.settings?.catalogOrigin === window.location.origin;
     const canRollback =
       latestStatus?.ok &&
@@ -186,9 +223,13 @@ if (!globalThis[BRIDGE_FLAG]) {
       rootTitle: scenarioState?.rootTitle,
       rootShortId: scenarioState?.rootShortId
     });
+    const targetSummary = describeTargetCount(
+      getScenarioTargetCount(scenarioState),
+      scenarioState?.leafCount
+    );
 
     const confirmed = window.confirm(
-      `Install \"${packageName}\" to ${scenarioLabel}? This will update ${scenarioState.leafCount} playable leaves.`
+      `Install \"${packageName}\" to ${scenarioLabel}? This will update ${targetSummary}.`
     );
 
     if (!confirmed) {
@@ -213,7 +254,7 @@ if (!globalThis[BRIDGE_FLAG]) {
         throw new Error(response?.error || "Install failed.");
       }
 
-      transientNotice = `Install complete. ${packageName} applied to ${response.installState?.appliedCount || 0} playable leaves.`;
+      transientNotice = `Install complete. ${packageName} applied to ${describeTargetCount(response.installState?.appliedCount || 0)}.`;
     } catch (error) {
       transientNotice = error.message;
     } finally {
@@ -240,10 +281,13 @@ if (!globalThis[BRIDGE_FLAG]) {
       rootTitle: restorePoint.rootTitle,
       rootShortId: restorePoint.rootShortId
     });
-    const leafCount = restorePoint.leafCount || 0;
+    const targetSummary = describeTargetCount(
+      getRestoreTargetCount(restorePoint),
+      restorePoint.leafCount
+    );
 
     const confirmed = window.confirm(
-      `Rollback ${packageLabel} on ${scenarioLabel}? This will restore ${leafCount} playable leaves to their saved pre-install state.`
+      `Rollback ${packageLabel} on ${scenarioLabel}? This will restore ${targetSummary} to their saved pre-install state.`
     );
 
     if (!confirmed) {
@@ -267,7 +311,7 @@ if (!globalThis[BRIDGE_FLAG]) {
         throw new Error(response?.error || "Rollback failed.");
       }
 
-      transientNotice = `Rollback complete. Restored ${response.installState?.appliedCount || 0} playable leaves for ${packageLabel}.`;
+      transientNotice = `Rollback complete. Restored ${describeTargetCount(response.installState?.appliedCount || 0)} for ${packageLabel}.`;
     } catch (error) {
       transientNotice = error.message;
     } finally {
@@ -328,4 +372,3 @@ if (!globalThis[BRIDGE_FLAG]) {
   refreshExtensionState();
   setInterval(refreshExtensionState, POLL_MS);
 }
-

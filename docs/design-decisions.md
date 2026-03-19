@@ -12,13 +12,13 @@ The Chrome extension is the client. The script catalog and telemetry endpoint li
 Reason:
 This keeps catalog delivery, telemetry handling, and hosting concerns separate from the browser extension package. It also allows self-hosting via Docker without coupling hosting logic to Chrome.
 
-### Use root as the control point, but install to playable leaves
+### Use root as the control point, and install to the root plus playable leaves
 
 Decision:
-The extension UI treats the root scenario as the control point, but actual script installation targets all playable leaf branches.
+The extension UI treats the root scenario as the control point, and actual script installation targets the root scenario plus every playable leaf branch.
 
 Reason:
-The MCA findings indicate branches are self-contained and child branches do not inherit scripts from parents. Root-only script authoring can still exist as a UX concept, but deployment must write to leaves.
+The MCA findings indicate branches are self-contained and child branches do not inherit scripts from parents. Writing the root keeps the scenario entry point aligned with the installed package, while leaf writes preserve behavior for playable branches.
 
 ### Backup and rollback are first-class MVP requirements
 
@@ -147,6 +147,15 @@ The catalog page should keep the rollback button hidden until the extension repo
 
 Reason:
 A disabled rollback button adds noise before the user has installed anything. Hiding it until it becomes relevant keeps the card simpler while still surfacing rollback immediately after install activity begins.
+
+
+### Allow package manifests to omit thumbnails when a fallback image is available
+
+Decision:
+Source package manifests may omit `thumbnailUrl`, and the catalog service will substitute a bundled placeholder image in API responses.
+
+Reason:
+Thumbnail artwork should improve package browsing, but it should not be a hard publishing requirement. Applying the fallback at the API boundary keeps both the website and extension responses consistent.
 
 
 

@@ -1,4 +1,4 @@
-import { MESSAGE_TYPES } from "../shared/constants.js";
+ï»¿import { MESSAGE_TYPES } from "../shared/constants.js";
 
 const STATUS_REFRESH_MS = 2000;
 
@@ -42,6 +42,44 @@ const formatTimestamp = (value) => {
   return new Date(value).toLocaleString();
 };
 
+const getScenarioTargetCount = (scenarioState) => {
+  if (Number.isInteger(scenarioState?.targetCount) && scenarioState.targetCount > 0) {
+    return scenarioState.targetCount;
+  }
+
+  if (Number.isInteger(scenarioState?.leafCount) && scenarioState.leafCount > 0) {
+    return scenarioState.leafCount;
+  }
+
+  return 0;
+};
+
+const getRestoreTargetCount = (restorePoint) => {
+  if (Number.isInteger(restorePoint?.targetCount) && restorePoint.targetCount > 0) {
+    return restorePoint.targetCount;
+  }
+
+  if (Number.isInteger(restorePoint?.leafCount) && restorePoint.leafCount > 0) {
+    return restorePoint.leafCount;
+  }
+
+  return 0;
+};
+
+const describeTargetCount = (targetCount, leafCount = null) => {
+  if (!Number.isInteger(targetCount) || targetCount <= 0) {
+    return "0 scenario targets";
+  }
+
+  const targetLabel = targetCount === 1 ? "target" : "targets";
+  if (Number.isInteger(leafCount) && targetCount > leafCount) {
+    const leafLabel = leafCount === 1 ? "leaf" : "leaves";
+    return `${targetCount} scenario ${targetLabel} (root + ${leafCount} playable ${leafLabel})`;
+  }
+
+  return `${targetCount} scenario ${targetLabel}`;
+};
+
 const describeScenarioAccess = (scenarioState) => {
   switch (scenarioState?.status) {
     case "ready":
@@ -60,11 +98,11 @@ const describeInstallState = (installState) => {
     case "loading":
       return "Installing...";
     case "ready":
-      return `Installed to ${installState.appliedCount || 0} leaves`;
+      return `Installed to ${describeTargetCount(installState.appliedCount)}`;
     case "rolling_back":
       return "Rolling back...";
     case "rolled_back":
-      return `Rolled back ${installState.appliedCount || 0} leaves`;
+      return `Rolled back ${describeTargetCount(installState.appliedCount)}`;
     case "error":
       return "Error";
     default:
@@ -78,19 +116,19 @@ const describeRestorePoint = (restorePoint) => {
   }
 
   const packageLabel = restorePoint.packageName || restorePoint.packageId;
-  return `${packageLabel} ${restorePoint.packageVersion} on ${restorePoint.leafCount} leaves at ${formatTimestamp(restorePoint.createdAt)}`;
+  return `${packageLabel} ${restorePoint.packageVersion} on ${describeTargetCount(getRestoreTargetCount(restorePoint), restorePoint.leafCount)} at ${formatTimestamp(restorePoint.createdAt)}`;
 };
 
 const describeNotice = ({ authState, scenarioState, installState }) => {
   switch (installState?.status) {
     case "loading":
-      return `Installing ${installState.packageName || installState.packageId || "package"} to playable leaves...`;
+      return `Installing ${installState.packageName || installState.packageId || "package"} to scenario targets...`;
     case "ready":
-      return `Install complete. Applied to ${installState.appliedCount || 0} playable leaves.`;
+      return `Install complete. Applied to ${describeTargetCount(installState.appliedCount)}.`;
     case "rolling_back":
       return "Rolling back the latest restore point...";
     case "rolled_back":
-      return `Rollback complete. Restored ${installState.appliedCount || 0} playable leaves.`;
+      return `Rollback complete. Restored ${describeTargetCount(installState.appliedCount)}.`;
     case "error":
       return installState.error || "Install failed.";
     default:
@@ -106,7 +144,8 @@ const describeNotice = ({ authState, scenarioState, installState }) => {
   }
 
   if (scenarioState?.status === "ready") {
-    return `Scenario tree loaded. Found ${scenarioState.leafCount} playable leaves.`;
+    const leafLabel = scenarioState.leafCount === 1 ? "leaf" : "leaves";
+    return `Scenario tree loaded. Found ${scenarioState.leafCount} playable ${leafLabel} and ${describeTargetCount(getScenarioTargetCount(scenarioState), scenarioState.leafCount)}.`;
   }
 
   return "Ready.";
@@ -148,26 +187,24 @@ const renderPackageMeta = () => {
   }
 
   const description = selectedPackage.description || "No package description available.";
-  elements.packageMeta.textContent = `${selectedPackage.author} · ${selectedPackage.version} · ${description}`;
+  elements.packageMeta.textContent = `${selectedPackage.author} Â· ${selectedPackage.version} Â· ${description}`;
 };
 
 const updateActionAvailability = (response) => {
   const installState = response?.installState || { status: "idle" };
   const authState = response?.authState || { hasToken: false };
-  const scenarioState = response?.scenarioState || { status: "idle", leafCount: 0 };
+  const scenarioState = response?.scenarioState || { status: "idle", targetCount: 0, leafCount: 0 };
   const busy = installState.status === "loading" || installState.status === "rolling_back";
   const canInstall =
     !busy &&
     authState.hasToken &&
     scenarioState.status === "ready" &&
-    Number.isInteger(scenarioState.leafCount) &&
-    scenarioState.leafCount > 0 &&
+    getScenarioTargetCount(scenarioState) > 0 &&
     !!elements.packageSelect.value;
 
   elements.refreshPackages.disabled = busy;
   elements.installSelected.disabled = !canInstall;
-  elements.rollbackLatest.disabled =
-    busy || !authState.hasToken || !response?.latestRestorePoint;
+  elements.rollbackLatest.disabled = busy || !authState.hasToken || !response?.latestRestorePoint;
 };
 
 const loadStatus = async () => {
@@ -300,8 +337,8 @@ elements.installSelected.addEventListener("click", async () => {
     return;
   }
 
-  const installedLeaves = response.installState?.appliedCount || 0;
-  setNotice(`Install complete. Applied to ${installedLeaves} playable leaves.`);
+  const installedTargets = response.installState?.appliedCount || 0;
+  setNotice(`Install complete. Applied to ${describeTargetCount(installedTargets)}.`);
 });
 
 elements.rollbackLatest.addEventListener("click", async () => {
@@ -317,8 +354,8 @@ elements.rollbackLatest.addEventListener("click", async () => {
     return;
   }
 
-  const restoredLeaves = response.installState?.appliedCount || 0;
-  setNotice(`Rollback complete. Restored ${restoredLeaves} playable leaves.`);
+  const restoredTargets = response.installState?.appliedCount || 0;
+  setNotice(`Rollback complete. Restored ${describeTargetCount(restoredTargets)}.`);
 });
 
 const init = async () => {
@@ -335,3 +372,5 @@ setInterval(() => {
     setNotice(error.message);
   });
 }, STATUS_REFRESH_MS);
+
+

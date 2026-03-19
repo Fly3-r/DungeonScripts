@@ -55,7 +55,7 @@ docs/
 
 5. Open the catalog homepage at `/` and confirm the extension bridge shows the current scenario root before installing.
 
-6. Click `One-Click Install` from the catalog page or `Install To Leaves` from the popup.
+6. Click `One-Click Install` from the catalog page or `Install To Targets` from the popup.
 
 7. If needed, click `Rollback Latest` in the popup or from the matching catalog card to restore the most recent pre-install snapshot.
 
@@ -67,10 +67,10 @@ This scaffold includes:
 - AI Dungeon editor detection and auth token extraction plumbing
 - authenticated AI Dungeon scenario reads and leaf discovery
 - restore-point capture before script mutations
-- catalog package fetch and install-to-leaf execution
+- catalog package fetch and install-to-root-plus-leaves execution
 - rollback of the latest restore point from the popup and matching catalog card
 - best-effort anonymous install-success telemetry POSTs to the external catalog/API
-- browsable catalog homepage on `/` with thumbnail cards and install counters
+- browsable catalog homepage on `/` with thumbnail cards, fallback placeholder artwork, and install counters
 - versioned JSON API under `/api/v1/*`
 - catalog-page extension bridge that shows the current scenario root and can trigger installs
 - repo-root Docker Compose stack for the external catalog/API

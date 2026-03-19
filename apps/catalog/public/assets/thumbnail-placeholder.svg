@@ -1,0 +1,90 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+  <title id="title">No image available</title>
+  <desc id="desc">Pastel placeholder thumbnail with a document icon and the words no image available.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8fd0ff"/>
+      <stop offset="55%" stop-color="#b9e1ff"/>
+      <stop offset="100%" stop-color="#f7fbff"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="55%" r="45%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#eef3ff"/>
+    </linearGradient>
+    <linearGradient id="paperEdge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8ea5ff"/>
+      <stop offset="100%" stop-color="#5e79f0"/>
+    </linearGradient>
+    <linearGradient id="button" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#93b1ff"/>
+      <stop offset="100%" stop-color="#5c78f0"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#6580e7" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="675" fill="url(#sky)"/>
+  <rect width="1200" height="675" fill="url(#glow)"/>
+
+  <g opacity="0.95">
+    <circle cx="155" cy="128" r="78" fill="#fff6fb"/>
+    <circle cx="241" cy="98" r="46" fill="#ffe0f1"/>
+    <circle cx="1022" cy="120" r="70" fill="#fff2fb"/>
+    <circle cx="1105" cy="96" r="42" fill="#ffd8ee"/>
+    <circle cx="120" cy="515" r="84" fill="#f8fff3"/>
+    <circle cx="1060" cy="548" r="88" fill="#f7fff1"/>
+  </g>
+
+  <g fill="#ffd2ea" opacity="0.9">
+    <circle cx="84" cy="58" r="10"/>
+    <circle cx="112" cy="44" r="12"/>
+    <circle cx="142" cy="60" r="11"/>
+    <circle cx="1068" cy="53" r="10"/>
+    <circle cx="1096" cy="40" r="12"/>
+    <circle cx="1128" cy="58" r="11"/>
+    <circle cx="70" cy="620" r="10"/>
+    <circle cx="1090" cy="608" r="10"/>
+    <circle cx="1030" cy="175" r="8"/>
+    <circle cx="160" cy="214" r="9"/>
+  </g>
+
+  <g fill="#ffffff" opacity="0.95">
+    <path d="M88 178c24-36 52-54 84-54 26 0 50 12 72 34 8-6 18-9 29-9 29 0 53 24 53 53 0 3 0 7-1 10h-237c-6-10-9-20-9-31 0-1 0-2 0-3 0-1 0-1 0 0z"/>
+    <path d="M885 188c18-28 41-42 68-42 22 0 42 10 60 28 7-5 15-8 25-8 24 0 44 20 44 44 0 3 0 6-1 9H887c-5-8-7-16-7-25 0-2 0-4 1-6 0 0 0 0 0 0z"/>
+  </g>
+
+  <g fill="#ffffff" opacity="0.8">
+    <circle cx="303" cy="160" r="8"/>
+    <circle cx="358" cy="118" r="5"/>
+    <circle cx="933" cy="152" r="6"/>
+    <circle cx="979" cy="218" r="5"/>
+    <circle cx="245" cy="552" r="6"/>
+    <circle cx="988" cy="516" r="7"/>
+    <circle cx="624" cy="102" r="5"/>
+    <circle cx="700" cy="134" r="6"/>
+    <circle cx="522" cy="186" r="4"/>
+  </g>
+
+  <g filter="url(#softShadow)">
+    <rect x="390" y="122" width="360" height="448" rx="28" fill="#7f95ef" opacity="0.35" transform="rotate(-12 390 122)"/>
+    <path d="M462 96h274c18 0 32 14 32 32v356c0 18-14 32-32 32H462c-18 0-32-14-32-32V128c0-18 14-32 32-32z" fill="url(#paper)" stroke="url(#paperEdge)" stroke-width="5"/>
+    <path d="M678 96l90 90h-58c-18 0-32-14-32-32V96z" fill="#f5f8ff" stroke="url(#paperEdge)" stroke-width="5" stroke-linejoin="round"/>
+
+    <rect x="482" y="156" width="46" height="46" rx="12" fill="#e8f0ff"/>
+    <rect x="482" y="228" width="220" height="12" rx="6" fill="#d7e3ff"/>
+    <rect x="482" y="258" width="254" height="12" rx="6" fill="#d7e3ff"/>
+    <rect x="482" y="288" width="198" height="12" rx="6" fill="#d7e3ff"/>
+    <rect x="482" y="324" width="234" height="98" rx="16" fill="#eef4ff"/>
+
+    <circle cx="600" cy="333" r="82" fill="url(#button)" stroke="#f5f8ff" stroke-width="6"/>
+    <path d="M582 296l54 37-54 37z" fill="#ffffff"/>
+
+    <text x="600" y="486" text-anchor="middle" fill="#5e79f0" font-family="Georgia, 'Times New Roman', serif" font-size="44" font-weight="700" letter-spacing="2">NO IMAGE</text>
+    <text x="600" y="538" text-anchor="middle" fill="#5e79f0" font-family="Georgia, 'Times New Roman', serif" font-size="44" font-weight="700" letter-spacing="2">AVAILABLE</text>
+  </g>
+</svg>

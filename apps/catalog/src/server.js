@@ -1,4 +1,4 @@
-import { createServer } from "node:http";
+﻿import { createServer } from "node:http";
 import { appendFile, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -26,13 +26,19 @@ const allowedEventKeys = [
   "timestamp"
 ];
 const API_BASE_PATH = "/api/v1";
+const DEFAULT_THUMBNAIL_PATH = "/assets/thumbnail-placeholder.svg";
 const CONTENT_TYPES = {
   ".css": "text/css; charset=utf-8",
+  ".gif": "image/gif",
   ".html": "text/html; charset=utf-8",
+  ".jpeg": "image/jpeg",
+  ".jpg": "image/jpeg",
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
+  ".png": "image/png",
   ".svg": "image/svg+xml; charset=utf-8",
-  ".txt": "text/plain; charset=utf-8"
+  ".txt": "text/plain; charset=utf-8",
+  ".webp": "image/webp"
 };
 
 const json = (res, statusCode, payload) => {
@@ -139,15 +145,14 @@ const loadInstallCounts = async () => {
   }
 };
 
-const getPublicAssetUrl = (value) => {
-  if (typeof value !== "string" || value.trim().length === 0) {
-    return "";
-  }
+const getPublicAssetUrl = (value, fallback = DEFAULT_THUMBNAIL_PATH) => {
+  const candidate =
+    typeof value === "string" && value.trim().length > 0 ? value.trim() : fallback;
 
   try {
-    return new URL(value).toString();
+    return new URL(candidate).toString();
   } catch {
-    return new URL(value, publicBaseUrl).toString();
+    return new URL(candidate, publicBaseUrl).toString();
   }
 };
 
@@ -227,9 +232,13 @@ const servePublicAsset = async (res, pathname) => {
   }
 
   try {
-    const body = await readFile(resolved, "utf8");
+    const body = await readFile(resolved);
     const extname = path.extname(resolved).toLowerCase();
-    text(res, 200, body, CONTENT_TYPES[extname] || "application/octet-stream");
+    res.writeHead(200, {
+      "Content-Type": CONTENT_TYPES[extname] || "application/octet-stream",
+      "Content-Length": body.byteLength
+    });
+    res.end(body);
   } catch {
     notFound(res);
   }
@@ -244,7 +253,10 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    if (req.method === "GET" && (url.pathname === `${API_BASE_PATH}/packages` || url.pathname === "/api/packages")) {
+    if (
+      req.method === "GET" &&
+      (url.pathname === `${API_BASE_PATH}/packages` || url.pathname === "/api/packages")
+    ) {
       const [manifests, installCounts] = await Promise.all([loadPackages(), loadInstallCounts()]);
       json(res, 200, {
         ok: true,
@@ -255,7 +267,8 @@ const server = createServer(async (req, res) => {
 
     if (
       req.method === "GET" &&
-      (url.pathname.startsWith(`${API_BASE_PATH}/packages/`) || url.pathname.startsWith("/api/packages/"))
+      (url.pathname.startsWith(`${API_BASE_PATH}/packages/`) ||
+        url.pathname.startsWith("/api/packages/"))
     ) {
       const prefix = url.pathname.startsWith(`${API_BASE_PATH}/packages/`)
         ? `${API_BASE_PATH}/packages/`

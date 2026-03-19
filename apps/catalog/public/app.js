@@ -1,4 +1,5 @@
-﻿const packageList = document.getElementById("package-list");
+﻿const FALLBACK_THUMBNAIL_URL = "/assets/thumbnail-placeholder.svg";
+const packageList = document.getElementById("package-list");
 
 const createStat = (label, value) => {
   const wrapper = document.createElement("div");
@@ -19,6 +20,15 @@ const renderEmpty = (message) => {
   packageList.append(paragraph);
 };
 
+const applyFallbackThumbnail = (image) => {
+  if (image.dataset.fallbackApplied === "true") {
+    return;
+  }
+
+  image.dataset.fallbackApplied = "true";
+  image.src = FALLBACK_THUMBNAIL_URL;
+};
+
 const renderPackages = (packages) => {
   if (!Array.isArray(packages) || packages.length === 0) {
     renderEmpty("No packages found.");
@@ -37,7 +47,11 @@ const renderPackages = (packages) => {
     const thumbnail = document.createElement("img");
     thumbnail.className = "package-thumb";
     thumbnail.alt = `${pkg.name} thumbnail`;
-    thumbnail.src = pkg.thumbnailUrl;
+    thumbnail.loading = "lazy";
+    thumbnail.src = pkg.thumbnailUrl || FALLBACK_THUMBNAIL_URL;
+    thumbnail.addEventListener("error", () => applyFallbackThumbnail(thumbnail), {
+      once: false
+    });
 
     const body = document.createElement("div");
     body.className = "package-body";
@@ -110,4 +124,3 @@ const render = async () => {
 };
 
 render();
-

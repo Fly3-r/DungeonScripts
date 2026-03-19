@@ -1,4 +1,4 @@
-import {
+﻿import {
   DEFAULT_CATALOG_ORIGIN,
   MESSAGE_TYPES
 } from "../shared/constants.js";
@@ -20,8 +20,9 @@ import {
 import { discoverScenarioLeaves } from "./aid/discover-leaves.js";
 import { fetchCatalogPackage, fetchCatalogPackages } from "./catalog.js";
 import {
+  buildInstallTargets,
   createRestorePoint,
-  installPackageToLeaves,
+  installPackageToTargets,
   restoreFromPoint
 } from "./install.js";
 import { postInstallSuccess } from "./telemetry.js";
@@ -102,7 +103,8 @@ const toPublicRestorePoint = (restorePoint) => {
     packageId: restorePoint.packageId,
     packageName: restorePoint.packageName,
     packageVersion: restorePoint.packageVersion,
-    leafCount: restorePoint.leafCount
+    leafCount: restorePoint.leafCount,
+    targetCount: restorePoint.targetCount ?? restorePoint.leafCount
   };
 };
 
@@ -112,16 +114,19 @@ const requireInstallContext = ({ authState, scenarioState }) => {
   }
 
   if (scenarioState?.status !== "ready") {
-    throw new Error("Scenario leaves are not ready yet. Wait for the tree to finish loading.");
+    throw new Error("Scenario targets are not ready yet. Wait for the tree to finish loading.");
   }
 
-  if (!Array.isArray(scenarioState?.leaves) || scenarioState.leaves.length === 0) {
-    throw new Error("No playable leaves were found for this scenario.");
+  const installTargets = buildInstallTargets(scenarioState);
+  if (installTargets.length === 0) {
+    throw new Error("No scenario targets were found for this scenario.");
   }
 
   if (!scenarioState?.origin) {
     throw new Error("AI Dungeon origin is unavailable for this scenario.");
   }
+
+  return installTargets;
 };
 
 const buildOriginPattern = (catalogOrigin) => `${catalogOrigin}/*`;
@@ -208,6 +213,7 @@ const refreshScenarioState = async () => {
       origin: editorContext?.origin || null,
       branchCount: 0,
       leafCount: 0,
+      targetCount: 0,
       leaves: [],
       updatedAt: new Date().toISOString(),
       status: "idle",
@@ -223,6 +229,7 @@ const refreshScenarioState = async () => {
       origin: editorContext.origin,
       branchCount: 0,
       leafCount: 0,
+      targetCount: 0,
       leaves: [],
       updatedAt: new Date().toISOString(),
       status: "idle",
@@ -261,6 +268,7 @@ const refreshScenarioState = async () => {
       origin: editorContext.origin,
       branchCount: 0,
       leafCount: 0,
+      targetCount: 0,
       leaves: [],
       updatedAt: new Date().toISOString(),
       status: "error",
@@ -314,7 +322,7 @@ const installSelectedPackage = async (packageId) => {
     throw new Error("Another install action is already running.");
   }
 
-  requireInstallContext({ authState, scenarioState });
+  const installTargets = requireInstallContext({ authState, scenarioState });
 
   let pkg = null;
   let restorePoint = null;
@@ -339,14 +347,15 @@ const installSelectedPackage = async (packageId) => {
       token: authState.token,
       origin: scenarioState.origin,
       scenarioState,
-      pkg
+      pkg,
+      targets: installTargets
     });
     await addRestorePoint(restorePoint);
 
-    const result = await installPackageToLeaves({
+    const result = await installPackageToTargets({
       token: authState.token,
       origin: scenarioState.origin,
-      leaves: scenarioState.leaves,
+      targets: installTargets,
       pkg
     });
 
@@ -388,7 +397,7 @@ const installSelectedPackage = async (packageId) => {
           token: authState.token,
           restorePoint
         });
-        message = `${message} Previous state restored on ${rollbackResult.restoredCount} leaves.`;
+        message = `${message} Previous state restored on ${rollbackResult.restoredCount} scenario targets.`;
       } catch (rollbackError) {
         const rollbackMessage =
           rollbackError instanceof Error ? rollbackError.message : String(rollbackError);
@@ -591,3 +600,4 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   sendResponse({ ok: false, error: "Unknown message type." });
   return false;
 });
+

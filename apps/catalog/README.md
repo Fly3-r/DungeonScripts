@@ -49,8 +49,9 @@ When the extension is installed and has access to the catalog origin, the catalo
 - detect the extension on the page via an injected content script
 - show the current scenario root and title
 - confirm the install target before writing scripts
-- trigger `One-Click Install` directly from catalog cards
+- trigger `One-Click Install` directly from catalog cards into the root scenario and playable leaves
 - trigger `Rollback Latest` from the matching package card when a restore point exists for that package
+- fall back to a bundled placeholder thumbnail when a package manifest omits `thumbnailUrl`
 
 If the catalog moves to a new external domain, save that origin in the extension popup so the extension can request access and register the catalog-site bridge there too.
 
