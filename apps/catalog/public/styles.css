@@ -15,7 +15,7 @@
   --accent-cool: #5b49f0;
   --danger: #d94c92;
   --shadow: 0 28px 60px rgba(2, 0, 10, 0.52);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: Roboto, "Segoe UI", sans-serif;
 }
 
 * {
@@ -272,3 +272,4 @@ code {
     width: 100%;
   }
 }
+

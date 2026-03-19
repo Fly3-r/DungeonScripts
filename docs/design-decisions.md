@@ -183,3 +183,11 @@ The public catalog page should use a dark visual theme with purple-led accents w
 Reason:
 The catalog is a browsing surface for scripts rather than a neutral admin screen. A darker, more atmospheric presentation better fits the product direction and makes the extension-bridge state feel more intentional without changing the underlying flow.
 
+### Use Roboto for catalog-page typography
+
+Decision:
+The catalog page should use `Roboto` as its primary font family.
+
+Reason:
+The updated dark catalog styling benefits from a cleaner, more modern sans-serif treatment than the earlier serif type stack.
+

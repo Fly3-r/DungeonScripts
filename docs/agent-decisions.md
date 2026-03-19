@@ -192,3 +192,11 @@ The dark purple theme update is limited to the catalog page stylesheet and the r
 Reason:
 This is a presentation-only request. Keeping the write scope to the catalog styling avoids accidental regressions in the install workflow while still making the visual direction explicit in project history.
 
+### Keep the typography change scoped to the catalog stylesheet
+
+Decision:
+The Roboto font change only updates the catalog page stylesheet and the decision logs.
+
+Reason:
+This request is presentation-only and does not require any structural or extension-side changes.
+
