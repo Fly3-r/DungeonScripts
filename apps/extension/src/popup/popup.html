@@ -12,8 +12,8 @@
         <p class="eyebrow">Chrome Extension</p>
         <h1>AID One-Click</h1>
         <p class="lede">
-          Scaffolded popup for the one-click installer. The install engine, backup flow, and
-          telemetry queue are not wired in yet.
+          Create a restore point, install a catalog package to every playable leaf, and roll the
+          latest install back if needed.
         </p>
       </section>
 
@@ -55,6 +55,30 @@
           <div>
             <dt>Catalog Origin</dt>
             <dd id="catalog-origin-display">Checking...</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="panel">
+        <h2>Install</h2>
+        <label for="package-select">Package</label>
+        <select id="package-select"></select>
+        <p id="package-meta" class="detail">Loading catalog packages...</p>
+        <div class="actions">
+          <button id="refresh-packages" type="button" class="secondary">Refresh Packages</button>
+          <button id="install-selected" type="button">Install To Leaves</button>
+        </div>
+        <div class="actions single-action">
+          <button id="rollback-latest" type="button" class="danger">Rollback Latest</button>
+        </div>
+        <dl class="status-grid compact">
+          <div>
+            <dt>Install State</dt>
+            <dd id="install-state">Checking...</dd>
+          </div>
+          <div>
+            <dt>Latest Restore Point</dt>
+            <dd id="latest-restore-point">Checking...</dd>
           </div>
         </dl>
       </section>

@@ -1,10 +1,11 @@
-const MESSAGE_TYPES = {
-  GET_STATUS: "GET_STATUS",
-  OPEN_CATALOG: "OPEN_CATALOG",
-  SET_CATALOG_ORIGIN: "SET_CATALOG_ORIGIN"
-};
+import { MESSAGE_TYPES } from "../shared/constants.js";
 
 const STATUS_REFRESH_MS = 2000;
+
+const state = {
+  packages: [],
+  selectedPackageId: ""
+};
 
 const elements = {
   authState: document.getElementById("auth-state"),
@@ -17,13 +18,28 @@ const elements = {
   scenarioUpdatedAt: document.getElementById("scenario-updated-at"),
   catalogOriginDisplay: document.getElementById("catalog-origin-display"),
   catalogOriginInput: document.getElementById("catalog-origin"),
+  packageSelect: document.getElementById("package-select"),
+  packageMeta: document.getElementById("package-meta"),
+  installState: document.getElementById("install-state"),
+  latestRestorePoint: document.getElementById("latest-restore-point"),
   notice: document.getElementById("notice"),
   saveOrigin: document.getElementById("save-origin"),
-  openCatalog: document.getElementById("open-catalog")
+  openCatalog: document.getElementById("open-catalog"),
+  refreshPackages: document.getElementById("refresh-packages"),
+  installSelected: document.getElementById("install-selected"),
+  rollbackLatest: document.getElementById("rollback-latest")
 };
 
 const setNotice = (message) => {
   elements.notice.textContent = message;
+};
+
+const formatTimestamp = (value) => {
+  if (!value) {
+    return "Never";
+  }
+
+  return new Date(value).toLocaleString();
 };
 
 const describeScenarioAccess = (scenarioState) => {
@@ -39,6 +55,121 @@ const describeScenarioAccess = (scenarioState) => {
   }
 };
 
+const describeInstallState = (installState) => {
+  switch (installState?.status) {
+    case "loading":
+      return "Installing...";
+    case "ready":
+      return `Installed to ${installState.appliedCount || 0} leaves`;
+    case "rolling_back":
+      return "Rolling back...";
+    case "rolled_back":
+      return `Rolled back ${installState.appliedCount || 0} leaves`;
+    case "error":
+      return "Error";
+    default:
+      return "Idle";
+  }
+};
+
+const describeRestorePoint = (restorePoint) => {
+  if (!restorePoint) {
+    return "None";
+  }
+
+  const packageLabel = restorePoint.packageName || restorePoint.packageId;
+  return `${packageLabel} ${restorePoint.packageVersion} on ${restorePoint.leafCount} leaves at ${formatTimestamp(restorePoint.createdAt)}`;
+};
+
+const describeNotice = ({ authState, scenarioState, installState }) => {
+  switch (installState?.status) {
+    case "loading":
+      return `Installing ${installState.packageName || installState.packageId || "package"} to playable leaves...`;
+    case "ready":
+      return `Install complete. Applied to ${installState.appliedCount || 0} playable leaves.`;
+    case "rolling_back":
+      return "Rolling back the latest restore point...";
+    case "rolled_back":
+      return `Rollback complete. Restored ${installState.appliedCount || 0} playable leaves.`;
+    case "error":
+      return installState.error || "Install failed.";
+    default:
+      break;
+  }
+
+  if (!authState?.hasToken && authState?.error) {
+    return `Auth token missing: ${authState.error}`;
+  }
+
+  if (scenarioState?.status === "error" && scenarioState?.error) {
+    return `Scenario read failed: ${scenarioState.error}`;
+  }
+
+  if (scenarioState?.status === "ready") {
+    return `Scenario tree loaded. Found ${scenarioState.leafCount} playable leaves.`;
+  }
+
+  return "Ready.";
+};
+
+const renderPackageOptions = () => {
+  const previousSelection = elements.packageSelect.value || state.selectedPackageId;
+  elements.packageSelect.innerHTML = "";
+
+  if (state.packages.length === 0) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "No packages available";
+    elements.packageSelect.append(option);
+    state.selectedPackageId = "";
+    renderPackageMeta();
+    return;
+  }
+
+  for (const pkg of state.packages) {
+    const option = document.createElement("option");
+    option.value = pkg.id;
+    option.textContent = `${pkg.name} (${pkg.version})`;
+    elements.packageSelect.append(option);
+  }
+
+  const matchingPackage = state.packages.find((pkg) => pkg.id === previousSelection);
+  state.selectedPackageId = matchingPackage ? matchingPackage.id : state.packages[0].id;
+  elements.packageSelect.value = state.selectedPackageId;
+  renderPackageMeta();
+};
+
+const renderPackageMeta = () => {
+  const selectedPackage = state.packages.find((pkg) => pkg.id === elements.packageSelect.value);
+
+  if (!selectedPackage) {
+    elements.packageMeta.textContent = "No package selected.";
+    return;
+  }
+
+  const description = selectedPackage.description || "No package description available.";
+  elements.packageMeta.textContent = `${selectedPackage.author} · ${selectedPackage.version} · ${description}`;
+};
+
+const updateActionAvailability = (response) => {
+  const installState = response?.installState || { status: "idle" };
+  const authState = response?.authState || { hasToken: false };
+  const scenarioState = response?.scenarioState || { status: "idle", leafCount: 0 };
+  const busy = installState.status === "loading" || installState.status === "rolling_back";
+  const canInstall =
+    !busy &&
+    authState.hasToken &&
+    scenarioState.status === "ready" &&
+    Number.isInteger(scenarioState.leafCount) &&
+    scenarioState.leafCount > 0 &&
+    !!elements.packageSelect.value;
+
+  elements.refreshPackages.disabled = busy;
+  elements.installSelected.disabled = !canInstall;
+  elements.rollbackLatest.disabled =
+    busy || !authState.hasToken || !response?.latestRestorePoint;
+};
+
 const loadStatus = async () => {
   const response = await chrome.runtime.sendMessage({
     type: MESSAGE_TYPES.GET_STATUS
@@ -46,24 +177,30 @@ const loadStatus = async () => {
 
   if (!response?.ok) {
     setNotice(response?.error || "Failed to load status.");
-    return;
+    return null;
   }
 
-  const { authState, editorContext, scenarioState, settings } = response;
+  const {
+    authState,
+    editorContext,
+    installState,
+    latestRestorePoint,
+    scenarioState,
+    settings
+  } = response;
+
   elements.catalogOriginDisplay.textContent = settings.catalogOrigin;
   elements.catalogOriginInput.value = settings.catalogOrigin;
   elements.authState.textContent = authState?.hasToken ? "Active" : "Missing";
-  elements.authUpdatedAt.textContent = authState?.updatedAt
-    ? new Date(authState.updatedAt).toLocaleString()
-    : "Never";
+  elements.authUpdatedAt.textContent = formatTimestamp(authState?.updatedAt);
   elements.scenarioAccess.textContent = describeScenarioAccess(scenarioState);
   elements.scenarioTitle.textContent = scenarioState?.rootTitle || "Unknown";
   elements.leafCount.textContent = Number.isInteger(scenarioState?.leafCount)
     ? String(scenarioState.leafCount)
     : "Unknown";
-  elements.scenarioUpdatedAt.textContent = scenarioState?.updatedAt
-    ? new Date(scenarioState.updatedAt).toLocaleString()
-    : "Never";
+  elements.scenarioUpdatedAt.textContent = formatTimestamp(scenarioState?.updatedAt);
+  elements.installState.textContent = describeInstallState(installState);
+  elements.latestRestorePoint.textContent = describeRestorePoint(latestRestorePoint);
 
   if (editorContext?.isEditor) {
     elements.editorState.textContent = "Connected";
@@ -73,23 +210,37 @@ const loadStatus = async () => {
     elements.rootShortId.textContent = "None";
   }
 
-  if (!authState?.hasToken && authState?.error) {
-    setNotice(`Auth token missing: ${authState.error}`);
-    return;
-  }
-
-  if (scenarioState?.status === "error" && scenarioState?.error) {
-    setNotice(`Scenario read failed: ${scenarioState.error}`);
-    return;
-  }
-
-  if (scenarioState?.status === "ready") {
-    setNotice(`Scenario tree loaded. Found ${scenarioState.leafCount} playable leaves.`);
-    return;
-  }
-
-  setNotice("Ready.");
+  updateActionAvailability(response);
+  setNotice(describeNotice({ authState, scenarioState, installState }));
+  return response;
 };
+
+const loadPackages = async () => {
+  const response = await chrome.runtime.sendMessage({
+    type: MESSAGE_TYPES.GET_PACKAGES
+  });
+
+  if (!response?.ok) {
+    state.packages = [];
+    renderPackageOptions();
+    setNotice(response?.error || "Failed to load packages.");
+    return null;
+  }
+
+  state.packages = Array.isArray(response.packages) ? response.packages : [];
+  renderPackageOptions();
+
+  if (state.packages.length === 0) {
+    setNotice("No packages found at the current catalog origin.");
+  }
+
+  return response;
+};
+
+elements.packageSelect.addEventListener("change", () => {
+  state.selectedPackageId = elements.packageSelect.value;
+  renderPackageMeta();
+});
 
 elements.saveOrigin.addEventListener("click", async () => {
   const catalogOrigin = elements.catalogOriginInput.value.trim();
@@ -104,6 +255,7 @@ elements.saveOrigin.addEventListener("click", async () => {
   }
 
   await loadStatus();
+  await loadPackages();
   setNotice("Catalog origin saved.");
 });
 
@@ -120,7 +272,61 @@ elements.openCatalog.addEventListener("click", async () => {
   setNotice("Catalog opened in a new tab.");
 });
 
-loadStatus().catch((error) => {
+elements.refreshPackages.addEventListener("click", async () => {
+  await loadPackages();
+  const status = await loadStatus();
+  if (status) {
+    setNotice(`Catalog refreshed. ${state.packages.length} package(s) available.`);
+  }
+});
+
+elements.installSelected.addEventListener("click", async () => {
+  const packageId = elements.packageSelect.value;
+  if (!packageId) {
+    setNotice("Select a package before installing.");
+    return;
+  }
+
+  setNotice("Starting install...");
+  const response = await chrome.runtime.sendMessage({
+    type: MESSAGE_TYPES.INSTALL_PACKAGE,
+    packageId
+  });
+
+  await loadStatus();
+
+  if (!response?.ok) {
+    setNotice(response?.error || "Install failed.");
+    return;
+  }
+
+  const installedLeaves = response.installState?.appliedCount || 0;
+  setNotice(`Install complete. Applied to ${installedLeaves} playable leaves.`);
+});
+
+elements.rollbackLatest.addEventListener("click", async () => {
+  setNotice("Starting rollback...");
+  const response = await chrome.runtime.sendMessage({
+    type: MESSAGE_TYPES.ROLLBACK_LATEST
+  });
+
+  await loadStatus();
+
+  if (!response?.ok) {
+    setNotice(response?.error || "Rollback failed.");
+    return;
+  }
+
+  const restoredLeaves = response.installState?.appliedCount || 0;
+  setNotice(`Rollback complete. Restored ${restoredLeaves} playable leaves.`);
+});
+
+const init = async () => {
+  await Promise.all([loadStatus(), loadPackages()]);
+  await loadStatus();
+};
+
+init().catch((error) => {
   setNotice(error.message);
 });
 

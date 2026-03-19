@@ -41,6 +41,10 @@ docs/
 - the leaf count matches the current scenario tree
 - the catalog origin points at `http://127.0.0.1:3000`
 
+5. Select a package in the popup and click `Install To Leaves`.
+
+6. If needed, click `Rollback Latest` to restore the most recent pre-install snapshot.
+
 ## Current State
 
 This scaffold includes:
@@ -48,16 +52,20 @@ This scaffold includes:
 - minimal unpacked-extension shell
 - AI Dungeon editor detection and auth token extraction plumbing
 - authenticated AI Dungeon scenario reads and leaf discovery
+- restore-point capture before script mutations
+- catalog package fetch and install-to-leaf execution
+- rollback of the latest restore point from the popup
+- best-effort anonymous install-success telemetry POSTs to the external catalog/API
 - minimal catalog/API server
 - Dockerfile for the external service
 - sample package manifest
 - shared JSON schemas for package and telemetry payloads
 
 What is not implemented yet:
-- script install mutations
-- backup/restore execution
-- install transaction engine
-- telemetry retry queue inside the extension
+- durable telemetry retry queue inside the extension
+- install diff preview before overwrite
+- restore-point browsing beyond the latest snapshot
+- automated test coverage for the install and rollback flow
 
 ## Decision Logs
 

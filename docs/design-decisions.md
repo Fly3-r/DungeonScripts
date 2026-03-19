@@ -67,3 +67,27 @@ The first authenticated AI Dungeon integration step after token extraction is a 
 
 Reason:
 This proves the token and editor root are usable against the live GraphQL API before introducing destructive install operations.
+
+### Persist restore points locally with per-leaf script snapshots
+
+Decision:
+Before any install writes occur, the extension snapshots each target leaf's `scriptsEnabled` state and all four script fields into `chrome.storage.local`.
+
+Reason:
+Rollback must be able to restore the exact pre-install state even if the popup closes or the service worker sleeps after the restore point is created.
+
+### Attempt automatic rollback if an install fails after snapshot creation
+
+Decision:
+If install execution fails after the restore point has been created, the extension immediately attempts to restore the saved pre-install state.
+
+Reason:
+A failed partial rollout is worse than a visible failure. Automatic rollback reduces the chance that a user is left with half-installed script state across leaves.
+
+### Keep install-success telemetry best-effort and non-blocking
+
+Decision:
+The extension posts the single anonymous install-success event after a completed install, but telemetry delivery must never fail the user install path.
+
+Reason:
+The install transaction is the product's primary responsibility. Analytics must stay subordinate to user safety and reliability, especially while retry persistence is still a later milestone.

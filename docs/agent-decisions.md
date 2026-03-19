@@ -43,3 +43,19 @@ The initial buildout focuses on repo layout, extension shell, catalog/API shell,
 
 Reason:
 That sequence creates stable project boundaries first, which reduces churn when implementing the real installer flow.
+
+### Validate live read access before enabling destructive writes
+
+Decision:
+The first manual user validation target is auth extraction plus scenario-tree discovery, and only after that succeeds should the extension gain write-path controls.
+
+Reason:
+This keeps the first live AI Dungeon test low-risk and avoids combining token/debug issues with script mutation issues.
+
+### Implement destructive install work in small safety-first increments
+
+Decision:
+The next milestone after authenticated reads is restore-point capture, latest-rollback support, and a single install flow before broader catalog or telemetry refinements.
+
+Reason:
+This delivers the minimum safe write path first, which is easier to validate against a live AI Dungeon scenario than a larger all-at-once build.

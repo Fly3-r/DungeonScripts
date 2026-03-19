@@ -2,13 +2,17 @@ import { DEFAULT_CATALOG_ORIGIN } from "./constants.js";
 
 const STORAGE_KEYS = {
   editorContext: "editorContext",
-  settings: "settings"
+  settings: "settings",
+  restorePoints: "restorePoints"
 };
 
 const SESSION_KEYS = {
   authState: "authState",
-  scenarioState: "scenarioState"
+  scenarioState: "scenarioState",
+  installState: "installState"
 };
+
+const MAX_RESTORE_POINTS = 10;
 
 export const loadEditorContext = async () => {
   const result = await chrome.storage.local.get(STORAGE_KEYS.editorContext);
@@ -117,4 +121,60 @@ export const saveScenarioState = async (scenarioState) => {
   await chrome.storage.session.set({
     [SESSION_KEYS.scenarioState]: scenarioState
   });
+};
+
+export const loadInstallState = async () => {
+  if (!chrome.storage.session) {
+    throw new Error("chrome.storage.session is not available.");
+  }
+
+  const result = await chrome.storage.session.get(SESSION_KEYS.installState);
+  return (
+    result[SESSION_KEYS.installState] || {
+      status: "idle",
+      packageId: null,
+      packageName: null,
+      packageVersion: null,
+      restorePointId: null,
+      appliedCount: 0,
+      updatedAt: null,
+      error: null
+    }
+  );
+};
+
+export const saveInstallState = async (installState) => {
+  if (!chrome.storage.session) {
+    throw new Error("chrome.storage.session is not available.");
+  }
+
+  await chrome.storage.session.set({
+    [SESSION_KEYS.installState]: installState
+  });
+};
+
+export const loadRestorePoints = async () => {
+  const result = await chrome.storage.local.get(STORAGE_KEYS.restorePoints);
+  return result[STORAGE_KEYS.restorePoints] || [];
+};
+
+export const saveRestorePoints = async (restorePoints) => {
+  await chrome.storage.local.set({
+    [STORAGE_KEYS.restorePoints]: restorePoints
+  });
+};
+
+export const addRestorePoint = async (restorePoint) => {
+  const existing = await loadRestorePoints();
+  const next = [restorePoint, ...existing.filter((entry) => entry.id !== restorePoint.id)].slice(
+    0,
+    MAX_RESTORE_POINTS
+  );
+  await saveRestorePoints(next);
+  return next;
+};
+
+export const getLatestRestorePoint = async () => {
+  const restorePoints = await loadRestorePoints();
+  return restorePoints[0] || null;
 };
