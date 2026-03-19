@@ -203,17 +203,8 @@ if (!globalThis[BRIDGE_FLAG]) {
     installPackageFromPage(installButton);
   });
 
-  const observer = new MutationObserver(() => {
-    updateStatusPanel();
-    updateInstallButtons();
-  });
-
-  observer.observe(document.documentElement, {
-    childList: true,
-    subtree: true
-  });
-
   window.addEventListener("focus", refreshExtensionState);
+  window.addEventListener("load", refreshExtensionState, { once: true });
 
   refreshExtensionState();
   setInterval(refreshExtensionState, POLL_MS);

@@ -83,3 +83,11 @@ The catalog-site bridge content script should be self-contained instead of impor
 
 Reason:
 The bridge is dynamically injected as a plain extension content script. Keeping it dependency-free avoids module-loading failures at injection time and makes the bridge more reliable.
+
+### Avoid self-triggering observers in the catalog bridge
+
+Decision:
+The catalog-site bridge should rely on explicit refreshes and polling instead of observing the full document and mutating the same DOM subtree in the observer callback.
+
+Reason:
+A broad MutationObserver can end up retriggering itself while updating status text and button labels, which makes the catalog page unstable and can mask unrelated network behavior.
