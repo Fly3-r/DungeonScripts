@@ -7,7 +7,13 @@ const createStat = (label, value) => {
   const dd = document.createElement("dd");
 
   dt.textContent = label;
-  dd.textContent = value;
+
+  if (value instanceof Node) {
+    dd.append(value);
+  } else {
+    dd.textContent = value;
+  }
+
   wrapper.append(dt, dd);
   return wrapper;
 };
@@ -27,6 +33,20 @@ const applyFallbackThumbnail = (image) => {
 
   image.dataset.fallbackApplied = "true";
   image.src = FALLBACK_THUMBNAIL_URL;
+};
+
+const createAuthorValue = (pkg) => {
+  if (!pkg.authorProfileUrl) {
+    return pkg.author || "Unknown";
+  }
+
+  const link = document.createElement("a");
+  link.className = "package-author";
+  link.href = pkg.authorProfileUrl;
+  link.target = "_blank";
+  link.rel = "noreferrer noopener";
+  link.textContent = pkg.author || pkg.authorProfileUrl;
+  return link;
 };
 
 const renderPackages = (packages) => {
@@ -63,14 +83,14 @@ const renderPackages = (packages) => {
     title.textContent = pkg.name;
 
     const description = document.createElement("p");
-    description.className = "muted";
+    description.className = "muted package-description";
     description.textContent = pkg.description || "No description provided.";
 
     const meta = document.createElement("dl");
     meta.className = "package-meta";
     meta.append(
       createStat("Version", pkg.version),
-      createStat("Author", pkg.author),
+      createStat("Author", createAuthorValue(pkg)),
       createStat("Installs", String(pkg.installCount || 0))
     );
 

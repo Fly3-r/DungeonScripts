@@ -108,7 +108,6 @@ The catalog bridge should toggle `hidden` on rollback buttons when no matching r
 Reason:
 The extension already exposes enough status to know when rollback is relevant. Using visibility instead of a permanent disabled state reduces clutter without adding another render path.
 
-
 ### Normalize thumbnail fallbacks in the catalog service instead of only in the page client
 
 Decision:
@@ -124,7 +123,6 @@ The extension should build a single deduped target list consisting of the root s
 
 Reason:
 Using one target set avoids root/leaf drift, prevents duplicate writes when the root is also a leaf, and keeps rollback coverage aligned with what the install actually changed.
-
 
 ### Stop content-script polling after the extension context is reloaded
 
@@ -182,8 +180,6 @@ The committed regression harness verifies the active root scenario after install
 Reason:
 This gives the project a stable, rerunnable regression check now while leaving a clear upgrade path for explicit branch switching once the AI Dungeon leaf-navigation mechanics are fully scripted.
 
-
-
 ### Keep the dark-theme pass scoped to catalog styling only
 
 Decision:
@@ -200,3 +196,36 @@ The Roboto font change only updates the catalog page stylesheet and the decision
 Reason:
 This request is presentation-only and does not require any structural or extension-side changes.
 
+## 2026-03-20
+
+### Centralize review behavior in one Node CLI and wrap it per host OS
+
+Decision:
+The private review workflow is implemented once in `scripts/review-submissions.mjs`, with thin wrappers for Windows PowerShell and Linux Bash.
+
+Reason:
+This keeps the approval logic consistent across host operating systems while still giving the project the separate Windows and Linux entrypoints the user asked for.
+
+### Keep submission intake and review output file-backed
+
+Decision:
+The server writes raw submissions into `apps/catalog/data/submissions/<state>`, and the review CLI publishes approved packages directly into `apps/catalog/data/packages`.
+
+Reason:
+A file-backed workflow matches the current no-database MVP, keeps review private, and makes it easy to inspect or back up submissions on the host.
+
+### Store private contact details in the same review record, not a separate API surface
+
+Decision:
+The submission record carries the uploader Discord username under `contact`, and no extra HTTP endpoints are added for reviewer-only data.
+
+Reason:
+The host-local CLI can read private submission records directly. Keeping private contact inside the queued record avoids introducing a second review-only service boundary.
+
+### Ignore private submission queue files in Git
+
+Decision:
+Runtime submission JSON files under `apps/catalog/data/submissions` should be ignored by Git, while the directory structure and placeholder files remain tracked.
+
+Reason:
+Submission records contain private contact data. They should stay local to the host review workflow rather than being easy to commit by accident.

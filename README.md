@@ -8,6 +8,7 @@ This repo now follows the MVP split described in [INSTALLER_MVP_SPEC.md](/C:/git
 - `packages/contracts` holds shared manifest and telemetry shapes
 - `docs/design-decisions.md` records product and architecture decisions
 - `docs/agent-decisions.md` records workflow and agent execution decisions
+- `docs/upload-review-mvp.md` records the submission and manual review workflow
 
 ## Layout
 
@@ -20,6 +21,7 @@ packages/
 docs/
   design-decisions.md
   agent-decisions.md
+  upload-review-mvp.md
 ```
 
 ## Quick Start
@@ -72,10 +74,13 @@ This scaffold includes:
 - best-effort anonymous install-success telemetry POSTs to the external catalog/API
 - browsable catalog homepage on `/` with thumbnail cards, fallback placeholder artwork, and install counters
 - versioned JSON API under `/api/v1/*`
+- public `/submit` page for package uploads into a private review queue
+- file-backed submission records with private uploader Discord usernames
+- local-only Windows and Linux review CLI tooling with no public admin page
 - catalog-page extension bridge that shows the current scenario root and can trigger installs
 - repo-root Docker Compose stack for the external catalog/API
 - sample package manifest and thumbnail asset
-- shared JSON schemas for package and telemetry payloads
+- shared JSON schemas for package, submission, and telemetry payloads
 - a repeatable Chrome DevTools Protocol regression script for install and rollback verification
 
 What is not implemented yet:
@@ -84,6 +89,19 @@ What is not implemented yet:
 - restore-point browsing beyond the latest snapshot
 - branch-by-branch automated verification beyond the active root scenario
 - public package detail pages beyond the homepage cards
+- uploader resubmission/edit flows after review
+- automated policy or malware scanning of submissions
+
+## Submission Review
+
+- Public uploads are accepted from `/submit` and stored under [apps/catalog/data/submissions](/C:/github/AID-OneClick/apps/catalog/data/submissions).
+- There is intentionally no public `/admin` page in the MVP.
+- Review is handled locally on the host with:
+  - [review-submissions.ps1](/C:/github/AID-OneClick/scripts/review-submissions.ps1) on Windows
+  - [review-submissions.sh](/C:/github/AID-OneClick/scripts/review-submissions.sh) on Linux
+  - [review-submissions.mjs](/C:/github/AID-OneClick/scripts/review-submissions.mjs) as the shared implementation
+- Approved submissions are published into [apps/catalog/data/packages](/C:/github/AID-OneClick/apps/catalog/data/packages).
+- The private submission workflow is defined in [upload-review-mvp.md](/C:/github/AID-OneClick/docs/upload-review-mvp.md).
 
 ## Automation Testing
 
@@ -96,9 +114,11 @@ What is not implemented yet:
 
 - The containerized catalog service is defined in [docker-compose.yml](/C:/github/AID-OneClick/docker-compose.yml).
 - The human-facing catalog is served from `/`.
+- The public submission page is served from `/submit`.
 - The machine-facing API is served from `/api/v1/*`.
 - Runtime telemetry files are persisted under [apps/catalog/data/runtime](/C:/github/AID-OneClick/apps/catalog/data/runtime).
 - Catalog package manifests remain in [apps/catalog/data/packages](/C:/github/AID-OneClick/apps/catalog/data/packages).
+- Submission queue files are persisted under [apps/catalog/data/submissions](/C:/github/AID-OneClick/apps/catalog/data/submissions).
 - Additional catalog runtime notes live in [apps/catalog/README.md](/C:/github/AID-OneClick/apps/catalog/README.md).
 
 ## Decision Logs

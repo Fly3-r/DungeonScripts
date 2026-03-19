@@ -148,7 +148,6 @@ The catalog page should keep the rollback button hidden until the extension repo
 Reason:
 A disabled rollback button adds noise before the user has installed anything. Hiding it until it becomes relevant keeps the card simpler while still surfacing rollback immediately after install activity begins.
 
-
 ### Allow package manifests to omit thumbnails when a fallback image is available
 
 Decision:
@@ -173,8 +172,6 @@ The first committed live-browser regression harness verifies the active root sce
 Reason:
 Root verification is stable and repeatable with the current DevTools hooks. Branch switching in the AI Dungeon editor needs additional product-specific automation before it can be treated as reliable regression coverage.
 
-
-
 ### Give the catalog site a dark theme with purple accents
 
 Decision:
@@ -191,3 +188,36 @@ The catalog page should use `Roboto` as its primary font family.
 Reason:
 The updated dark catalog styling benefits from a cleaner, more modern sans-serif treatment than the earlier serif type stack.
 
+## 2026-03-20
+
+### Use a public submission page with private host-local review
+
+Decision:
+The upload workflow uses a public `/submit` page for intake, while approval and moderation are handled only through local CLI tools on the catalog host. There is no public `/admin` page in the MVP.
+
+Reason:
+This keeps the public product surface small, avoids in-app authentication work, and still supports a structured review process before anything is published.
+
+### Keep uploader Discord usernames private to submission records only
+
+Decision:
+Submission records store `discordUsername` under a private contact section, and that field is excluded from the public package manifests and package APIs.
+
+Reason:
+Discord usernames are operational contact data, not catalog metadata. They are only needed for reviewer follow-up and should not leak into public responses.
+
+### Represent public authors as AI Dungeon profile links
+
+Decision:
+Published packages store both a public author display handle and an `authorProfileUrl`, with the catalog rendering the author as a clickable AI Dungeon profile link.
+
+Reason:
+The author identity needs to map back to AI Dungeon rather than a freeform label, and the profile link is the cleanest public representation for that requirement.
+
+### Treat package descriptions as long-form Markdown source
+
+Decision:
+Submission descriptions are stored as long-form Markdown-capable text, with the homepage using a shortened preview while the full description remains in the published manifest for future detail pages.
+
+Reason:
+Uploaders need enough space to include setup notes and links, but the catalog homepage should stay compact and scannable.

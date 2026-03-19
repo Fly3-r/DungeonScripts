@@ -1,4 +1,5 @@
-﻿import { createServer } from "node:http";
+﻿import { randomUUID } from "node:crypto";
+import { createServer } from "node:http";
 import { appendFile, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,6 +9,13 @@ const __dirname = path.dirname(__filename);
 const appRoot = path.resolve(__dirname, "..");
 const packagesDir = path.join(appRoot, "data", "packages");
 const publicDir = path.join(appRoot, "public");
+const submissionsRootDir = path.join(appRoot, "data", "submissions");
+const submissionStateDirs = {
+  pending: path.join(submissionsRootDir, "pending"),
+  approved: path.join(submissionsRootDir, "approved"),
+  rejected: path.join(submissionsRootDir, "rejected"),
+  needs_changes: path.join(submissionsRootDir, "needs_changes")
+};
 const runtimeDir = path.resolve(
   appRoot,
   process.env.TELEMETRY_STORAGE_DIR || "./data/runtime"
@@ -17,6 +25,7 @@ const dedupeFile = path.join(runtimeDir, "install-success.ids.json");
 const host = process.env.HOST || "127.0.0.1";
 const port = Number(process.env.PORT || 3000);
 const publicBaseUrl = process.env.PUBLIC_BASE_URL || `http://${host}:${port}`;
+const defaultMinInstallerVersion = process.env.DEFAULT_MIN_INSTALLER_VERSION || "0.1.0";
 const allowedEventKeys = [
   "event",
   "installId",
@@ -27,6 +36,8 @@ const allowedEventKeys = [
 ];
 const API_BASE_PATH = "/api/v1";
 const DEFAULT_THUMBNAIL_PATH = "/assets/thumbnail-placeholder.svg";
+const PACKAGE_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const SEMVER_PATTERN = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 const CONTENT_TYPES = {
   ".css": "text/css; charset=utf-8",
   ".gif": "image/gif",
@@ -50,25 +61,21 @@ const json = (res, statusCode, payload) => {
   res.end(body);
 };
 
-const text = (res, statusCode, payload, contentType = "text/plain; charset=utf-8") => {
-  res.writeHead(statusCode, {
-    "Content-Type": contentType,
-    "Content-Length": Buffer.byteLength(payload, "utf8")
-  });
-  res.end(payload);
-};
-
 const notFound = (res) => {
   json(res, 404, { ok: false, error: "Not found" });
 };
 
-const parseJsonBody = async (req) => {
+const isNonEmptyString = (value) => typeof value === "string" && value.trim().length > 0;
+
+const normalizeMultilineText = (value) => value.replace(/\r\n/g, "\n");
+
+const parseJsonBody = async (req, maxBytes = 10_000) => {
   const chunks = [];
   let size = 0;
 
   for await (const chunk of req) {
     size += chunk.length;
-    if (size > 10_000) {
+    if (size > maxBytes) {
       throw new Error("Payload too large.");
     }
     chunks.push(chunk);
@@ -82,6 +89,63 @@ const ensureRuntimeDir = async () => {
   await mkdir(runtimeDir, { recursive: true });
 };
 
+const ensureSubmissionDirs = async () => {
+  await Promise.all(
+    Object.values(submissionStateDirs).map((dir) => mkdir(dir, { recursive: true }))
+  );
+};
+
+const sanitizeMarkdownPreview = (value) =>
+  value
+    .replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1")
+    .replace(/[\*_`>#]/g, " ")
+    .replace(/\r?\n+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const buildDescriptionPreview = (value) => {
+  const preview = sanitizeMarkdownPreview(value || "");
+  if (!preview) {
+    return "No description provided.";
+  }
+
+  return preview.length > 220 ? `${preview.slice(0, 217)}...` : preview;
+};
+
+const getPublicAssetUrl = (value, fallback = DEFAULT_THUMBNAIL_PATH) => {
+  const candidate =
+    typeof value === "string" && value.trim().length > 0 ? value.trim() : fallback;
+
+  try {
+    return new URL(candidate).toString();
+  } catch {
+    return new URL(candidate, publicBaseUrl).toString();
+  }
+};
+
+const getSafeUrl = (value) => {
+  if (!isNonEmptyString(value)) {
+    return null;
+  }
+
+  try {
+    const url = new URL(value.trim());
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return null;
+    }
+    return url.toString();
+  } catch {
+    return null;
+  }
+};
+
+const normalizePackageManifest = (entry) => ({
+  ...entry,
+  author: isNonEmptyString(entry.author) ? entry.author.trim() : "Unknown",
+  authorProfileUrl: getSafeUrl(entry.authorProfileUrl),
+  thumbnailUrl: getPublicAssetUrl(entry.thumbnailUrl)
+});
+
 const loadPackages = async () => {
   const entries = await readdir(packagesDir, { withFileTypes: true });
   const files = entries
@@ -91,7 +155,7 @@ const loadPackages = async () => {
   const manifests = [];
   for (const file of files) {
     const raw = await readFile(file, "utf8");
-    manifests.push(JSON.parse(raw));
+    manifests.push(normalizePackageManifest(JSON.parse(raw)));
   }
 
   manifests.sort((a, b) => a.name.localeCompare(b.name));
@@ -145,23 +209,13 @@ const loadInstallCounts = async () => {
   }
 };
 
-const getPublicAssetUrl = (value, fallback = DEFAULT_THUMBNAIL_PATH) => {
-  const candidate =
-    typeof value === "string" && value.trim().length > 0 ? value.trim() : fallback;
-
-  try {
-    return new URL(candidate).toString();
-  } catch {
-    return new URL(candidate, publicBaseUrl).toString();
-  }
-};
-
 const buildPackageSummary = (entry, installCounts) => ({
   id: entry.id,
   name: entry.name,
   version: entry.version,
-  description: entry.description,
+  description: buildDescriptionPreview(entry.description),
   author: entry.author,
+  authorProfileUrl: entry.authorProfileUrl,
   thumbnailUrl: getPublicAssetUrl(entry.thumbnailUrl),
   installCount: installCounts.get(entry.id) || 0
 });
@@ -206,6 +260,149 @@ const validateInstallSuccessEvent = (payload) => {
     leafCount: payload.leafCount,
     timestamp: payload.timestamp
   };
+};
+
+const validateAidProfileUrl = (value) => {
+  let url;
+
+  try {
+    url = new URL(value.trim());
+  } catch {
+    throw new Error("Author profile URL must be a valid URL.");
+  }
+
+  if (url.protocol !== "https:" || url.hostname !== "play.aidungeon.com") {
+    throw new Error("Author profile URL must use https://play.aidungeon.com/profile/<handle>.");
+  }
+
+  const segments = url.pathname.split("/").filter(Boolean);
+  if (segments.length !== 2 || segments[0] !== "profile" || !segments[1]) {
+    throw new Error("Author profile URL must use https://play.aidungeon.com/profile/<handle>.");
+  }
+
+  url.search = "";
+  url.hash = "";
+  return url.toString();
+};
+
+const deriveAuthorFromProfileUrl = (value) => {
+  const url = new URL(value);
+  const segments = url.pathname.split("/").filter(Boolean);
+  return decodeURIComponent(segments[segments.length - 1]);
+};
+
+const validateThumbnailUrl = (value) => {
+  if (!isNonEmptyString(value)) {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  if (trimmed.startsWith("/")) {
+    return trimmed;
+  }
+
+  const url = getSafeUrl(trimmed);
+  if (!url) {
+    throw new Error("Thumbnail URL must be empty, root-relative, or a valid http/https URL.");
+  }
+
+  return url;
+};
+
+const requireTrimmedString = (payload, fieldName, maxLength) => {
+  if (typeof payload[fieldName] !== "string") {
+    throw new Error(`Field \"${fieldName}\" must be a string.`);
+  }
+
+  const value = payload[fieldName].trim();
+  if (!value) {
+    throw new Error(`Field \"${fieldName}\" is required.`);
+  }
+
+  if (value.length > maxLength) {
+    throw new Error(`Field \"${fieldName}\" exceeds the maximum allowed length.`);
+  }
+
+  return value;
+};
+
+const requireScriptField = (payload, fieldName, maxLength) => {
+  if (typeof payload[fieldName] !== "string") {
+    throw new Error(`Field \"${fieldName}\" must be a string.`);
+  }
+
+  const value = normalizeMultilineText(payload[fieldName]);
+  if (value.length > maxLength) {
+    throw new Error(`Field \"${fieldName}\" exceeds the maximum allowed length.`);
+  }
+
+  return value;
+};
+
+const validateSubmissionPayload = (payload) => {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw new Error("Submission payload must be an object.");
+  }
+
+  const packageId = requireTrimmedString(payload, "packageId", 80);
+  if (!PACKAGE_ID_PATTERN.test(packageId)) {
+    throw new Error("Package ID must be a lowercase slug using letters, numbers, and hyphens only.");
+  }
+
+  const version = requireTrimmedString(payload, "version", 40);
+  if (!SEMVER_PATTERN.test(version)) {
+    throw new Error("Version must look like semantic versioning, for example 1.2.3.");
+  }
+
+  const authorProfileUrl = validateAidProfileUrl(requireTrimmedString(payload, "authorProfileUrl", 200));
+  const author = deriveAuthorFromProfileUrl(authorProfileUrl);
+  const description = requireTrimmedString(payload, "description", 24000);
+  const discordUsername = requireTrimmedString(payload, "discordUsername", 80);
+  const thumbnailUrl = validateThumbnailUrl(payload.thumbnailUrl);
+
+  return {
+    package: {
+      id: packageId,
+      name: requireTrimmedString(payload, "name", 120),
+      version,
+      description,
+      author,
+      authorProfileUrl,
+      ...(thumbnailUrl ? { thumbnailUrl } : {}),
+      sharedLibrary: requireScriptField(payload, "sharedLibrary", 200000),
+      onInput: requireScriptField(payload, "onInput", 200000),
+      onModelContext: requireScriptField(payload, "onModelContext", 200000),
+      onOutput: requireScriptField(payload, "onOutput", 200000),
+      minInstallerVersion: defaultMinInstallerVersion
+    },
+    contact: {
+      discordUsername
+    }
+  };
+};
+
+const createSubmissionRecord = (payload) => {
+  const timestamp = new Date().toISOString();
+
+  return {
+    submissionId: `sub_${randomUUID()}`,
+    status: "pending",
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    package: payload.package,
+    contact: payload.contact,
+    review: {
+      reviewer: null,
+      reviewedAt: null,
+      notes: ""
+    }
+  };
+};
+
+const persistSubmissionRecord = async (record) => {
+  await ensureSubmissionDirs();
+  const filePath = path.join(submissionStateDirs.pending, `${record.submissionId}.json`);
+  await writeFile(filePath, `${JSON.stringify(record, null, 2)}\n`, "utf8");
 };
 
 const persistInstallSuccessEvent = async (event) => {
@@ -311,8 +508,30 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    if (
+      req.method === "POST" &&
+      (url.pathname === `${API_BASE_PATH}/submissions` || url.pathname === "/api/submissions")
+    ) {
+      const payload = await parseJsonBody(req, 1500000);
+      const normalized = validateSubmissionPayload(payload);
+      const record = createSubmissionRecord(normalized);
+      await persistSubmissionRecord(record);
+
+      json(res, 202, {
+        ok: true,
+        submissionId: record.submissionId,
+        status: record.status
+      });
+      return;
+    }
+
     if (req.method === "GET" && url.pathname === "/") {
       await servePublicAsset(res, "/index.html");
+      return;
+    }
+
+    if (req.method === "GET" && (url.pathname === "/submit" || url.pathname === "/submit/")) {
+      await servePublicAsset(res, "/submit.html");
       return;
     }
 
@@ -333,3 +552,4 @@ const server = createServer(async (req, res) => {
 server.listen(port, host, () => {
   console.log(`[catalog] listening on ${publicBaseUrl}`);
 });
+

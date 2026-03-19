@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   color-scheme: dark;
   --bg: #0c0816;
   --bg-deep: #070510;
@@ -14,6 +14,7 @@
   --accent-soft: rgba(159, 103, 255, 0.18);
   --accent-cool: #5b49f0;
   --danger: #d94c92;
+  --success: #64d9ab;
   --shadow: 0 28px 60px rgba(2, 0, 10, 0.52);
   font-family: Roboto, "Segoe UI", sans-serif;
 }
@@ -82,7 +83,10 @@ body::before {
 h1,
 h2,
 h3,
-p {
+p,
+dl,
+dt,
+dd {
   margin-top: 0;
 }
 
@@ -101,10 +105,20 @@ h2 {
   color: var(--ink-strong);
 }
 
+h3 {
+  margin-bottom: 8px;
+  color: var(--ink-strong);
+}
+
 .lede,
 .muted,
-dt {
+dt,
+.field-note {
   color: var(--muted);
+}
+
+a {
+  color: var(--accent-bright);
 }
 
 .panel-header {
@@ -118,21 +132,47 @@ dt {
   align-items: end;
 }
 
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
 .bridge-summary {
   margin: 18px 0 0;
   font-size: 1.02rem;
 }
 
 .bridge-grid,
-.package-meta {
+.package-meta,
+.info-grid,
+.form-grid,
+.script-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 14px;
+}
+
+.bridge-grid,
+.package-meta,
+.info-grid {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   margin: 18px 0 0;
 }
 
+.form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 18px;
+}
+
+.script-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 18px;
+}
+
 .bridge-grid > div,
-.package-meta > div {
+.package-meta > div,
+.info-grid > div {
   padding: 14px 16px;
   border: 1px solid var(--line);
   border-radius: 16px;
@@ -189,16 +229,31 @@ dt {
   gap: 12px;
 }
 
-.package-actions {
+.package-description {
+  line-height: 1.55;
+}
+
+.package-actions,
+.form-actions {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
+}
+
+.package-actions {
   margin-top: auto;
   padding-top: 18px;
 }
 
+.form-actions {
+  margin-top: 22px;
+}
+
 .action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 11px 18px;
   border: 0;
   border-radius: 999px;
@@ -207,6 +262,7 @@ dt {
   font: inherit;
   font-weight: 700;
   cursor: pointer;
+  text-decoration: none;
   box-shadow: 0 10px 22px rgba(112, 69, 211, 0.3);
 }
 
@@ -237,6 +293,86 @@ code {
   font-size: 0.92rem;
 }
 
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-block {
+  margin-top: 18px;
+}
+
+.field span {
+  font-weight: 700;
+  color: var(--ink-strong);
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(198, 156, 255, 0.18);
+  background: rgba(7, 5, 16, 0.82);
+  color: var(--ink);
+  font: inherit;
+}
+
+.field input:focus,
+.field textarea:focus {
+  outline: 2px solid rgba(198, 156, 255, 0.28);
+  outline-offset: 1px;
+  border-color: rgba(198, 156, 255, 0.28);
+}
+
+.description-box {
+  min-height: 220px;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.code-box {
+  min-height: 260px;
+  resize: vertical;
+  font-family: "Cascadia Code", Consolas, monospace;
+  line-height: 1.45;
+}
+
+.status-banner {
+  margin-top: 20px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.status-banner[data-state="working"] {
+  border-color: rgba(198, 156, 255, 0.28);
+  background: rgba(159, 103, 255, 0.12);
+}
+
+.status-banner[data-state="success"] {
+  border-color: rgba(100, 217, 171, 0.24);
+  background: rgba(100, 217, 171, 0.12);
+  color: #d9fff0;
+}
+
+.status-banner[data-state="error"] {
+  border-color: rgba(217, 76, 146, 0.26);
+  background: rgba(217, 76, 146, 0.1);
+  color: #ffd7ea;
+}
+
+.package-author {
+  color: var(--accent-bright);
+  text-decoration: none;
+}
+
+.package-author:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 760px) {
   .shell {
     width: min(100% - 20px, 1120px);
@@ -253,11 +389,15 @@ code {
     display: block;
   }
 
-  .package-card {
+  .package-card,
+  .form-grid,
+  .script-grid {
     grid-template-columns: 1fr;
   }
 
-  .package-actions {
+  .hero-actions,
+  .package-actions,
+  .form-actions {
     display: flex;
     flex-direction: column;
     align-items: stretch;
@@ -272,4 +412,3 @@ code {
     width: 100%;
   }
 }
-
