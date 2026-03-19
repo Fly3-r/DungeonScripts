@@ -1,0 +1,17 @@
+name: aid-oneclick
+
+services:
+  catalog:
+    build:
+      context: ./apps/catalog
+    image: aid-oneclick-catalog:local
+    ports:
+      - "${CATALOG_PORT:-3000}:3000"
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3000
+      PUBLIC_BASE_URL: "${PUBLIC_BASE_URL:-http://127.0.0.1:3000}"
+      TELEMETRY_STORAGE_DIR: /app/data/runtime
+    volumes:
+      - ./apps/catalog/data/runtime:/app/data/runtime
+    restart: unless-stopped

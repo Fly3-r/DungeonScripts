@@ -12,7 +12,10 @@
   "scripts": {
     "catalog:dev": "node ./apps/catalog/src/server.js",
     "catalog:start": "node ./apps/catalog/src/server.js",
-    "catalog:docker:build": "docker build -t aid-oneclick-catalog ./apps/catalog",
+    "catalog:compose:up": "docker compose up --build -d catalog",
+    "catalog:compose:down": "docker compose down",
+    "catalog:compose:logs": "docker compose logs -f catalog",
+    "catalog:docker:build": "docker compose build catalog",
     "extension:hint": "echo Load ./apps/extension as an unpacked Chrome extension."
   }
 }

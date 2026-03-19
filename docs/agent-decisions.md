@@ -59,3 +59,11 @@ The next milestone after authenticated reads is restore-point capture, latest-ro
 
 Reason:
 This delivers the minimum safe write path first, which is easier to validate against a live AI Dungeon scenario than a larger all-at-once build.
+
+### Put container orchestration at the repo root
+
+Decision:
+The catalog container orchestration lives in the repo-root `docker-compose.yml`, with root-level npm scripts wrapping the compose commands.
+
+Reason:
+The root is the operational entrypoint for the whole workspace, and keeping orchestration there avoids a second startup convention once more services are added.

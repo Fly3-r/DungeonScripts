@@ -13,7 +13,7 @@ This repo now follows the MVP split described in [INSTALLER_MVP_SPEC.md](/C:/git
 
 ```text
 apps/
-  catalog/       External website/API, Docker-friendly
+  catalog/       External website/API, Docker Compose-friendly
   extension/     Chrome extension loaded as unpacked
 packages/
   contracts/     Shared JSON schema and examples
@@ -24,7 +24,19 @@ docs/
 
 ## Quick Start
 
-1. Start the external catalog/API:
+1. Start the external catalog/API with Docker Compose:
+
+   ```powershell
+   npm run catalog:compose:up
+   ```
+
+   To stop it later:
+
+   ```powershell
+   npm run catalog:compose:down
+   ```
+
+   If you want to run the catalog directly without Docker, you can still use:
 
    ```powershell
    npm run catalog:dev
@@ -56,8 +68,7 @@ This scaffold includes:
 - catalog package fetch and install-to-leaf execution
 - rollback of the latest restore point from the popup
 - best-effort anonymous install-success telemetry POSTs to the external catalog/API
-- minimal catalog/API server
-- Dockerfile for the external service
+- repo-root Docker Compose stack for the external catalog/API
 - sample package manifest
 - shared JSON schemas for package and telemetry payloads
 
@@ -66,6 +77,13 @@ What is not implemented yet:
 - install diff preview before overwrite
 - restore-point browsing beyond the latest snapshot
 - automated test coverage for the install and rollback flow
+
+## Catalog Runtime
+
+- The containerized catalog service is defined in [docker-compose.yml](/C:/github/AID-OneClick/docker-compose.yml).
+- Runtime telemetry files are persisted under [apps/catalog/data/runtime](/C:/github/AID-OneClick/apps/catalog/data/runtime).
+- Catalog package manifests remain in [apps/catalog/data/packages](/C:/github/AID-OneClick/apps/catalog/data/packages).
+- Additional catalog runtime notes live in [apps/catalog/README.md](/C:/github/AID-OneClick/apps/catalog/README.md).
 
 ## Decision Logs
 

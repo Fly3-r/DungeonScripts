@@ -91,3 +91,11 @@ The extension posts the single anonymous install-success event after a completed
 
 Reason:
 The install transaction is the product's primary responsibility. Analytics must stay subordinate to user safety and reliability, especially while retry persistence is still a later milestone.
+
+### Use repo-root Docker Compose as the default catalog deployment entrypoint
+
+Decision:
+The external catalog/API should be started primarily through a repo-root `docker-compose.yml`, while preserving direct Node execution as a fallback development path.
+
+Reason:
+Compose gives the project one consistent self-hosting command, keeps runtime persistence explicit, and leaves room for additional services without replacing the operational entrypoint later.
