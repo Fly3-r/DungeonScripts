@@ -32,7 +32,7 @@
   let tokenIntervalId = null;
 
   const isContextInvalidatedError = (error) =>
-    error instanceof Error && error.message.includes("Extension context invalidated");
+    String(error?.message || error || "").includes("Extension context invalidated");
 
   const buildPayload = () => {
     const match = window.location.href.match(AID_EDITOR_RE);
@@ -263,3 +263,4 @@
     console.warn("[aid-oneclick-content] init failed", error);
   });
 })();
+
