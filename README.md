@@ -36,6 +36,7 @@ docs/
 
 4. Open the extension popup and confirm:
 - the editor URL is detected
+- the auth token status is active
 - the catalog origin points at `http://127.0.0.1:3000`
 
 ## Current State
@@ -43,16 +44,17 @@ docs/
 This scaffold includes:
 - root workspace configuration
 - minimal unpacked-extension shell
+- AI Dungeon editor detection and auth token extraction plumbing
 - minimal catalog/API server
 - Dockerfile for the external service
 - sample package manifest
 - shared JSON schemas for package and telemetry payloads
 
 What is not implemented yet:
-- live AI Dungeon auth extraction
 - leaf discovery and branch writes
 - backup/restore execution
 - install transaction engine
+- install-time AI Dungeon GraphQL client
 - telemetry retry queue inside the extension
 
 ## Decision Logs

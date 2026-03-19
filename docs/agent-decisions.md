@@ -12,10 +12,10 @@ Design decisions are logged in `docs/design-decisions.md`. Agent and workflow de
 Reason:
 This keeps product reasoning separate from execution/process notes so the project history stays easier to scan.
 
-### Treat `C:\\github\\AID-OneClick` as the source of truth
+### Treat `C:\github\AID-OneClick` as the source of truth
 
 Decision:
-All project work is now anchored to `C:\\github\\AID-OneClick`.
+All project work is now anchored to `C:\github\AID-OneClick`.
 
 Reason:
 That repo was designated as the primary workspace by the user. The older staging folder is only being used as a temporary bridge because of sandbox constraints in this session.
@@ -27,6 +27,14 @@ Commits may be created in the local Git repository after completed steps, but no
 
 Reason:
 This preserves checkpoint history without changing any remote state.
+
+### Create a local Git commit after each completed implementation step
+
+Decision:
+After each discrete implementation step, create a local checkpoint commit in `C:\github\AID-OneClick`.
+
+Reason:
+This gives the repo a clean step-by-step history and makes rollback between milestones easier while keeping all changes local.
 
 ### Start with structural scaffolding before implementation details
 

@@ -51,3 +51,11 @@ The repo uses a root workspace with `apps/extension`, `apps/catalog`, and `packa
 
 Reason:
 This keeps the client, external service, and shared payload definitions coordinated while remaining small enough for an MVP.
+
+### Store extracted AI Dungeon auth tokens in session-only extension storage
+
+Decision:
+The extension stores extracted AI Dungeon auth tokens in `chrome.storage.session` and only exposes sanitized auth status to the popup UI.
+
+Reason:
+The install engine needs token access across service-worker wake cycles, but the token should not be written to long-lived local storage or surfaced in UI payloads.

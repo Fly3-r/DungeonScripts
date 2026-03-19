@@ -3,8 +3,11 @@ import {
   MESSAGE_TYPES
 } from "../shared/constants.js";
 import {
+  loadAuthState,
   loadEditorContext,
   loadSettings,
+  saveAuthError,
+  saveAuthToken,
   saveEditorContext,
   saveSettings
 } from "../shared/storage.js";
@@ -18,7 +21,10 @@ const parseCatalogOrigin = (value) => {
 };
 
 chrome.runtime.onInstalled.addListener(async () => {
-  await saveSettings({ catalogOrigin: DEFAULT_CATALOG_ORIGIN });
+  const settings = await loadSettings();
+  await saveSettings({
+    catalogOrigin: settings.catalogOrigin || DEFAULT_CATALOG_ORIGIN
+  });
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -29,13 +35,29 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
 
+  if (message?.type === MESSAGE_TYPES.AUTH_TOKEN_UPDATE) {
+    saveAuthToken(message.payload)
+      .then(() => sendResponse({ ok: true }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === MESSAGE_TYPES.AUTH_TOKEN_ERROR) {
+    saveAuthError(message.payload)
+      .then(() => sendResponse({ ok: true }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
   if (message?.type === MESSAGE_TYPES.GET_STATUS) {
-    Promise.all([loadEditorContext(), loadSettings()])
-      .then(([editorContext, settings]) => {
+    Promise.all([loadEditorContext(), loadSettings(), loadAuthState()])
+      .then(([editorContext, settings, authState]) => {
+        const { token: _token, ...publicAuthState } = authState;
         sendResponse({
           ok: true,
           editorContext,
-          settings
+          settings,
+          authState: publicAuthState
         });
       })
       .catch((error) => sendResponse({ ok: false, error: error.message }));

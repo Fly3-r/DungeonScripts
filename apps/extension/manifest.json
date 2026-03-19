@@ -34,6 +34,18 @@
       "run_at": "document_idle"
     }
   ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "src/content/inject.js"
+      ],
+      "matches": [
+        "https://play.aidungeon.com/*",
+        "https://beta.aidungeon.com/*",
+        "https://alpha.aidungeon.com/*"
+      ]
+    }
+  ],
   "action": {
     "default_title": "AID One-Click",
     "default_popup": "src/popup/popup.html"

@@ -5,6 +5,8 @@ const MESSAGE_TYPES = {
 };
 
 const elements = {
+  authState: document.getElementById("auth-state"),
+  authUpdatedAt: document.getElementById("auth-updated-at"),
   editorState: document.getElementById("editor-state"),
   rootShortId: document.getElementById("root-short-id"),
   catalogOriginDisplay: document.getElementById("catalog-origin-display"),
@@ -28,9 +30,13 @@ const loadStatus = async () => {
     return;
   }
 
-  const { editorContext, settings } = response;
+  const { authState, editorContext, settings } = response;
   elements.catalogOriginDisplay.textContent = settings.catalogOrigin;
   elements.catalogOriginInput.value = settings.catalogOrigin;
+  elements.authState.textContent = authState?.hasToken ? "Active" : "Missing";
+  elements.authUpdatedAt.textContent = authState?.updatedAt
+    ? new Date(authState.updatedAt).toLocaleString()
+    : "Never";
 
   if (editorContext?.isEditor) {
     elements.editorState.textContent = "Connected";
@@ -38,6 +44,11 @@ const loadStatus = async () => {
   } else {
     elements.editorState.textContent = "No editor tab detected";
     elements.rootShortId.textContent = "None";
+  }
+
+  if (!authState?.hasToken && authState?.error) {
+    setNotice(`Auth token missing: ${authState.error}`);
+    return;
   }
 
   setNotice("Ready.");
