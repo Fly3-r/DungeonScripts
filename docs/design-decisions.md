@@ -175,3 +175,11 @@ Root verification is stable and repeatable with the current DevTools hooks. Bran
 
 
 
+### Give the catalog site a dark theme with purple accents
+
+Decision:
+The public catalog page should use a dark visual theme with purple-led accents while preserving the existing information architecture and card layout.
+
+Reason:
+The catalog is a browsing surface for scripts rather than a neutral admin screen. A darker, more atmospheric presentation better fits the product direction and makes the extension-bridge state feel more intentional without changing the underlying flow.
+

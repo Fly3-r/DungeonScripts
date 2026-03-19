@@ -1,14 +1,20 @@
-﻿:root {
-  color-scheme: light;
-  --bg: #efe7d6;
-  --panel: rgba(255, 251, 243, 0.9);
-  --ink: #191610;
-  --muted: #665f52;
-  --line: rgba(25, 22, 16, 0.1);
-  --accent: #0f766e;
-  --accent-soft: rgba(15, 118, 110, 0.14);
-  --accent-warm: #b66e2d;
-  --shadow: 0 22px 46px rgba(25, 22, 16, 0.12);
+:root {
+  color-scheme: dark;
+  --bg: #0c0816;
+  --bg-deep: #070510;
+  --panel: rgba(21, 16, 35, 0.88);
+  --panel-strong: rgba(29, 21, 48, 0.94);
+  --card: rgba(17, 13, 30, 0.82);
+  --ink: #f5edff;
+  --ink-strong: #ffffff;
+  --muted: #b8a8d6;
+  --line: rgba(167, 139, 250, 0.18);
+  --accent: #9f67ff;
+  --accent-bright: #c69cff;
+  --accent-soft: rgba(159, 103, 255, 0.18);
+  --accent-cool: #5b49f0;
+  --danger: #d94c92;
+  --shadow: 0 28px 60px rgba(2, 0, 10, 0.52);
   font-family: Georgia, "Times New Roman", serif;
 }
 
@@ -21,12 +27,27 @@ body {
   min-height: 100vh;
   color: var(--ink);
   background:
-    radial-gradient(circle at top left, rgba(182, 110, 45, 0.15), transparent 28%),
-    radial-gradient(circle at top right, rgba(15, 118, 110, 0.16), transparent 34%),
-    linear-gradient(180deg, #fbf5ea 0%, var(--bg) 100%);
+    radial-gradient(circle at top left, rgba(159, 103, 255, 0.26), transparent 28%),
+    radial-gradient(circle at top right, rgba(91, 73, 240, 0.22), transparent 34%),
+    radial-gradient(circle at bottom center, rgba(217, 76, 146, 0.12), transparent 38%),
+    linear-gradient(180deg, #140d24 0%, var(--bg) 42%, var(--bg-deep) 100%);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 20%, rgba(198, 156, 255, 0.08), transparent 16%),
+    radial-gradient(circle at 78% 18%, rgba(91, 73, 240, 0.12), transparent 18%),
+    linear-gradient(transparent 0, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: auto, auto, 100% 28px;
+  opacity: 0.9;
 }
 
 .shell {
+  position: relative;
   width: min(1120px, calc(100% - 32px));
   margin: 0 auto;
   padding: 40px 0 72px;
@@ -39,11 +60,14 @@ body {
   border-radius: 24px;
   background: var(--panel);
   box-shadow: var(--shadow);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(18px);
 }
 
 .panel-hero {
   padding-top: 32px;
+  background:
+    linear-gradient(135deg, rgba(159, 103, 255, 0.16), rgba(91, 73, 240, 0.08)),
+    var(--panel-strong);
 }
 
 .eyebrow {
@@ -67,11 +91,14 @@ h1 {
   margin-bottom: 12px;
   font-size: clamp(3rem, 6vw, 4.8rem);
   line-height: 0.92;
+  color: var(--ink-strong);
+  text-shadow: 0 0 24px rgba(198, 156, 255, 0.12);
 }
 
 h2 {
   margin-bottom: 0;
   font-size: 1.6rem;
+  color: var(--ink-strong);
 }
 
 .lede,
@@ -104,9 +131,18 @@ dt {
   margin: 18px 0 0;
 }
 
+.bridge-grid > div,
+.package-meta > div {
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
 .bridge-grid dd,
 .package-meta dd {
   margin: 4px 0 0;
+  color: var(--ink-strong);
 }
 
 .package-list {
@@ -122,7 +158,10 @@ dt {
   padding: 18px;
   border: 1px solid var(--line);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.52);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.01)),
+    var(--card);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .package-media {
@@ -134,8 +173,8 @@ dt {
   aspect-ratio: 16 / 9;
   object-fit: cover;
   border-radius: 16px;
-  border: 1px solid rgba(25, 22, 16, 0.08);
-  background: white;
+  border: 1px solid rgba(198, 156, 255, 0.18);
+  background: rgba(11, 9, 20, 0.9);
 }
 
 .package-body {
@@ -163,18 +202,24 @@ dt {
   padding: 11px 18px;
   border: 0;
   border-radius: 999px;
-  background: var(--accent);
-  color: white;
+  background: linear-gradient(135deg, var(--accent-bright), var(--accent));
+  color: #120b22;
   font: inherit;
+  font-weight: 700;
   cursor: pointer;
+  box-shadow: 0 10px 22px rgba(112, 69, 211, 0.3);
 }
 
 .action-button.secondary {
-  background: #1f2937;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ink);
+  border: 1px solid rgba(198, 156, 255, 0.14);
+  box-shadow: none;
 }
 
 .action-button.danger {
-  background: #991b1b;
+  background: linear-gradient(135deg, #ff7fb9, var(--danger));
+  color: #210814;
 }
 
 .action-button:disabled {
@@ -185,7 +230,9 @@ dt {
 code {
   padding: 6px 10px;
   border-radius: 999px;
-  background: rgba(15, 118, 110, 0.08);
+  background: rgba(159, 103, 255, 0.12);
+  color: var(--accent-bright);
+  border: 1px solid rgba(159, 103, 255, 0.18);
   font-family: "Cascadia Code", Consolas, monospace;
   font-size: 0.92rem;
 }

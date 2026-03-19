@@ -184,3 +184,11 @@ This gives the project a stable, rerunnable regression check now while leaving a
 
 
 
+### Keep the dark-theme pass scoped to catalog styling only
+
+Decision:
+The dark purple theme update is limited to the catalog page stylesheet and the related decision logs, without changing page structure or browser-extension behavior.
+
+Reason:
+This is a presentation-only request. Keeping the write scope to the catalog styling avoids accidental regressions in the install workflow while still making the visual direction explicit in project history.
+
