@@ -59,3 +59,11 @@ The extension stores extracted AI Dungeon auth tokens in `chrome.storage.session
 
 Reason:
 The install engine needs token access across service-worker wake cycles, but the token should not be written to long-lived local storage or surfaced in UI payloads.
+
+### Validate access with read-only scenario discovery before enabling writes
+
+Decision:
+The first authenticated AI Dungeon integration step after token extraction is a read-only scenario discovery pass that resolves the current root title and playable leaf count.
+
+Reason:
+This proves the token and editor root are usable against the live GraphQL API before introducing destructive install operations.

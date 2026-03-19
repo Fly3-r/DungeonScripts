@@ -6,7 +6,8 @@ const STORAGE_KEYS = {
 };
 
 const SESSION_KEYS = {
-  authState: "authState"
+  authState: "authState",
+  scenarioState: "scenarioState"
 };
 
 export const loadEditorContext = async () => {
@@ -84,5 +85,36 @@ export const saveAuthError = async ({ origin, error }) => {
       updatedAt: new Date().toISOString(),
       error
     }
+  });
+};
+
+export const loadScenarioState = async () => {
+  if (!chrome.storage.session) {
+    throw new Error("chrome.storage.session is not available.");
+  }
+
+  const result = await chrome.storage.session.get(SESSION_KEYS.scenarioState);
+  return (
+    result[SESSION_KEYS.scenarioState] || {
+      rootShortId: null,
+      rootTitle: null,
+      origin: null,
+      branchCount: 0,
+      leafCount: 0,
+      leaves: [],
+      updatedAt: null,
+      status: "idle",
+      error: null
+    }
+  );
+};
+
+export const saveScenarioState = async (scenarioState) => {
+  if (!chrome.storage.session) {
+    throw new Error("chrome.storage.session is not available.");
+  }
+
+  await chrome.storage.session.set({
+    [SESSION_KEYS.scenarioState]: scenarioState
   });
 };

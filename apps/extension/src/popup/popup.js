@@ -4,11 +4,17 @@ const MESSAGE_TYPES = {
   SET_CATALOG_ORIGIN: "SET_CATALOG_ORIGIN"
 };
 
+const STATUS_REFRESH_MS = 2000;
+
 const elements = {
   authState: document.getElementById("auth-state"),
   authUpdatedAt: document.getElementById("auth-updated-at"),
   editorState: document.getElementById("editor-state"),
   rootShortId: document.getElementById("root-short-id"),
+  scenarioAccess: document.getElementById("scenario-access"),
+  scenarioTitle: document.getElementById("scenario-title"),
+  leafCount: document.getElementById("leaf-count"),
+  scenarioUpdatedAt: document.getElementById("scenario-updated-at"),
   catalogOriginDisplay: document.getElementById("catalog-origin-display"),
   catalogOriginInput: document.getElementById("catalog-origin"),
   notice: document.getElementById("notice"),
@@ -18,6 +24,19 @@ const elements = {
 
 const setNotice = (message) => {
   elements.notice.textContent = message;
+};
+
+const describeScenarioAccess = (scenarioState) => {
+  switch (scenarioState?.status) {
+    case "ready":
+      return "Readable";
+    case "loading":
+      return "Loading...";
+    case "error":
+      return "Error";
+    default:
+      return "Waiting";
+  }
 };
 
 const loadStatus = async () => {
@@ -30,12 +49,20 @@ const loadStatus = async () => {
     return;
   }
 
-  const { authState, editorContext, settings } = response;
+  const { authState, editorContext, scenarioState, settings } = response;
   elements.catalogOriginDisplay.textContent = settings.catalogOrigin;
   elements.catalogOriginInput.value = settings.catalogOrigin;
   elements.authState.textContent = authState?.hasToken ? "Active" : "Missing";
   elements.authUpdatedAt.textContent = authState?.updatedAt
     ? new Date(authState.updatedAt).toLocaleString()
+    : "Never";
+  elements.scenarioAccess.textContent = describeScenarioAccess(scenarioState);
+  elements.scenarioTitle.textContent = scenarioState?.rootTitle || "Unknown";
+  elements.leafCount.textContent = Number.isInteger(scenarioState?.leafCount)
+    ? String(scenarioState.leafCount)
+    : "Unknown";
+  elements.scenarioUpdatedAt.textContent = scenarioState?.updatedAt
+    ? new Date(scenarioState.updatedAt).toLocaleString()
     : "Never";
 
   if (editorContext?.isEditor) {
@@ -48,6 +75,16 @@ const loadStatus = async () => {
 
   if (!authState?.hasToken && authState?.error) {
     setNotice(`Auth token missing: ${authState.error}`);
+    return;
+  }
+
+  if (scenarioState?.status === "error" && scenarioState?.error) {
+    setNotice(`Scenario read failed: ${scenarioState.error}`);
+    return;
+  }
+
+  if (scenarioState?.status === "ready") {
+    setNotice(`Scenario tree loaded. Found ${scenarioState.leafCount} playable leaves.`);
     return;
   }
 
@@ -86,3 +123,9 @@ elements.openCatalog.addEventListener("click", async () => {
 loadStatus().catch((error) => {
   setNotice(error.message);
 });
+
+setInterval(() => {
+  loadStatus().catch((error) => {
+    setNotice(error.message);
+  });
+}, STATUS_REFRESH_MS);
