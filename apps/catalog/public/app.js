@@ -1,4 +1,4 @@
-const packageList = document.getElementById("package-list");
+﻿const packageList = document.getElementById("package-list");
 
 const createStat = (label, value) => {
   const wrapper = document.createElement("div");
@@ -80,6 +80,7 @@ const renderPackages = (packages) => {
     rollbackButton.dataset.packageName = pkg.name;
     rollbackButton.textContent = "Rollback Latest";
     rollbackButton.disabled = true;
+    rollbackButton.hidden = true;
 
     const packageId = document.createElement("code");
     packageId.textContent = pkg.id;
@@ -109,3 +110,4 @@ const render = async () => {
 };
 
 render();
+

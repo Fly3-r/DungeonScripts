@@ -139,3 +139,14 @@ The catalog page should show a `Rollback Latest` button beside `One-Click Instal
 
 Reason:
 Rollback is global to the latest saved restore point, not to every catalog item. Matching the active button to the restore point keeps the page understandable and reduces the chance of restoring the wrong package by mistake.
+
+### Hide the catalog rollback control until a matching restore point exists
+
+Decision:
+The catalog page should keep the rollback button hidden until the extension reports a latest restore point for that package.
+
+Reason:
+A disabled rollback button adds noise before the user has installed anything. Hiding it until it becomes relevant keeps the card simpler while still surfacing rollback immediately after install activity begins.
+
+
+

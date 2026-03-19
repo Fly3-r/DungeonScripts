@@ -99,3 +99,14 @@ The catalog page rollback button should key off the existing `latestRestorePoint
 
 Reason:
 The page already polls the extension for status. Reusing that payload keeps the bridge small, avoids extra background message types, and ensures the popup and catalog page reflect the same rollback state.
+
+### Hide inactive rollback controls instead of showing placeholder disabled buttons
+
+Decision:
+The catalog bridge should toggle `hidden` on rollback buttons when no matching restore point exists, rather than leaving a disabled placeholder visible on every card.
+
+Reason:
+The extension already exposes enough status to know when rollback is relevant. Using visibility instead of a permanent disabled state reduces clutter without adding another render path.
+
+
+

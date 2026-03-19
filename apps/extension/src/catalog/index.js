@@ -145,6 +145,7 @@ if (!globalThis[BRIDGE_FLAG]) {
       const hasMatchingRestorePoint = Boolean(getMatchingRestorePoint(button.dataset.packageId));
       const isCurrentAction =
         currentAction?.type === "rollback" && currentAction.packageId === button.dataset.packageId;
+      button.hidden = !hasMatchingRestorePoint;
       button.disabled = !canRollback || !hasMatchingRestorePoint || isBusy;
 
       if (isBusy && isCurrentAction) {
@@ -152,7 +153,7 @@ if (!globalThis[BRIDGE_FLAG]) {
         continue;
       }
 
-      button.textContent = hasMatchingRestorePoint ? "Rollback Latest" : "Rollback Unavailable";
+      button.textContent = "Rollback Latest";
     }
   };
 
@@ -327,3 +328,4 @@ if (!globalThis[BRIDGE_FLAG]) {
   refreshExtensionState();
   setInterval(refreshExtensionState, POLL_MS);
 }
+
