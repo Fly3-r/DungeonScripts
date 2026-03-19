@@ -142,5 +142,45 @@ The catalog bridge file should execute inside an IIFE before checking its global
 Reason:
 The background worker reinjects the bridge into already-open catalog tabs. Without function scope, top-level `const` declarations throw redeclaration errors before the runtime guard can run.
 
+### Treat Chrome DevTools automation as a maintained regression harness, not a one-off debug script
+
+Decision:
+The live install and rollback checks should be captured in a reusable PowerShell CDP script under `scripts/`, and future feature work that changes the browser flow should extend that harness and rerun it.
+
+Reason:
+Ad-hoc browser scripts are too easy to get out of sync with the current product behavior. Keeping one maintained harness makes regression testing repeatable and gives future feature work a single place to add coverage.
+
+### Wait for fresh install-state transitions instead of trusting stale session storage
+
+Decision:
+The CDP regression harness should require a new install or rollback transition by checking `status` and a changed `updatedAt` value before treating an action as complete.
+
+Reason:
+The extension stores install state in `chrome.storage.session`, which can still contain a prior completed state. Transition checks prevent the test harness from falsely treating an old `ready` or `rolled_back` state as the result of the current action.
+
+### Reload the full AI Dungeon page before verifying script persistence
+
+Decision:
+The regression harness should do a full `Page.reload` on the AI Dungeon editor and then verify server-backed script state after install and rollback.
+
+Reason:
+Observed behavior showed that AI Dungeon does not always surface updated script state immediately in the live editor session. Full page reloads make the verification path match how the user manually confirms persistence.
+
+### Use the popup page as the stable runtime-message client for CDP automation
+
+Decision:
+The regression harness should send extension actions through the real popup-page runtime context instead of relying on synthetic web-page clicks or service-worker self-messaging.
+
+Reason:
+Synthetic catalog clicks were flaky under CDP, and the service worker could not reliably message itself through `chrome.runtime.sendMessage`. The popup page uses the same public message path as the real extension UI without depending on brittle DOM event simulation.
+
+### Ship the first harness with root verification plus leaf discovery reporting
+
+Decision:
+The committed regression harness verifies the active root scenario after install and rollback, and it records the discovered leaf targets in the report for future branch-level automation.
+
+Reason:
+This gives the project a stable, rerunnable regression check now while leaving a clear upgrade path for explicit branch switching once the AI Dungeon leaf-navigation mechanics are fully scripted.
+
 
 

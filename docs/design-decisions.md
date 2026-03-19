@@ -157,5 +157,21 @@ Source package manifests may omit `thumbnailUrl`, and the catalog service will s
 Reason:
 Thumbnail artwork should improve package browsing, but it should not be a hard publishing requirement. Applying the fallback at the API boundary keeps both the website and extension responses consistent.
 
+### Keep a real-browser regression harness for install and rollback
+
+Decision:
+The project should maintain a Chrome DevTools Protocol regression harness that exercises the live catalog-to-extension install and rollback path, including full AI Dungeon page reloads before verification.
+
+Reason:
+This feature depends on real browser state, extension messaging, and AI Dungeon persistence behavior. A repeatable live-browser harness is the most reliable way to catch regressions in the one-click workflow as new features are added.
+
+### Start the regression harness with stable root-scenario verification and expand outward
+
+Decision:
+The first committed live-browser regression harness verifies the active root scenario end to end and records discovered leaf targets, while branch-by-branch navigation remains a later extension of the harness.
+
+Reason:
+Root verification is stable and repeatable with the current DevTools hooks. Branch switching in the AI Dungeon editor needs additional product-specific automation before it can be treated as reliable regression coverage.
+
 
 

@@ -76,13 +76,21 @@ This scaffold includes:
 - repo-root Docker Compose stack for the external catalog/API
 - sample package manifest and thumbnail asset
 - shared JSON schemas for package and telemetry payloads
+- a repeatable Chrome DevTools Protocol regression script for install and rollback verification
 
 What is not implemented yet:
 - durable telemetry retry queue inside the extension
 - install diff preview before overwrite
 - restore-point browsing beyond the latest snapshot
-- automated test coverage for the install and rollback flow
+- branch-by-branch automated verification beyond the active root scenario
 - public package detail pages beyond the homepage cards
+
+## Automation Testing
+
+- End-to-end install and rollback regression coverage now lives in [docs/testing.md](/C:/github/AID-OneClick/docs/testing.md).
+- Run it with `npm run test:e2e:install`.
+- The harness expects Chrome remote debugging on `127.0.0.1:9222`, plus open AI Dungeon and catalog tabs.
+- The current harness verifies the active root scenario end to end and records discovered leaf targets for future branch-level coverage.
 
 ## Catalog Runtime
 

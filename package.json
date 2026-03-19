@@ -16,6 +16,7 @@
     "catalog:compose:down": "docker compose down",
     "catalog:compose:logs": "docker compose logs -f catalog",
     "catalog:docker:build": "docker compose build catalog",
-    "extension:hint": "echo Load ./apps/extension as an unpacked Chrome extension."
+    "extension:hint": "echo Load ./apps/extension as an unpacked Chrome extension.",
+    "test:e2e:install": "powershell.exe -ExecutionPolicy Bypass -File .\\scripts\\test-install-regression.ps1"
   }
 }
