@@ -126,4 +126,21 @@ Reason:
 Using one target set avoids root/leaf drift, prevents duplicate writes when the root is also a leaf, and keeps rollback coverage aligned with what the install actually changed.
 
 
+### Stop content-script polling after the extension context is reloaded
+
+Decision:
+The AI Dungeon content script should treat `Extension context invalidated` as a normal shutdown signal, stop its timers and listeners, and suppress further background messaging attempts from the stale page context.
+
+Reason:
+Reloading the unpacked extension leaves old content-script instances behind in open tabs. If they keep polling, Chrome surfaces noisy uncaught promise errors even though the new extension context is already active.
+
+### Wrap the catalog bridge in a function scope so reinjection is safe
+
+Decision:
+The catalog bridge file should execute inside an IIFE before checking its global bridge flag.
+
+Reason:
+The background worker reinjects the bridge into already-open catalog tabs. Without function scope, top-level `const` declarations throw redeclaration errors before the runtime guard can run.
+
+
 

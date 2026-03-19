@@ -1,4 +1,5 @@
-﻿const MESSAGE_TYPES = {
+﻿(() => {
+const MESSAGE_TYPES = {
   GET_STATUS: "GET_STATUS",
   INSTALL_PACKAGE: "INSTALL_PACKAGE",
   ROLLBACK_LATEST: "ROLLBACK_LATEST"
@@ -372,3 +373,5 @@ if (!globalThis[BRIDGE_FLAG]) {
   refreshExtensionState();
   setInterval(refreshExtensionState, POLL_MS);
 }
+})();
+
