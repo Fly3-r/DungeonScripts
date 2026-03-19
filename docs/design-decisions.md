@@ -123,3 +123,11 @@ When the extension is present on the catalog site, it should surface the current
 
 Reason:
 The install site should make the target explicit. Showing the current scenario context reduces uncertainty and makes one-click install trustworthy enough to use from an external catalog page.
+
+### Attach the catalog-site bridge to already-open tabs, not just future loads
+
+Decision:
+The catalog-site bridge must be registered for future page loads and also injected into already-open catalog tabs whenever the extension starts or the catalog origin changes.
+
+Reason:
+Users should not need a full browser restart or guess that a reload is required before the site recognizes the extension. The bridge needs to become active as soon as the extension is ready.

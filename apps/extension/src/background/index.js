@@ -28,6 +28,10 @@ import { postInstallSuccess } from "./telemetry.js";
 
 const BUSY_INSTALL_STATES = new Set(["loading", "rolling_back"]);
 const CATALOG_SITE_BRIDGE_ID = "catalog-site-bridge";
+const BUILTIN_CATALOG_ORIGINS = new Set([
+  DEFAULT_CATALOG_ORIGIN,
+  "http://localhost:3000"
+]);
 
 const parseCatalogOrigin = (value) => {
   const parsed = new URL(value);
@@ -123,6 +127,10 @@ const requireInstallContext = ({ authState, scenarioState }) => {
 const buildOriginPattern = (catalogOrigin) => `${catalogOrigin}/*`;
 
 const ensureCatalogOriginPermission = async (catalogOrigin, allowPrompt = false) => {
+  if (BUILTIN_CATALOG_ORIGINS.has(catalogOrigin)) {
+    return true;
+  }
+
   const origins = [buildOriginPattern(catalogOrigin)];
   const hasAccess = await chrome.permissions.contains({ origins });
 
@@ -138,6 +146,25 @@ const ensureCatalogOriginPermission = async (catalogOrigin, allowPrompt = false)
     return await chrome.permissions.request({ origins });
   } catch {
     return false;
+  }
+};
+
+const injectBridgeIntoOpenTabs = async (catalogOrigin) => {
+  const tabs = await chrome.tabs.query({ url: [buildOriginPattern(catalogOrigin)] });
+
+  for (const tab of tabs) {
+    if (!tab.id) {
+      continue;
+    }
+
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ["src/catalog/index.js"]
+      });
+    } catch (error) {
+      console.warn("[catalog-bridge] failed to inject into open tab", error);
+    }
   }
 };
 
@@ -158,10 +185,12 @@ const syncCatalogSiteBridge = async (catalogOrigin, { allowPrompt = false } = {}
       id: CATALOG_SITE_BRIDGE_ID,
       matches: [buildOriginPattern(catalogOrigin)],
       js: ["src/catalog/index.js"],
+      persistAcrossSessions: true,
       runAt: "document_idle"
     }
   ]);
 
+  await injectBridgeIntoOpenTabs(catalogOrigin);
   return true;
 };
 
@@ -461,6 +490,11 @@ const initCatalogBridge = async (catalogOrigin, { allowPrompt = false } = {}) =>
   }
 };
 
+const bootstrapCatalogBridge = async () => {
+  const settings = await loadSettings();
+  await initCatalogBridge(settings.catalogOrigin || DEFAULT_CATALOG_ORIGIN);
+};
+
 chrome.runtime.onInstalled.addListener(async () => {
   const settings = await loadSettings();
   const catalogOrigin = settings.catalogOrigin || DEFAULT_CATALOG_ORIGIN;
@@ -471,6 +505,10 @@ chrome.runtime.onInstalled.addListener(async () => {
 chrome.runtime.onStartup.addListener(async () => {
   const settings = await loadSettings();
   await initCatalogBridge(settings.catalogOrigin || DEFAULT_CATALOG_ORIGIN);
+});
+
+bootstrapCatalogBridge().catch((error) => {
+  console.warn("[catalog-bridge] bootstrap failed", error);
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {

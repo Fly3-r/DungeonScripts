@@ -75,3 +75,11 @@ The catalog homepage should render and browse normally on its own, while the ext
 
 Reason:
 This avoids coupling the site to extension-only behavior while still delivering the richer workflow when the extension is installed.
+
+### Keep the catalog-site bridge script dependency-free
+
+Decision:
+The catalog-site bridge content script should be self-contained instead of importing shared modules.
+
+Reason:
+The bridge is dynamically injected as a plain extension content script. Keeping it dependency-free avoids module-loading failures at injection time and makes the bridge more reliable.
