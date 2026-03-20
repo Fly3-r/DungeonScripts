@@ -253,3 +253,19 @@ The homepage should end with a small footer that links to the project GitHub pla
 
 Reason:
 The footer gives the page a cleaner finished edge and makes project attribution visible without interrupting the install flow.
+
+### Offer a direct install-extension CTA when the bridge is missing
+
+Decision:
+The catalog bridge panel should show an Install Extension button linking to the DungeonScripts GitHub repository only when the browser extension is not detected.
+
+Reason:
+When the bridge check fails, the page should immediately show the next useful action instead of leaving the user with only a refresh button and an error message.
+
+### Point the homepage footer at the real DungeonScripts repository
+
+Decision:
+The homepage footer link should be labeled DungeonScripts GitHub and point directly to https://github.com/Fly3-r/DungeonScripts.
+
+Reason:
+The footer should take users to the actual project repository rather than a placeholder destination.

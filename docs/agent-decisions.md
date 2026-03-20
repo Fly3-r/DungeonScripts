@@ -253,3 +253,11 @@ The DungeonScripts polish request updates only the catalog homepage text, the ex
 
 Reason:
 This is a presentation pass. Keeping it scoped avoids accidental changes to package APIs or the install flow while still letting the page feel more finished.
+
+### Keep the extension CTA polish limited to bridge-state UX
+
+Decision:
+The install-extension change adds a conditional GitHub CTA to the bridge header and updates the footer repository link without changing any package install or rollback behavior.
+
+Reason:
+This request is a small discovery and onboarding improvement. Keeping it isolated avoids coupling a simple page CTA to the extension runtime logic.

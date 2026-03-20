@@ -12,6 +12,7 @@ const SELECTORS = {
   leafCount: "#extension-leaf-count",
   installState: "#extension-install-state",
   refresh: "[data-oneclick-refresh]",
+  installExtension: "[data-oneclick-install-extension]",
   installButton: "[data-oneclick-install]",
   rollbackButton: "[data-oneclick-rollback]"
 };
@@ -150,6 +151,7 @@ if (!globalThis[BRIDGE_FLAG]) {
   };
 
   const updateActionButtons = () => {
+    const installExtensionButton = document.querySelector(SELECTORS.installExtension);
     const installButtons = Array.from(document.querySelectorAll(SELECTORS.installButton));
     const rollbackButtons = Array.from(document.querySelectorAll(SELECTORS.rollbackButton));
     const canInstall =
@@ -165,6 +167,10 @@ if (!globalThis[BRIDGE_FLAG]) {
     const isBusy =
       latestStatus?.installState?.status === "loading" ||
       latestStatus?.installState?.status === "rolling_back";
+
+    if (installExtensionButton) {
+      installExtensionButton.hidden = Boolean(latestStatus?.ok);
+    }
 
     for (const button of installButtons) {
       const isCurrentAction =

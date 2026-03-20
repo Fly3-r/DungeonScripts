@@ -133,6 +133,13 @@ a {
   align-items: end;
 }
 
+.panel-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
@@ -435,6 +442,7 @@ code {
   }
 
   .hero-actions,
+  .panel-actions,
   .package-actions,
   .site-footer-inner,
   .form-actions {
