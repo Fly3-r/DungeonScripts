@@ -60,11 +60,6 @@ This scaffold includes:
 - sample package source files and shared JSON schemas for package metadata, package manifests, and telemetry payloads
 - a repeatable Chrome DevTools Protocol regression script for install selection, telemetry retry, and full-target install/rollback verification
 
-What is not implemented yet:
-- restore-point browsing beyond the latest snapshot
-- public package detail pages beyond the homepage cards
-- automated policy or malware scanning of package changes
-
 ## Package Source Model
 
 - Package source-of-truth now lives under [apps/catalog/data/scripts](apps/catalog/data/scripts).
