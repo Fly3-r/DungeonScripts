@@ -533,7 +533,7 @@ if (!globalThis[BRIDGE_FLAG]) {
     const shouldDisableActions = isBusy || isPreviewing;
 
     if (installExtensionButton) {
-      installExtensionButton.hidden = Boolean(latestStatus?.ok);
+      installExtensionButton.hidden = true;
     }
 
     for (const button of previewButtons) {

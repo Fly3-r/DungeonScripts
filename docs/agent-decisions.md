@@ -285,3 +285,11 @@ The second startup failure is resolved by raising the shared default script-size
 
 Reason:
 A package-specific exception would just reintroduce the same maintenance problem under a different shape. The real issue was that the default ceiling was still below the current package set.
+
+### Hide the install-extension CTA based on bridge presence, not status polling
+
+Decision:
+The install-extension link is now hidden unconditionally by the catalog bridge once the extension content script is running on the page.
+
+Reason:
+The user wanted the CTA gone whenever the extension is detected. The bridge itself is the strongest signal of that, regardless of whether auth or scenario sync is currently ready.

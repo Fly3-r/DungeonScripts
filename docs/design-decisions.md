@@ -301,3 +301,11 @@ The default MAX_SOURCE_SCRIPT_LENGTH is raised to 5,000,000 characters per scrip
 
 Reason:
 localized-languages is roughly 1.96 million characters in Library.js, so the previous 1,000,000-character default still rejected a legitimate package. A higher default avoids repeated policy churn while keeping the limit explicit and configurable.
+
+### Treat the install-extension button as a static fallback, not a bridge-state indicator
+
+Decision:
+The catalog page now shows the Install Extension link by default, and the extension bridge hides it immediately whenever the extension is present on the page.
+
+Reason:
+The button should remain visible only when the extension is truly absent. Tying it to runtime status made it reappear even when the extension was detected but waiting on AI Dungeon state.
