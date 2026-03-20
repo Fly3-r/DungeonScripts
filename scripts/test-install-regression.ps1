@@ -3,11 +3,12 @@ param(
   [string]$CatalogUrl = "http://127.0.0.1:3000/",
   [string]$AidEditorUrl = "https://play.aidungeon.com/scenario/xNJvqef4IPec/testing-oneclick/edit",
   [string]$ExtensionId = "ckacekamajfmlbfcinmmlmibmlifcnlb",
-  [string]$PackageId = "demo-inner-self",
-  [string]$PackageManifestPath = ".\\apps\\catalog\\data\\packages\\demo-inner-self.json",
+  [string]$PackageId = "demo-script",
+  [string]$PackageManifestPath = ".\\apps\\catalog\\data\\packages\\demo-script.json",
   [int]$ReadyTimeoutSeconds = 90,
   [int]$ActionTimeoutSeconds = 120,
   [int]$ReloadSettleSeconds = 5,
+  [switch]$SkipTelemetryRetryCheck = $false,
   [string]$ReportPath = ""
 )
 
@@ -327,7 +328,7 @@ function Open-ExtensionPageTab {
 function Get-ServiceWorkerState {
   param([System.Net.WebSockets.ClientWebSocket]$Client)
 
-  $expression = @'
+  $expression = @"
 (async () => {
   const response = await chrome.runtime.sendMessage({
     type: "GET_STATUS"
@@ -343,7 +344,74 @@ function Get-ServiceWorkerState {
     installState: response.installState
   };
 })()
-'@
+"@
+
+  return Eval-Cdp -Client $Client -Expression $expression -AwaitPromise $true
+}
+
+function Get-TelemetryStatus {
+  param([System.Net.WebSockets.ClientWebSocket]$Client)
+
+  $expression = @"
+(async () => {
+  const response = await chrome.runtime.sendMessage({
+    type: "GET_TELEMETRY_STATUS"
+  });
+
+  if (!response?.ok) {
+    throw new Error(response?.error || "GET_TELEMETRY_STATUS failed.");
+  }
+
+  return response.telemetry;
+})()
+"@
+
+  return Eval-Cdp -Client $Client -Expression $expression -AwaitPromise $true
+}
+
+function Set-TelemetryTestMode {
+  param(
+    [System.Net.WebSockets.ClientWebSocket]$Client,
+    [string]$Mode
+  )
+
+  $expression = @"
+(async () => {
+  const response = await chrome.runtime.sendMessage({
+    type: "SET_TELEMETRY_TEST_MODE",
+    mode: "$Mode"
+  });
+
+  if (!response?.ok) {
+    throw new Error(response?.error || "SET_TELEMETRY_TEST_MODE failed.");
+  }
+
+  return response.telemetry;
+})()
+"@
+
+  return Eval-Cdp -Client $Client -Expression $expression -AwaitPromise $true
+}
+
+function Flush-TelemetryQueue {
+  param([System.Net.WebSockets.ClientWebSocket]$Client)
+
+  $expression = @"
+(async () => {
+  const response = await chrome.runtime.sendMessage({
+    type: "FLUSH_TELEMETRY_QUEUE"
+  });
+
+  if (!response?.ok) {
+    throw new Error(response?.error || "FLUSH_TELEMETRY_QUEUE failed.");
+  }
+
+  return {
+    flushResult: response.flushResult,
+    telemetry: response.telemetry
+  };
+})()
+"@
 
   return Eval-Cdp -Client $Client -Expression $expression -AwaitPromise $true
 }
@@ -650,6 +718,28 @@ function Wait-ForRollbackTransition {
   }
 }
 
+function Wait-ForTelemetryPendingCount {
+  param(
+    [System.Net.WebSockets.ClientWebSocket]$Client,
+    [int]$PendingCount,
+    [ValidateSet("eq", "ge")] [string]$Operator = "eq"
+  )
+
+  return Wait-Until -Label "telemetry pending count $Operator $PendingCount" -TimeoutSeconds $ActionTimeoutSeconds -Predicate {
+    $telemetry = Get-TelemetryStatus -Client $Client
+
+    if ($Operator -eq "eq" -and $telemetry.pendingCount -eq $PendingCount) {
+      return $telemetry
+    }
+
+    if ($Operator -eq "ge" -and $telemetry.pendingCount -ge $PendingCount) {
+      return $telemetry
+    }
+
+    return $null
+  }
+}
+
 function Wait-ForSnapshot {
   param(
     [System.Net.WebSockets.ClientWebSocket]$ServiceWorkerClient,
@@ -938,6 +1028,21 @@ try {
     return $null
   }
 
+  $initialTelemetry = $null
+  $telemetryAfterFailure = $null
+  $telemetryFlushResponse = $null
+  $telemetryAfterRecovery = $null
+
+  if (-not $SkipTelemetryRetryCheck) {
+    Write-Step "Resetting telemetry test mode and draining any pending telemetry."
+    [void](Set-TelemetryTestMode -Client $popupClient -Mode "normal")
+    $telemetryFlushResponse = Flush-TelemetryQueue -Client $popupClient
+    $initialTelemetry = Wait-ForTelemetryPendingCount -Client $serviceWorkerClient -PendingCount 0
+
+    Write-Step "Enabling telemetry failure injection for the next delivery attempt."
+    [void](Set-TelemetryTestMode -Client $popupClient -Mode "fail_next")
+  }
+
   Write-Step "Capturing pre-install snapshot."
   $preInstallSnapshot = Get-ScenarioSnapshot -Client $serviceWorkerClient
   $preInstallState = $readyState.installState
@@ -957,6 +1062,22 @@ try {
   $installResponse = Invoke-ExtensionAction -Client $popupClient -MessageType "INSTALL_PACKAGE" -PackageId $PackageId
   Write-Step "Waiting for a fresh install-state transition."
   $installCompletionState = Wait-ForInstallTransition -Client $serviceWorkerClient -PackageId $PackageId -PreviousState $preInstallState
+
+  if (-not $SkipTelemetryRetryCheck) {
+    Write-Step "Waiting for the telemetry queue to retain the failed install event."
+    $telemetryAfterFailure = Wait-Until -Label "telemetry retry queue fill" -TimeoutSeconds $ActionTimeoutSeconds -Predicate {
+      $telemetry = Get-TelemetryStatus -Client $serviceWorkerClient
+      if ($telemetry.pendingCount -ge 1) {
+        return $telemetry
+      }
+
+      return $null
+    }
+
+    Write-Step "Flushing the queued telemetry event after failure injection reset."
+    $telemetryFlushResponse = Flush-TelemetryQueue -Client $popupClient
+    $telemetryAfterRecovery = Wait-ForTelemetryPendingCount -Client $serviceWorkerClient -PendingCount 0
+  }
 
   Write-Step "Verifying installed scripts on the active root scenario."
   $postInstallTargets = Verify-TargetsByNavigation -AidClient $aidClient -ServiceWorkerClient $serviceWorkerClient -Targets $verificationTargets -Mode "package" -Package $packageManifest
@@ -997,6 +1118,13 @@ try {
       targets = Get-TargetSummary -Snapshot $preInstallSnapshot
       verifiedTargets = @($verificationTargets | ForEach-Object { $_.shortId })
     }
+    telemetry = [ordered]@{
+      verified = (-not $SkipTelemetryRetryCheck)
+      initial = $initialTelemetry
+      afterFailure = $telemetryAfterFailure
+      flush = $telemetryFlushResponse
+      afterRecovery = $telemetryAfterRecovery
+    }
     install = [ordered]@{
       response = $installResponse
       installState = $installCompletionState.installState
@@ -1027,6 +1155,13 @@ catch {
   throw
 }
 finally {
+  if ($popupClient) {
+    try {
+      [void](Set-TelemetryTestMode -Client $popupClient -Mode "normal")
+    } catch {
+    }
+  }
+
   if ($serviceWorkerClient -and $popupClient -and [object]::ReferenceEquals($serviceWorkerClient, $popupClient)) {
     Close-CdpClient -Client $popupClient
     $serviceWorkerClient = $null
@@ -1039,3 +1174,8 @@ finally {
   Close-CdpClient -Client $catalogClient
   Close-CdpClient -Client $extensionsClient
 }
+
+
+
+
+

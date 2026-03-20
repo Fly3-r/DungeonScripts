@@ -333,3 +333,19 @@ The extension now flushes queued telemetry on startup, on extension install/upda
 
 Reason:
 This keeps telemetry delivery automatic and durable without making analytics failure part of the install critical path.
+
+### Add an explicit telemetry failure-injection mode for regression testing
+
+Decision:
+The extension now exposes a background-only telemetry test mode that can force the next telemetry delivery attempt, or every telemetry delivery attempt, to fail without touching the catalog server.
+
+Reason:
+The retry queue needs a deterministic failure path for automation. Injecting failure in the extension keeps the test local, repeatable, and separate from normal runtime behavior.
+
+### Let explicit telemetry flushes bypass retry backoff while keeping automatic retries bounded
+
+Decision:
+Background startup/install retries still respect nextAttemptAt, but the explicit telemetry flush message used by diagnostics and regression testing now forces an immediate delivery attempt.
+
+Reason:
+The retry schedule should protect normal runtime traffic, while an explicit flush action is only useful if it can drain the queue immediately after a forced failure.

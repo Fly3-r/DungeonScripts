@@ -15,7 +15,8 @@ import {
   saveEditorContext,
   saveInstallState,
   saveScenarioState,
-  saveSettings
+  saveSettings,
+  saveTelemetryTestMode
 } from "../shared/storage.js";
 import { discoverScenarioLeaves } from "./aid/discover-leaves.js";
 import { fetchCatalogPackage, fetchCatalogPackages } from "./catalog.js";
@@ -26,7 +27,7 @@ import {
   installPackageToTargets,
   restoreFromPoint
 } from "./install.js";
-import { flushTelemetryQueue, recordInstallSuccess } from "./telemetry.js";
+import { flushTelemetryQueue, getTelemetryStatus, recordInstallSuccess } from "./telemetry.js";
 
 const BUSY_INSTALL_STATES = new Set(["loading", "rolling_back"]);
 const CATALOG_SITE_BRIDGE_ID = "catalog-site-bridge";
@@ -307,9 +308,19 @@ const getCatalogPackagesPayload = async () => {
   return { packages };
 };
 
-const flushTelemetryForCatalogOrigin = async (catalogOrigin) => {
+const getTelemetryStatusPayload = async () => {
+  const telemetry = await getTelemetryStatus();
+  return { telemetry };
+};
+
+const setTelemetryTestMode = async (mode) => {
+  await saveTelemetryTestMode(mode);
+  return getTelemetryStatusPayload();
+};
+
+const flushTelemetryForCatalogOrigin = async (catalogOrigin, options = {}) => {
   try {
-    return await flushTelemetryQueue(catalogOrigin);
+    return await flushTelemetryQueue(catalogOrigin, options);
   } catch (error) {
     console.warn("[telemetry] queue flush failed", error);
     return {
@@ -320,9 +331,9 @@ const flushTelemetryForCatalogOrigin = async (catalogOrigin) => {
   }
 };
 
-const flushTelemetryForCurrentSettings = async () => {
+const flushTelemetryForCurrentSettings = async (options = {}) => {
   const settings = await loadSettings();
-  return flushTelemetryForCatalogOrigin(settings.catalogOrigin || DEFAULT_CATALOG_ORIGIN);
+  return flushTelemetryForCatalogOrigin(settings.catalogOrigin || DEFAULT_CATALOG_ORIGIN, options);
 };
 
 
@@ -615,6 +626,30 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === MESSAGE_TYPES.GET_PACKAGES) {
     getCatalogPackagesPayload()
       .then((payload) => sendResponse({ ok: true, ...payload }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === MESSAGE_TYPES.GET_TELEMETRY_STATUS) {
+    getTelemetryStatusPayload()
+      .then((payload) => sendResponse({ ok: true, ...payload }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === MESSAGE_TYPES.SET_TELEMETRY_TEST_MODE) {
+    setTelemetryTestMode(message.mode)
+      .then((payload) => sendResponse({ ok: true, ...payload }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === MESSAGE_TYPES.FLUSH_TELEMETRY_QUEUE) {
+    flushTelemetryForCurrentSettings({ force: true })
+      .then(async (flushResult) => {
+        const payload = await getTelemetryStatusPayload();
+        sendResponse({ ok: true, flushResult, ...payload });
+      })
       .catch((error) => sendResponse({ ok: false, error: error.message }));
     return true;
   }

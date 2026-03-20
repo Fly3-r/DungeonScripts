@@ -1,14 +1,43 @@
 import {
   enqueueTelemetryQueueEntry,
   loadTelemetryQueue,
-  saveTelemetryQueue
+  loadTelemetryTestMode,
+  saveTelemetryQueue,
+  saveTelemetryTestMode
 } from "../shared/storage.js";
 
 const INSTALL_SUCCESS_PATH = "/api/v1/telemetry/install-success";
 const RETRY_DELAYS_MS = [60_000, 5 * 60_000, 30 * 60_000, 2 * 60 * 60_000, 12 * 60 * 60_000];
 const MAX_LAST_ERROR_LENGTH = 240;
+const TELEMETRY_TEST_MODE = {
+  normal: "normal",
+  failNext: "fail_next",
+  failAlways: "fail_always"
+};
+
+const normalizeErrorMessage = (error) =>
+  String(error?.message || error || "Unknown telemetry delivery error.").slice(0, MAX_LAST_ERROR_LENGTH);
+
+const maybeInjectTelemetryFailure = async () => {
+  const testMode = await loadTelemetryTestMode();
+
+  if (testMode === TELEMETRY_TEST_MODE.failNext) {
+    await saveTelemetryTestMode(TELEMETRY_TEST_MODE.normal);
+    throw new Error("Telemetry test mode forced the next delivery attempt to fail.");
+  }
+
+  if (testMode === TELEMETRY_TEST_MODE.failAlways) {
+    throw new Error("Telemetry test mode forced telemetry delivery to fail.");
+  }
+};
 
 const postInstallSuccessNow = async (catalogOrigin, event) => {
+  if (!catalogOrigin) {
+    throw new Error("Catalog origin is not configured.");
+  }
+
+  await maybeInjectTelemetryFailure();
+
   const response = await fetch(new URL(INSTALL_SUCCESS_PATH, catalogOrigin), {
     method: "POST",
     headers: {
@@ -42,6 +71,17 @@ const buildQueueEntry = (event) => {
   };
 };
 
+const buildPublicQueueEntry = (entry) => ({
+  id: entry?.id || null,
+  packageId: entry?.event?.packageId || null,
+  packageVersion: entry?.event?.packageVersion || null,
+  queuedAt: entry?.queuedAt || null,
+  attemptCount: Number.isInteger(entry?.attemptCount) ? entry.attemptCount : 0,
+  lastAttemptAt: entry?.lastAttemptAt || null,
+  nextAttemptAt: entry?.nextAttemptAt || null,
+  lastError: entry?.lastError || null
+});
+
 const getRetryDelayMs = (attemptCount) => {
   const safeAttemptCount = Number.isInteger(attemptCount) && attemptCount > 0 ? attemptCount : 1;
   return RETRY_DELAYS_MS[Math.min(safeAttemptCount - 1, RETRY_DELAYS_MS.length - 1)];
@@ -56,13 +96,24 @@ const shouldAttemptEntry = (entry, nowMs) => {
   return nextAttemptAtMs <= nowMs;
 };
 
-export const flushTelemetryQueue = async (catalogOrigin) => {
+export const getTelemetryStatus = async () => {
+  const [queue, testMode] = await Promise.all([loadTelemetryQueue(), loadTelemetryTestMode()]);
+
+  return {
+    testMode,
+    pendingCount: queue.length,
+    entries: queue.map(buildPublicQueueEntry)
+  };
+};
+
+export const flushTelemetryQueue = async (catalogOrigin, { force = false } = {}) => {
   const queue = await loadTelemetryQueue();
   if (queue.length === 0) {
     return {
       sentCount: 0,
       pendingCount: 0,
-      deliveryFailed: false
+      deliveryFailed: false,
+      testMode: await loadTelemetryTestMode()
     };
   }
 
@@ -74,7 +125,7 @@ export const flushTelemetryQueue = async (catalogOrigin) => {
 
   for (let index = 0; index < nextQueue.length; ) {
     const entry = nextQueue[index];
-    if (!shouldAttemptEntry(entry, nowMs)) {
+    if (!force && !shouldAttemptEntry(entry, nowMs)) {
       index += 1;
       continue;
     }
@@ -93,7 +144,7 @@ export const flushTelemetryQueue = async (catalogOrigin) => {
         attemptCount,
         lastAttemptAt: attemptedAt,
         nextAttemptAt: new Date(Date.now() + getRetryDelayMs(attemptCount)).toISOString(),
-        lastError: String(error?.message || error).slice(0, MAX_LAST_ERROR_LENGTH)
+        lastError: normalizeErrorMessage(error)
       };
       changed = true;
       deliveryFailed = true;
@@ -108,7 +159,8 @@ export const flushTelemetryQueue = async (catalogOrigin) => {
   return {
     sentCount,
     pendingCount: nextQueue.length,
-    deliveryFailed
+    deliveryFailed,
+    testMode: await loadTelemetryTestMode()
   };
 };
 

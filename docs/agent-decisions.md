@@ -309,3 +309,19 @@ The durable telemetry queue is stored in chrome.storage.local and managed by the
 
 Reason:
 The extension already owns the install transaction and remains available even when no catalog tab is open, so it is the correct place to persist and replay anonymous install telemetry.
+
+### Extend the existing CDP install harness to exercise telemetry retry
+
+Decision:
+The Chrome DevTools regression harness now forces one telemetry delivery failure during install, verifies the event remains queued, then explicitly flushes the queue and verifies it drains before continuing to rollback.
+
+Reason:
+Telemetry retry needs to stay covered by the same live browser workflow as install and rollback. Extending the current harness keeps the regression surface in one place instead of splitting it across ad hoc scripts.
+
+### Keep retry backoff for automatic sends and bypass it only for explicit flush commands
+
+Decision:
+The forced-failure test exposed that a manual flush still obeyed nextAttemptAt. The fix was to add a force option to queue flushes and use it only for the explicit telemetry flush message path.
+
+Reason:
+That preserves normal bounded retry behavior while making the regression harness able to verify recovery in one run.

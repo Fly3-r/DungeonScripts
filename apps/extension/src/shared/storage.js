@@ -4,7 +4,8 @@ const STORAGE_KEYS = {
   editorContext: "editorContext",
   settings: "settings",
   restorePoints: "restorePoints",
-  telemetryQueue: "telemetryQueue"
+  telemetryQueue: "telemetryQueue",
+  telemetryTestMode: "telemetryTestMode"
 };
 
 const SESSION_KEYS = {
@@ -15,6 +16,8 @@ const SESSION_KEYS = {
 
 const MAX_RESTORE_POINTS = 10;
 const MAX_TELEMETRY_QUEUE = 100;
+const DEFAULT_TELEMETRY_TEST_MODE = "normal";
+const VALID_TELEMETRY_TEST_MODES = new Set(["normal", "fail_next", "fail_always"]);
 
 const trimTelemetryQueue = (queue) => {
   if (!Array.isArray(queue)) {
@@ -23,6 +26,9 @@ const trimTelemetryQueue = (queue) => {
 
   return queue.slice(-MAX_TELEMETRY_QUEUE);
 };
+
+const normalizeTelemetryTestMode = (value) =>
+  VALID_TELEMETRY_TEST_MODES.has(value) ? value : DEFAULT_TELEMETRY_TEST_MODE;
 
 export const loadEditorContext = async () => {
   const result = await chrome.storage.local.get(STORAGE_KEYS.editorContext);
@@ -208,4 +214,17 @@ export const enqueueTelemetryQueueEntry = async (entry) => {
   ]);
   await saveTelemetryQueue(next);
   return next;
+};
+
+export const loadTelemetryTestMode = async () => {
+  const result = await chrome.storage.local.get(STORAGE_KEYS.telemetryTestMode);
+  return normalizeTelemetryTestMode(result[STORAGE_KEYS.telemetryTestMode]);
+};
+
+export const saveTelemetryTestMode = async (mode) => {
+  const normalizedMode = normalizeTelemetryTestMode(mode);
+  await chrome.storage.local.set({
+    [STORAGE_KEYS.telemetryTestMode]: normalizedMode
+  });
+  return normalizedMode;
 };
