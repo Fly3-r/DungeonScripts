@@ -1,5 +1,5 @@
 {
-  "name": "@aid-oneclick/catalog",
+  "name": "@dungeonscripts/catalog",
   "private": true,
   "type": "module",
   "scripts": {
@@ -7,3 +7,4 @@
     "start": "node ./src/server.js"
   }
 }
+

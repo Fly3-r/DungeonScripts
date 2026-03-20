@@ -1,6 +1,6 @@
-﻿# Contracts
+# Contracts
 
-Shared payload definitions for the AID One-Click scaffold.
+Shared payload definitions for the DungeonScripts scaffold.
 
 Current contracts:
 - `package-manifest.schema.json`
@@ -13,3 +13,4 @@ These schemas are intentionally narrow:
 - package manifests include both `author` and `authorProfileUrl` so the catalog can render a clickable AI Dungeon profile link
 - source manifests may omit a thumbnail file because the catalog API applies a bundled fallback thumbnail when `Thumbnail.png` is absent
 - install-success telemetry allows only the single anonymous success event
+

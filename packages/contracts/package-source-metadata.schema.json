@@ -1,7 +1,7 @@
-﻿{
+{
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://aid-oneclick.local/schemas/package-source-metadata.schema.json",
-  "title": "AID One-Click Package Source Metadata",
+  "$id": "https://dungeonscripts.local/schemas/package-source-metadata.schema.json",
+  "title": "DungeonScripts Package Source Metadata",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -39,3 +39,4 @@
     }
   }
 }
+

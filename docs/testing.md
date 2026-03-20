@@ -4,7 +4,7 @@ This project now includes a repeatable Chrome DevTools Protocol regression harne
 
 ## Current Coverage
 
-The script [scripts/test-install-regression.ps1](/C:/github/AID-OneClick/scripts/test-install-regression.ps1) validates:
+The script [scripts/test-install-regression.ps1](../scripts/test-install-regression.ps1) validates:
 - unpacked extension reload
 - catalog page recognition of the extension
 - AI Dungeon auth/session readiness
@@ -69,5 +69,6 @@ Examples:
 - new branch-specific UI flows: keep verification target-based unless the feature truly depends on editor-side leaf navigation
 
 The goal is to keep a single repeatable regression path for the real browser workflow.
+
 
 

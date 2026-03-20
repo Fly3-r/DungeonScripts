@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://aid-oneclick.local/schemas/install-success.schema.json",
-  "title": "AID One-Click Install Success Event",
+  "$id": "https://dungeonscripts.local/schemas/install-success.schema.json",
+  "title": "DungeonScripts Install Success Event",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -38,3 +38,4 @@
     }
   }
 }
+

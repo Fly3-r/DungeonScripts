@@ -1,6 +1,6 @@
 # Agent Decisions
 
-This file records workflow, implementation-process, and agent-execution decisions for AID-OneClick.
+This file records workflow, implementation-process, and agent-execution decisions for DungeonScripts.
 
 ## 2026-03-19
 
@@ -12,10 +12,10 @@ Design decisions are logged in `docs/design-decisions.md`. Agent and workflow de
 Reason:
 This keeps product reasoning separate from execution/process notes so the project history stays easier to scan.
 
-### Treat `C:\github\AID-OneClick` as the source of truth
+### Treat the repository as the source of truth
 
 Decision:
-All project work is now anchored to `C:\github\AID-OneClick`.
+All project work is now anchored to the repository source of truth.
 
 Reason:
 That repo was designated as the primary workspace by the user. The older staging folder is only being used as a temporary bridge because of sandbox constraints in this session.
@@ -31,7 +31,7 @@ This preserves checkpoint history without changing any remote state.
 ### Create a local Git commit after each completed implementation step
 
 Decision:
-After each discrete implementation step, create a local checkpoint commit in `C:\github\AID-OneClick`.
+After each discrete implementation step, create a local checkpoint commit in the repository.
 
 Reason:
 This gives the repo a clean step-by-step history and makes rollback between milestones easier while keeping all changes local.
@@ -357,3 +357,12 @@ The regression harness now opens the preview modal and asserts that it loads tar
 
 Reason:
 The install-target selection refactor introduced an undefined-variable bug in the preview path. A lightweight preview smoke check makes that class of regression visible in the main browser workflow.
+
+
+### Keep the branding cleanup scoped to docs and visible metadata
+
+Decision:
+The `DungeonScripts` rename is applied to documentation, schema metadata, package metadata, and user-visible extension/catalog labels without changing install behavior.
+
+Reason:
+The request is about portability and branding consistency, not a functional refactor. Keeping the change scoped avoids unnecessary risk in the tested install flow.

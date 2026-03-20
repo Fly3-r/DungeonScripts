@@ -1,4 +1,4 @@
-﻿(() => {
+(() => {
   const CONTENT_FLAG = "__aidOneClickContentReady";
   if (globalThis[CONTENT_FLAG]) {
     return;
@@ -260,7 +260,8 @@
       return;
     }
 
-    console.warn("[aid-oneclick-content] init failed", error);
+    console.warn("[dungeonscripts-content] init failed", error);
   });
 })();
+
 

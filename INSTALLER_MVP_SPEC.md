@@ -1,4 +1,4 @@
-# AI Dungeon One-Click Installer MVP Spec
+# DungeonScripts MVP Spec
 
 ## Scope
 
@@ -321,3 +321,4 @@ On failure, show:
 4. Rollback flow
 5. Catalog fetch
 6. Minimal success telemetry
+

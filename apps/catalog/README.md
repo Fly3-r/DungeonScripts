@@ -1,4 +1,4 @@
-﻿# Catalog Service
+# Catalog Service
 
 This app is the external website and API used by the Chrome extension.
 
@@ -10,13 +10,13 @@ This app is the external website and API used by the Chrome extension.
 
 ## Docker Compose
 
-The default containerized runtime is the repo-root [docker-compose.yml](/C:/github/AID-OneClick/docker-compose.yml).
+The default containerized runtime is the repo-root [docker-compose.yml](../../docker-compose.yml).
 
 The compose service:
-- builds from [Dockerfile](/C:/github/AID-OneClick/apps/catalog/Dockerfile)
+- builds from [Dockerfile](Dockerfile)
 - exposes the catalog on `http://127.0.0.1:3000`
 - passes through `DEFAULT_MIN_INSTALLER_VERSION`
-- persists package source files, generated package manifests, and telemetry data under [data](/C:/github/AID-OneClick/apps/catalog/data)
+- persists package source files, generated package manifests, and telemetry data under [data](data)
 
 ## Direct Node Runtime
 
@@ -29,15 +29,16 @@ npm run catalog:dev
 ## Package Workflow
 
 The catalog now uses a repo-driven package model:
-- package source-of-truth lives under [data/scripts](/C:/github/AID-OneClick/apps/catalog/data/scripts)
+- package source-of-truth lives under [data/scripts](data/scripts)
 - each package folder contains `metadata.json`, `Library.js`, `Input.js`, `Context.js`, `Output.js`, and an optional `Thumbnail.png`
-- the catalog rebuilds [data/packages](/C:/github/AID-OneClick/apps/catalog/data/packages) from those source folders each time the service starts
+- the catalog rebuilds [data/packages](data/packages) from those source folders each time the service starts
 - install counts remain in runtime telemetry and are still keyed by package ID
 
 ## Data Locations
 
-- Package source tree: [data/scripts](/C:/github/AID-OneClick/apps/catalog/data/scripts)
-- Generated package manifests: [data/packages](/C:/github/AID-OneClick/apps/catalog/data/packages)
-- Telemetry runtime files: [data/runtime](/C:/github/AID-OneClick/apps/catalog/data/runtime)
-- Static site assets: [public](/C:/github/AID-OneClick/apps/catalog/public)
-- HTTP server entrypoint: [src/server.js](/C:/github/AID-OneClick/apps/catalog/src/server.js)
+- Package source tree: [data/scripts](data/scripts)
+- Generated package manifests: [data/packages](data/packages)
+- Telemetry runtime files: [data/runtime](data/runtime)
+- Static site assets: [public](public)
+- HTTP server entrypoint: [src/server.js](src/server.js)
+

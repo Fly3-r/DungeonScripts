@@ -1,5 +1,6 @@
 {
-  "name": "@aid-oneclick/extension",
+  "name": "@dungeonscripts/extension",
   "private": true,
   "type": "module"
 }
+

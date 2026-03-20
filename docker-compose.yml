@@ -1,10 +1,10 @@
-﻿name: aid-oneclick
+name: dungeonscripts
 
 services:
   catalog:
     build:
       context: ./apps/catalog
-    image: aid-oneclick-catalog:local
+    image: dungeonscripts-catalog:local
     ports:
       - "${CATALOG_PORT:-3000}:3000"
     environment:
@@ -18,3 +18,4 @@ services:
       - ./apps/catalog/data/packages:/app/data/packages
       - ./apps/catalog/data/scripts:/app/data/scripts
     restart: unless-stopped
+

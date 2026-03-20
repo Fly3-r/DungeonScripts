@@ -1,6 +1,6 @@
 # Design Decisions
 
-This file records product, architecture, and UX decisions for AID-OneClick.
+This file records product, architecture, and UX decisions for DungeonScripts.
 
 ## 2026-03-19
 
@@ -381,3 +381,13 @@ The main package action on the catalog cards should be labeled `Install` instead
 
 Reason:
 The surrounding page already makes the one-click behavior clear. The shorter label is easier to scan and keeps the primary action button cleaner.
+
+
+### Use repo-relative links and DungeonScripts branding in project documentation
+
+Decision:
+Project documentation should use repo-relative links instead of machine-specific absolute paths, and the published project name should be `DungeonScripts` throughout the docs and user-visible metadata.
+
+Reason:
+Absolute machine-specific links only work on one local layout. Repo-relative links travel cleanly across local drives and clones, and the docs should match the published repository branding.
+

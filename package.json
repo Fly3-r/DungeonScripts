@@ -1,5 +1,5 @@
-﻿{
-  "name": "aid-oneclick",
+{
+  "name": "dungeonscripts",
   "private": true,
   "type": "module",
   "engines": {
@@ -20,3 +20,4 @@
     "test:e2e:install": "powershell.exe -ExecutionPolicy Bypass -File .\\scripts\\test-install-regression.ps1"
   }
 }
+
