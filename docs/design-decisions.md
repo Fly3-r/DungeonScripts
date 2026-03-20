@@ -391,3 +391,11 @@ Project documentation should use repo-relative links instead of machine-specific
 Reason:
 Absolute machine-specific links only work on one local layout. Repo-relative links travel cleanly across local drives and clones, and the docs should match the published repository branding.
 
+
+### Keep rollback scoped to the latest restore point only
+
+Decision:
+DungeonScripts will support rollback of the latest restore point only and will not add restore-point browsing as part of the intended product scope.
+
+Reason:
+The current rollback behavior already covers the main safety requirement without adding history-management UI and storage complexity that the project does not need.
