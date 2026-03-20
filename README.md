@@ -50,21 +50,18 @@ This scaffold includes:
 - restore-point capture before script mutations
 - catalog package fetch and install-to-root-plus-leaves execution
 - rollback of the latest restore point from the popup and matching catalog card
-- best-effort anonymous install-success telemetry POSTs to the external catalog/API
-- browsable catalog homepage on `/` with thumbnail cards, fallback placeholder artwork, and install counters
+- durable anonymous install-success telemetry queue and retry inside the extension, with best-effort POSTs to the external catalog/API
+- browsable catalog homepage on `/` with thumbnail cards, fallback placeholder artwork, install counters, and install diff preview modal
 - versioned JSON API under `/api/v1/*`
 - repo-driven package sources under `apps/catalog/data/scripts/<package-id>`
 - startup generation of public package manifests into `apps/catalog/data/packages`
 - sample package source files and shared JSON schemas for package metadata, package manifests, and telemetry payloads
-- a repeatable Chrome DevTools Protocol regression script for install and rollback verification
+- a repeatable Chrome DevTools Protocol regression script for install, telemetry retry, and rollback verification
 
 What is not implemented yet:
-- durable telemetry retry queue inside the extension
-- install diff preview before overwrite
 - restore-point browsing beyond the latest snapshot
 - branch-by-branch automated verification beyond the active root scenario
 - public package detail pages beyond the homepage cards
-- browser-based package authoring or moderation flows
 - automated policy or malware scanning of package changes
 
 ## Package Source Model
