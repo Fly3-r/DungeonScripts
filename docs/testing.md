@@ -8,6 +8,7 @@ The script [scripts/test-install-regression.ps1](/C:/github/AID-OneClick/scripts
 - unpacked extension reload
 - catalog page recognition of the extension
 - AI Dungeon auth/session readiness
+- preview modal opens successfully from the catalog page against the full discovered target set
 - install triggered from the catalog page install modal with forced telemetry delivery failure injection
 - default target selection in the install modal across the root and discovered playable leaves
 - queued telemetry retention after the forced delivery failure
@@ -68,3 +69,5 @@ Examples:
 - new branch-specific UI flows: keep verification target-based unless the feature truly depends on editor-side leaf navigation
 
 The goal is to keep a single repeatable regression path for the real browser workflow.
+
+

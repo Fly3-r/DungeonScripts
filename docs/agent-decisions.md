@@ -349,3 +349,11 @@ The request to rename `One-Click Install` to `Install` is implemented only in th
 
 Reason:
 This is a presentation-only change. Keeping it scoped avoids unnecessary churn in the install flow or automated coverage.
+
+### Add preview smoke coverage after the install-scope refactor
+
+Decision:
+The regression harness now opens the preview modal and asserts that it loads target comparisons successfully before continuing with install and rollback.
+
+Reason:
+The install-target selection refactor introduced an undefined-variable bug in the preview path. A lightweight preview smoke check makes that class of regression visible in the main browser workflow.

@@ -341,7 +341,7 @@ const flushTelemetryForCurrentSettings = async (options = {}) => {
 };
 
 
-const previewSelectedPackage = async (packageId) => {
+const previewSelectedPackage = async (packageId, targetShortIds = null) => {
   if (typeof packageId !== "string" || packageId.trim().length === 0) {
     throw new Error("Select a package before previewing.");
   }
@@ -659,7 +659,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message?.type === MESSAGE_TYPES.PREVIEW_PACKAGE) {
-    previewSelectedPackage(message.packageId)
+    previewSelectedPackage(message.packageId, message.targetShortIds)
       .then((payload) => sendResponse({ ok: true, ...payload }))
       .catch((error) => sendResponse({ ok: false, error: error.message }));
     return true;
@@ -706,4 +706,5 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   sendResponse({ ok: false, error: "Unknown message type." });
   return false;
 });
+
 

@@ -296,6 +296,30 @@ function Get-InstallModalState {
   return Eval-Cdp -Client $Client -Expression $expression -AwaitPromise $true
 }
 
+function Get-PreviewModalState {
+  param([System.Net.WebSockets.ClientWebSocket]$Client)
+
+  $expression = @"
+(() => {
+  const modal = document.querySelector('[data-oneclick-preview-modal]');
+  if (!modal || modal.hidden) {
+    return null;
+  }
+
+  const title = modal.querySelector('#preview-modal-title')?.textContent?.trim() || '';
+  const summary = modal.querySelector('#preview-modal-summary')?.textContent?.trim() || '';
+  return {
+    title,
+    summary,
+    targetCount: modal.querySelectorAll('.preview-target').length,
+    hasError: title === 'Preview unavailable'
+  };
+})()
+"@
+
+  return Eval-Cdp -Client $Client -Expression $expression -AwaitPromise $true
+}
+
 function Invoke-ExtensionAction {
   param(
     [System.Net.WebSockets.ClientWebSocket]$Client,
@@ -1017,6 +1041,7 @@ $reloadExtensionExpr = @"
 })()
 "@
 
+$previewSelector = "[data-oneclick-preview][data-package-id=""$PackageId""]"
 $installSelector = "[data-oneclick-install][data-package-id=""$PackageId""]"
 $rollbackSelector = "[data-oneclick-rollback][data-package-id=""$PackageId""]"
 
@@ -1086,9 +1111,42 @@ try {
   $preInstallState = $readyState.installState
   $verificationTargets = @($preInstallSnapshot.targets)
 
-  Write-Step "Waiting for install button readiness."
-  Wait-Until -Label "install button readiness" -TimeoutSeconds $ReadyTimeoutSeconds -Predicate {
-    if (Test-ButtonReady -Client $catalogClient -Selector $installSelector) {
+  Write-Step "Waiting for preview and install button readiness."
+  Wait-Until -Label "preview/install button readiness" -TimeoutSeconds $ReadyTimeoutSeconds -Predicate {
+    if (
+      (Test-ButtonReady -Client $catalogClient -Selector $previewSelector) -and
+      (Test-ButtonReady -Client $catalogClient -Selector $installSelector)
+    ) {
+      return $true
+    }
+
+    return $null
+  } | Out-Null
+
+  Write-Step "Opening the preview modal from the catalog page."
+  Click-Button -Client $catalogClient -Selector $previewSelector | Out-Null
+  $previewModalState = Wait-Until -Label "preview modal readiness" -TimeoutSeconds $ReadyTimeoutSeconds -Predicate {
+    $modalState = Get-PreviewModalState -Client $catalogClient
+    if (
+      $modalState -and (
+        $modalState.hasError -or
+        $modalState.targetCount -eq $preInstallSnapshot.targetCount
+      )
+    ) {
+      return $modalState
+    }
+
+    return $null
+  }
+
+  if ($previewModalState.hasError) {
+    throw "Preview modal failed: $($previewModalState.summary)"
+  }
+
+  Write-Step "Closing the preview modal."
+  Click-Button -Client $catalogClient -Selector "[data-oneclick-preview-close]" | Out-Null
+  Wait-Until -Label "preview modal close" -TimeoutSeconds $ReadyTimeoutSeconds -Predicate {
+    if (-not (Get-PreviewModalState -Client $catalogClient)) {
       return $true
     }
 
@@ -1198,6 +1256,9 @@ try {
       flush = $telemetryFlushResponse
       afterRecovery = $telemetryAfterRecovery
     }
+    preview = [ordered]@{
+      modal = $previewModalState
+    }
     install = [ordered]@{
       response = $installResponse
       installState = $installCompletionState.installState
@@ -1243,6 +1304,8 @@ finally {
   Close-CdpClient -Client $catalogClient
   Close-CdpClient -Client $extensionsClient
 }
+
+
 
 
 
