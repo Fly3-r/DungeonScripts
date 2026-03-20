@@ -1,11 +1,11 @@
-﻿# Repo-Driven Package Model
+# Repo-Driven Package Model
 
 This document defines the current catalog package workflow.
 
 ## Goals
 
 - Keep package source-of-truth inside the Git repo.
-- Remove in-app submission and moderation state.
+- Remove browser-based package authoring and moderation state.
 - Preserve the existing package API shape used by the extension.
 - Regenerate public package manifests automatically when the catalog starts.
 
@@ -90,7 +90,7 @@ Public API:
 
 ## Out Of Scope For This MVP
 
-- in-app submission forms
+- browser-based package-authoring forms
 - in-app approval or moderation
 - package detail pages beyond the homepage cards
 - automated malware or policy scanning

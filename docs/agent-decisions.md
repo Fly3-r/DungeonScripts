@@ -198,60 +198,10 @@ This request is presentation-only and does not require any structural or extensi
 
 ## 2026-03-20
 
-### Centralize review behavior in one Node CLI and wrap it per host OS (Superseded 2026-03-20)
-
-Decision:
-The first private review workflow was implemented once in `scripts/review-submissions.mjs`, with thin wrappers for Windows PowerShell and Linux Bash. This was later removed when the protected web admin page landed.
-
-Reason:
-This keeps the approval logic consistent across host operating systems while still giving the project the separate Windows and Linux entrypoints the user asked for.
-
-### Keep submission intake and review output file-backed (Superseded 2026-03-20)
-
-Decision:
-The server writes raw submissions into `apps/catalog/data/submissions/<state>`, and the active review flow publishes approved packages directly into `apps/catalog/data/packages`.
-
-Reason:
-A file-backed workflow matches the current no-database MVP, keeps review private, and makes it easy to inspect or back up submissions on the host.
-
-### Store private contact details in the same review record, not a separate API surface (Superseded 2026-03-20)
-
-Decision:
-The submission record carries the uploader Discord username under `contact`, and no extra HTTP endpoints are added for reviewer-only data.
-
-Reason:
-The submission record still carries the uploader Discord username under `contact`, and the protected admin review page can display it without exposing any public reviewer-only endpoint. Keeping private contact inside the queued record avoids introducing a second service boundary.
-
-### Ignore private submission queue files in Git (Superseded 2026-03-20)
-
-Decision:
-Runtime submission JSON files under `apps/catalog/data/submissions` should be ignored by Git, while the directory structure and placeholder files remain tracked.
-
-Reason:
-Submission records contain private contact data. They should stay local to the host review workflow rather than being easy to commit by accident.
-
-### Move review and publish logic into the catalog server (Superseded 2026-03-20)
-
-Decision:
-The server now owns submission review, state transitions, and package publication through protected admin routes under `/api/v1/admin/*`.
-
-Reason:
-The admin webpage should be a thin client over one authoritative review path. Keeping the write logic in the server avoids duplicating approval behavior between UI code and separate tooling.
-
-### Remove the CLI review scripts after the admin page landed (Superseded 2026-03-20)
-
-Decision:
-The Windows and Linux review CLI wrappers were removed once the protected admin page and admin API were in place.
-
-Reason:
-Keeping both workflows would create two competing approval paths for the same queue. The repo should expose one review mechanism at a time.
-
-
-
 ### Collapse package review back into the repo workflow
 
 Decision:
-The temporary submission and admin-review system was removed, and package review now happens through normal repo changes under `apps/catalog/data/scripts`.
+The temporary browser-managed package intake and review system was removed, and package review now happens through normal repo changes under `apps/catalog/data/scripts`.
 
 Reason:
 The repo is the real operating boundary for package changes. Removing the extra workflow keeps the codebase smaller and avoids maintaining a second review surface.
@@ -287,3 +237,11 @@ The install regression harness now treats the extension popup page as the extens
 
 Reason:
 In the current Chrome remote-debugging session, the popup page is visible and fully capable of reading `chrome.storage.session` and sending runtime messages, while the extension worker target is not consistently exposed through `/json/list`.
+
+### Prune the last submission/admin leftovers once the repo path is stable
+
+Decision:
+After the repo-driven package workflow was validated, the dead `apps/catalog/data/submissions` directory and the remaining superseded submission/admin log entries were removed.
+
+Reason:
+The project no longer benefits from keeping a second, inactive workflow visible in the tree. Pruning it makes the current package path and docs easier to follow.

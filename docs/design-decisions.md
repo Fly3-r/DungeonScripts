@@ -1,4 +1,4 @@
-﻿# Design Decisions
+# Design Decisions
 
 This file records product, architecture, and UX decisions for AID-OneClick.
 
@@ -190,22 +190,6 @@ The updated dark catalog styling benefits from a cleaner, more modern sans-serif
 
 ## 2026-03-20
 
-### Use a public submission page with private host-local review (Superseded 2026-03-20)
-
-Decision:
-The first upload workflow used a public `/submit` page for intake while approval and moderation were handled only through local CLI tools on the catalog host. This was later replaced by the protected in-app `/admin` review page.
-
-Reason:
-This keeps the public product surface small, avoids in-app authentication work, and still supports a structured review process before anything is published.
-
-### Keep uploader Discord usernames private to submission records only
-
-Decision:
-Submission records store `discordUsername` under a private contact section, and that field is excluded from the public package manifests and package APIs.
-
-Reason:
-Discord usernames are operational contact data, not catalog metadata. They are only needed for reviewer follow-up and should not leak into public responses.
-
 ### Represent public authors as AI Dungeon profile links
 
 Decision:
@@ -217,44 +201,18 @@ The author identity needs to map back to AI Dungeon rather than a freeform label
 ### Treat package descriptions as long-form Markdown source
 
 Decision:
-Submission descriptions are stored as long-form Markdown-capable text, with the homepage using a shortened preview while the full description remains in the published manifest for future detail pages.
+Package descriptions are stored as long-form Markdown-capable text, with the homepage using a shortened preview while the full description remains in the published manifest for future detail pages.
 
 Reason:
-Uploaders need enough space to include setup notes and links, but the catalog homepage should stay compact and scannable.
+Package authors need enough space to include setup notes and links, but the catalog homepage should stay compact and scannable.
 
-### Replace the host-local CLI review flow with an in-app admin page (Superseded 2026-03-20)
+### Replace browser-managed package approval with repo-driven package sources
 
 Decision:
-Submission review now happens from a protected `/admin` page served by the catalog app itself, not from separate Windows and Linux CLI tools.
+Package authorship and review now happen through the Git workflow for `apps/catalog/data/scripts/<package-id>`, not through browser-managed package approval pages inside the catalog app.
 
 Reason:
-The review workflow is part of the catalog product surface now. Keeping it inside the web app makes approval easier to operate and aligns better with the Docker-hosted deployment model.
-
-### Use shared admin credentials for the review page (Superseded 2026-03-20)
-
-Decision:
-The catalog admin page is protected with shared admin credentials supplied through `CATALOG_ADMIN_USERNAME` and `CATALOG_ADMIN_PASSWORD`.
-
-Reason:
-This adds a practical approval gate without introducing a full user-account system. It keeps the approval workflow tied to the catalog service while staying small enough for the MVP.
-
-### Persist submission and package data through Docker bind mounts (Superseded 2026-03-20)
-
-Decision:
-The Docker runtime must mount `apps/catalog/data/packages`, `apps/catalog/data/submissions`, and `apps/catalog/data/runtime` into the container.
-
-Reason:
-The admin page now publishes packages and updates the submission queue from inside the container. Those writes need to persist on the host across container restarts.
-
-
-
-### Replace in-app submission and approval with repo-driven package sources
-
-Decision:
-Package authorship and review now happen through the Git workflow for `apps/catalog/data/scripts/<package-id>`, not through `/submit` and `/admin` pages inside the catalog app.
-
-Reason:
-The in-app workflow added authentication, queue-state, and moderation complexity that was not necessary for the actual operating model. Keeping package source-of-truth in the repo is simpler and easier to audit.
+The browser-based workflow added authentication, queue-state, and moderation complexity that was not necessary for the actual operating model. Keeping package source-of-truth in the repo is simpler and easier to audit.
 
 ### Generate public package manifests from the repo source tree at catalog startup
 
@@ -271,3 +229,11 @@ Each package source folder may include an optional `Thumbnail.png`, and the cata
 
 Reason:
 Keeping thumbnails beside the script files and metadata makes each package self-contained without introducing extra asset-mapping metadata.
+
+### Remove the dormant submission queue artifacts after the repo-driven model stabilized
+
+Decision:
+The unused `apps/catalog/data/submissions` directory and the remaining submission/admin-specific notes were removed once the repo-driven package model became the only supported workflow.
+
+Reason:
+Dormant queue artifacts and dead workflow notes were making the active package source path less obvious than it needed to be.

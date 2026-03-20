@@ -1,4 +1,4 @@
-﻿# AID-OneClick
+# AID-OneClick
 
 Scaffold for the AI Dungeon one-click installer project.
 
@@ -64,7 +64,7 @@ What is not implemented yet:
 - restore-point browsing beyond the latest snapshot
 - branch-by-branch automated verification beyond the active root scenario
 - public package detail pages beyond the homepage cards
-- in-app package submission or moderation flows
+- browser-based package authoring or moderation flows
 - automated policy or malware scanning of package changes
 
 ## Package Source Model
