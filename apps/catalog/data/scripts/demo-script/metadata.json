@@ -1,0 +1,8 @@
+﻿{
+  "name": "Demo Script",
+  "version": "1.0.0",
+  "author": "Fly3_r",
+  "authorProfileUrl": "https://play.aidungeon.com/profile/Fly3_r",
+  "description": "Sample script package used to verify catalog browsing, one-click install, and rollback plumbing.",
+  "minInstallerVersion": "0.0.1"
+}
