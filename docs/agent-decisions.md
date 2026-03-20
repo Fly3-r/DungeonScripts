@@ -301,3 +301,11 @@ The install CTA visibility issue is fixed by enforcing the HTML hidden attribute
 
 Reason:
 The bridge was already setting hidden = true; the real bug was that .action-button { display: inline-flex; } overrode the browser's default hidden styling.
+
+### Implement the retry queue in the extension storage layer, not the catalog site
+
+Decision:
+The durable telemetry queue is stored in chrome.storage.local and managed by the extension background worker rather than by the catalog page.
+
+Reason:
+The extension already owns the install transaction and remains available even when no catalog tab is open, so it is the correct place to persist and replay anonymous install telemetry.

@@ -26,7 +26,7 @@ import {
   installPackageToTargets,
   restoreFromPoint
 } from "./install.js";
-import { postInstallSuccess } from "./telemetry.js";
+import { flushTelemetryQueue, recordInstallSuccess } from "./telemetry.js";
 
 const BUSY_INSTALL_STATES = new Set(["loading", "rolling_back"]);
 const CATALOG_SITE_BRIDGE_ID = "catalog-site-bridge";
@@ -307,6 +307,25 @@ const getCatalogPackagesPayload = async () => {
   return { packages };
 };
 
+const flushTelemetryForCatalogOrigin = async (catalogOrigin) => {
+  try {
+    return await flushTelemetryQueue(catalogOrigin);
+  } catch (error) {
+    console.warn("[telemetry] queue flush failed", error);
+    return {
+      sentCount: 0,
+      pendingCount: 0,
+      deliveryFailed: true
+    };
+  }
+};
+
+const flushTelemetryForCurrentSettings = async () => {
+  const settings = await loadSettings();
+  return flushTelemetryForCatalogOrigin(settings.catalogOrigin || DEFAULT_CATALOG_ORIGIN);
+};
+
+
 const previewSelectedPackage = async (packageId) => {
   if (typeof packageId !== "string" || packageId.trim().length === 0) {
     throw new Error("Select a package before previewing.");
@@ -402,7 +421,7 @@ const installSelectedPackage = async (packageId) => {
     await saveInstallState(nextInstallState);
 
     try {
-      await postInstallSuccess(settings.catalogOrigin, {
+      const telemetryResult = await recordInstallSuccess(settings.catalogOrigin, {
         event: "script_install_succeeded",
         installId: restorePoint.id,
         packageId: pkg.id,
@@ -410,8 +429,14 @@ const installSelectedPackage = async (packageId) => {
         leafCount: restorePoint.leafCount,
         timestamp: new Date().toISOString()
       });
+
+      if (telemetryResult.deliveryFailed) {
+        console.warn(
+          `[telemetry] install-success queued for retry (${telemetryResult.pendingCount} pending).`
+        );
+      }
     } catch (error) {
-      console.warn("[telemetry] install-success post failed", error);
+      console.warn("[telemetry] install-success queueing failed", error);
     }
 
     return {
@@ -531,7 +556,9 @@ const initCatalogBridge = async (catalogOrigin, { allowPrompt = false } = {}) =>
 
 const bootstrapCatalogBridge = async () => {
   const settings = await loadSettings();
-  await initCatalogBridge(settings.catalogOrigin || DEFAULT_CATALOG_ORIGIN);
+  const catalogOrigin = settings.catalogOrigin || DEFAULT_CATALOG_ORIGIN;
+  await initCatalogBridge(catalogOrigin);
+  await flushTelemetryForCatalogOrigin(catalogOrigin);
 };
 
 chrome.runtime.onInstalled.addListener(async () => {
@@ -539,11 +566,14 @@ chrome.runtime.onInstalled.addListener(async () => {
   const catalogOrigin = settings.catalogOrigin || DEFAULT_CATALOG_ORIGIN;
   await saveSettings({ catalogOrigin });
   await initCatalogBridge(catalogOrigin);
+  await flushTelemetryForCatalogOrigin(catalogOrigin);
 });
 
 chrome.runtime.onStartup.addListener(async () => {
   const settings = await loadSettings();
-  await initCatalogBridge(settings.catalogOrigin || DEFAULT_CATALOG_ORIGIN);
+  const catalogOrigin = settings.catalogOrigin || DEFAULT_CATALOG_ORIGIN;
+  await initCatalogBridge(catalogOrigin);
+  await flushTelemetryForCatalogOrigin(catalogOrigin);
 });
 
 bootstrapCatalogBridge().catch((error) => {
@@ -619,6 +649,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         }
 
         await saveSettings({ catalogOrigin });
+        await flushTelemetryForCurrentSettings();
       })
       .then(() => sendResponse({ ok: true }))
       .catch((error) => sendResponse({ ok: false, error: error.message }));

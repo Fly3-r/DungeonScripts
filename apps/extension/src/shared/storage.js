@@ -1,9 +1,10 @@
-﻿import { DEFAULT_CATALOG_ORIGIN } from "./constants.js";
+import { DEFAULT_CATALOG_ORIGIN } from "./constants.js";
 
 const STORAGE_KEYS = {
   editorContext: "editorContext",
   settings: "settings",
-  restorePoints: "restorePoints"
+  restorePoints: "restorePoints",
+  telemetryQueue: "telemetryQueue"
 };
 
 const SESSION_KEYS = {
@@ -13,6 +14,15 @@ const SESSION_KEYS = {
 };
 
 const MAX_RESTORE_POINTS = 10;
+const MAX_TELEMETRY_QUEUE = 100;
+
+const trimTelemetryQueue = (queue) => {
+  if (!Array.isArray(queue)) {
+    return [];
+  }
+
+  return queue.slice(-MAX_TELEMETRY_QUEUE);
+};
 
 export const loadEditorContext = async () => {
   const result = await chrome.storage.local.get(STORAGE_KEYS.editorContext);
@@ -177,4 +187,25 @@ export const addRestorePoint = async (restorePoint) => {
 export const getLatestRestorePoint = async () => {
   const restorePoints = await loadRestorePoints();
   return restorePoints[0] || null;
+};
+
+export const loadTelemetryQueue = async () => {
+  const result = await chrome.storage.local.get(STORAGE_KEYS.telemetryQueue);
+  return trimTelemetryQueue(result[STORAGE_KEYS.telemetryQueue] || []);
+};
+
+export const saveTelemetryQueue = async (queue) => {
+  await chrome.storage.local.set({
+    [STORAGE_KEYS.telemetryQueue]: trimTelemetryQueue(queue)
+  });
+};
+
+export const enqueueTelemetryQueueEntry = async (entry) => {
+  const existing = await loadTelemetryQueue();
+  const next = trimTelemetryQueue([
+    ...existing.filter((candidate) => candidate?.id !== entry?.id),
+    entry
+  ]);
+  await saveTelemetryQueue(next);
+  return next;
 };

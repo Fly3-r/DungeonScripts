@@ -317,3 +317,19 @@ The catalog stylesheet now includes a global [hidden] { display: none !important
 
 Reason:
 Styled buttons use explicit display values, which override the browser's default hidden behavior unless the page stylesheet restores it explicitly.
+
+### Persist telemetry events before delivery so success stats survive worker restarts
+
+Decision:
+Anonymous install-success events are now written to chrome.storage.local before the extension attempts to POST them to the catalog API.
+
+Reason:
+A service-worker restart or transient network failure should not be able to silently drop the one anonymous install stat after the install has already completed successfully.
+
+### Retry queued telemetry with bounded backoff on startup and future installs
+
+Decision:
+The extension now flushes queued telemetry on startup, on extension install/update startup hooks, after catalog-origin changes, and after each new successful install, using a bounded retry backoff for failed sends.
+
+Reason:
+This keeps telemetry delivery automatic and durable without making analytics failure part of the install critical path.
