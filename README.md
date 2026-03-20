@@ -8,7 +8,7 @@ This repo now follows the MVP split described in [INSTALLER_MVP_SPEC.md](/C:/git
 - `packages/contracts` holds shared manifest and telemetry shapes
 - `docs/design-decisions.md` records product and architecture decisions
 - `docs/agent-decisions.md` records workflow and agent execution decisions
-- `docs/upload-review-mvp.md` records the submission and review workflow
+- `docs/repo-package-model.md` records the repo-driven package source layout
 
 ## Layout
 
@@ -21,7 +21,7 @@ packages/
 docs/
   design-decisions.md
   agent-decisions.md
-  upload-review-mvp.md
+  repo-package-model.md
 ```
 
 ## Quick Start
@@ -38,9 +38,7 @@ docs/
 
 4. Use the catalog homepage at `/` to browse packages and install them through the extension.
 
-5. Use `/submit` to queue new package submissions.
-
-6. Use `/admin` to review queued submissions with the catalog admin credentials.
+5. Add or update package sources under [apps/catalog/data/scripts](/C:/github/AID-OneClick/apps/catalog/data/scripts), then restart the catalog to regenerate package manifests.
 
 ## Current State
 
@@ -55,13 +53,9 @@ This scaffold includes:
 - best-effort anonymous install-success telemetry POSTs to the external catalog/API
 - browsable catalog homepage on `/` with thumbnail cards, fallback placeholder artwork, and install counters
 - versioned JSON API under `/api/v1/*`
-- public `/submit` page for package uploads into a private review queue
-- protected `/admin` review page inside the catalog service
-- server-side approval, rejection, and publish flow tied into the catalog Docker runtime
-- file-backed submission records with private uploader Discord usernames
-- repo-root Docker Compose stack for the external catalog/API
-- sample package manifest and thumbnail asset
-- shared JSON schemas for package, submission, and telemetry payloads
+- repo-driven package sources under `apps/catalog/data/scripts/<package-id>`
+- startup generation of public package manifests into `apps/catalog/data/packages`
+- sample package source files and shared JSON schemas for package metadata, package manifests, and telemetry payloads
 - a repeatable Chrome DevTools Protocol regression script for install and rollback verification
 
 What is not implemented yet:
@@ -70,16 +64,15 @@ What is not implemented yet:
 - restore-point browsing beyond the latest snapshot
 - branch-by-branch automated verification beyond the active root scenario
 - public package detail pages beyond the homepage cards
-- uploader resubmission/edit flows after review
-- automated policy or malware scanning of submissions
+- in-app package submission or moderation flows
+- automated policy or malware scanning of package changes
 
-## Submission Review
+## Package Source Model
 
-- Public uploads are accepted from `/submit` and stored under [apps/catalog/data/submissions](/C:/github/AID-OneClick/apps/catalog/data/submissions).
-- Review now happens from the protected [admin-review.html](/C:/github/AID-OneClick/apps/catalog/public/admin-review.html) page served at `/admin`.
-- Admin access is controlled by `CATALOG_ADMIN_USERNAME` and `CATALOG_ADMIN_PASSWORD` in the catalog environment.
-- Approved submissions are published into [apps/catalog/data/packages](/C:/github/AID-OneClick/apps/catalog/data/packages).
-- The submission workflow is defined in [upload-review-mvp.md](/C:/github/AID-OneClick/docs/upload-review-mvp.md).
+- Package source-of-truth now lives under [apps/catalog/data/scripts](/C:/github/AID-OneClick/apps/catalog/data/scripts).
+- Each package directory contains `metadata.json`, `Library.js`, `Input.js`, `Context.js`, `Output.js`, and an optional `Thumbnail.png`.
+- The catalog rebuilds [apps/catalog/data/packages](/C:/github/AID-OneClick/apps/catalog/data/packages) from those source folders when the service starts.
+- The source layout is defined in [repo-package-model.md](/C:/github/AID-OneClick/docs/repo-package-model.md).
 
 ## Automation Testing
 
@@ -91,12 +84,10 @@ What is not implemented yet:
 
 - The containerized catalog service is defined in [docker-compose.yml](/C:/github/AID-OneClick/docker-compose.yml).
 - The human-facing catalog is served from `/`.
-- The public submission page is served from `/submit`.
-- The protected review page is served from `/admin`.
 - The machine-facing API is served from `/api/v1/*`.
 - Runtime telemetry files are persisted under [apps/catalog/data/runtime](/C:/github/AID-OneClick/apps/catalog/data/runtime).
-- Catalog package manifests remain in [apps/catalog/data/packages](/C:/github/AID-OneClick/apps/catalog/data/packages).
-- Submission queue files are persisted under [apps/catalog/data/submissions](/C:/github/AID-OneClick/apps/catalog/data/submissions).
+- Repo-authored package source files live under [apps/catalog/data/scripts](/C:/github/AID-OneClick/apps/catalog/data/scripts).
+- Generated package manifests are written under [apps/catalog/data/packages](/C:/github/AID-OneClick/apps/catalog/data/packages).
 - Additional catalog runtime notes live in [apps/catalog/README.md](/C:/github/AID-OneClick/apps/catalog/README.md).
 
 ## Decision Logs

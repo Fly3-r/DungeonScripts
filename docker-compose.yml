@@ -12,10 +12,9 @@ services:
       PORT: 3000
       PUBLIC_BASE_URL: "${PUBLIC_BASE_URL:-http://127.0.0.1:3000}"
       TELEMETRY_STORAGE_DIR: /app/data/runtime
-      CATALOG_ADMIN_USERNAME: "${CATALOG_ADMIN_USERNAME:-admin}"
-      CATALOG_ADMIN_PASSWORD: "${CATALOG_ADMIN_PASSWORD:-}"
+      DEFAULT_MIN_INSTALLER_VERSION: "${DEFAULT_MIN_INSTALLER_VERSION:-0.1.0}"
     volumes:
       - ./apps/catalog/data/runtime:/app/data/runtime
       - ./apps/catalog/data/packages:/app/data/packages
-      - ./apps/catalog/data/submissions:/app/data/submissions
+      - ./apps/catalog/data/scripts:/app/data/scripts
     restart: unless-stopped

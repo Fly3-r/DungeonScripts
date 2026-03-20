@@ -1,0 +1,41 @@
+﻿{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aid-oneclick.local/schemas/package-source-metadata.schema.json",
+  "title": "AID One-Click Package Source Metadata",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "version",
+    "author",
+    "authorProfileUrl",
+    "description"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "author": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authorProfileUrl": {
+      "type": "string",
+      "minLength": 1,
+      "format": "uri"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "minInstallerVersion": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

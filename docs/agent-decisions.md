@@ -206,7 +206,7 @@ The first private review workflow was implemented once in `scripts/review-submis
 Reason:
 This keeps the approval logic consistent across host operating systems while still giving the project the separate Windows and Linux entrypoints the user asked for.
 
-### Keep submission intake and review output file-backed
+### Keep submission intake and review output file-backed (Superseded 2026-03-20)
 
 Decision:
 The server writes raw submissions into `apps/catalog/data/submissions/<state>`, and the active review flow publishes approved packages directly into `apps/catalog/data/packages`.
@@ -214,7 +214,7 @@ The server writes raw submissions into `apps/catalog/data/submissions/<state>`, 
 Reason:
 A file-backed workflow matches the current no-database MVP, keeps review private, and makes it easy to inspect or back up submissions on the host.
 
-### Store private contact details in the same review record, not a separate API surface
+### Store private contact details in the same review record, not a separate API surface (Superseded 2026-03-20)
 
 Decision:
 The submission record carries the uploader Discord username under `contact`, and no extra HTTP endpoints are added for reviewer-only data.
@@ -222,7 +222,7 @@ The submission record carries the uploader Discord username under `contact`, and
 Reason:
 The submission record still carries the uploader Discord username under `contact`, and the protected admin review page can display it without exposing any public reviewer-only endpoint. Keeping private contact inside the queued record avoids introducing a second service boundary.
 
-### Ignore private submission queue files in Git
+### Ignore private submission queue files in Git (Superseded 2026-03-20)
 
 Decision:
 Runtime submission JSON files under `apps/catalog/data/submissions` should be ignored by Git, while the directory structure and placeholder files remain tracked.
@@ -230,7 +230,7 @@ Runtime submission JSON files under `apps/catalog/data/submissions` should be ig
 Reason:
 Submission records contain private contact data. They should stay local to the host review workflow rather than being easy to commit by accident.
 
-### Move review and publish logic into the catalog server
+### Move review and publish logic into the catalog server (Superseded 2026-03-20)
 
 Decision:
 The server now owns submission review, state transitions, and package publication through protected admin routes under `/api/v1/admin/*`.
@@ -238,7 +238,7 @@ The server now owns submission review, state transitions, and package publicatio
 Reason:
 The admin webpage should be a thin client over one authoritative review path. Keeping the write logic in the server avoids duplicating approval behavior between UI code and separate tooling.
 
-### Remove the CLI review scripts after the admin page landed
+### Remove the CLI review scripts after the admin page landed (Superseded 2026-03-20)
 
 Decision:
 The Windows and Linux review CLI wrappers were removed once the protected admin page and admin API were in place.
@@ -246,3 +246,28 @@ The Windows and Linux review CLI wrappers were removed once the protected admin 
 Reason:
 Keeping both workflows would create two competing approval paths for the same queue. The repo should expose one review mechanism at a time.
 
+
+
+### Collapse package review back into the repo workflow
+
+Decision:
+The temporary submission and admin-review system was removed, and package review now happens through normal repo changes under `apps/catalog/data/scripts`.
+
+Reason:
+The repo is the real operating boundary for package changes. Removing the extra workflow keeps the codebase smaller and avoids maintaining a second review surface.
+
+### Keep the startup build output as generated package manifests
+
+Decision:
+The server still serves `apps/catalog/data/packages/*.json`, but those files are now generated from the source package tree at startup instead of being edited directly.
+
+Reason:
+This preserves the existing package API and extension integration while making it clear which files are source and which files are generated output.
+
+### Treat the package source folder as the canonical unit of review
+
+Decision:
+Each package now lives as a self-contained folder containing metadata, the four script files, and an optional thumbnail.
+
+Reason:
+A self-contained folder is easier to review in Git than one large generated manifest, and it matches how maintainers think about package ownership.

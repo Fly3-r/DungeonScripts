@@ -1,22 +1,15 @@
-﻿import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
+﻿import { createHash } from "node:crypto";
 import { createServer } from "node:http";
-import { appendFile, mkdir, readFile, readdir, unlink, writeFile } from "node:fs/promises";
+import { access, appendFile, mkdir, readFile, readdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const appRoot = path.resolve(__dirname, "..");
+const packageSourcesDir = path.join(appRoot, "data", "scripts");
 const packagesDir = path.join(appRoot, "data", "packages");
 const publicDir = path.join(appRoot, "public");
-const submissionsRootDir = path.join(appRoot, "data", "submissions");
-const submissionStateDirs = {
-  pending: path.join(submissionsRootDir, "pending"),
-  approved: path.join(submissionsRootDir, "approved"),
-  rejected: path.join(submissionsRootDir, "rejected"),
-  needs_changes: path.join(submissionsRootDir, "needs_changes")
-};
-const submissionStates = Object.keys(submissionStateDirs);
 const runtimeDir = path.resolve(
   appRoot,
   process.env.TELEMETRY_STORAGE_DIR || "./data/runtime"
@@ -27,9 +20,6 @@ const host = process.env.HOST || "127.0.0.1";
 const port = Number(process.env.PORT || 3000);
 const publicBaseUrl = process.env.PUBLIC_BASE_URL || `http://${host}:${port}`;
 const defaultMinInstallerVersion = process.env.DEFAULT_MIN_INSTALLER_VERSION || "0.1.0";
-const adminUsername = process.env.CATALOG_ADMIN_USERNAME || "admin";
-const adminPassword = process.env.CATALOG_ADMIN_PASSWORD || "";
-const adminConfigured = typeof adminPassword === "string" && adminPassword.trim().length > 0;
 const allowedEventKeys = [
   "event",
   "installId",
@@ -42,6 +32,14 @@ const API_BASE_PATH = "/api/v1";
 const DEFAULT_THUMBNAIL_PATH = "/assets/thumbnail-placeholder.svg";
 const PACKAGE_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const SEMVER_PATTERN = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
+const SOURCE_FILE_NAMES = {
+  metadata: "metadata.json",
+  sharedLibrary: "Library.js",
+  onInput: "Input.js",
+  onModelContext: "Context.js",
+  onOutput: "Output.js",
+  thumbnail: "Thumbnail.png"
+};
 const CONTENT_TYPES = {
   ".css": "text/css; charset=utf-8",
   ".gif": "image/gif",
@@ -72,7 +70,9 @@ const notFound = (res) => {
 
 const isNonEmptyString = (value) => typeof value === "string" && value.trim().length > 0;
 
-const normalizeMultilineText = (value) => value.replace(/\r\n/g, "\n");
+const stripUtf8Bom = (value) => value.replace(/^\uFEFF/, "");
+
+const normalizeMultilineText = (value) => stripUtf8Bom(value).replace(/\r\n/g, "\n");
 
 const parseJsonBody = async (req, maxBytes = 10_000) => {
   const chunks = [];
@@ -88,93 +88,6 @@ const parseJsonBody = async (req, maxBytes = 10_000) => {
 
   const raw = Buffer.concat(chunks).toString("utf8");
   return raw ? JSON.parse(raw) : {};
-};
-
-const timingSafeStringEquals = (left, right) => {
-  const leftHash = createHash("sha256").update(left, "utf8").digest();
-  const rightHash = createHash("sha256").update(right, "utf8").digest();
-  return timingSafeEqual(leftHash, rightHash);
-};
-
-const getAdminAuthState = (req) => {
-  if (!adminConfigured) {
-    return {
-      configured: false,
-      authenticated: false,
-      username: adminUsername
-    };
-  }
-
-  const header = req.headers.authorization;
-  if (!header || !header.startsWith("Basic ")) {
-    return {
-      configured: true,
-      authenticated: false,
-      username: adminUsername
-    };
-  }
-
-  let decoded = "";
-  try {
-    decoded = Buffer.from(header.slice(6), "base64").toString("utf8");
-  } catch {
-    return {
-      configured: true,
-      authenticated: false,
-      username: adminUsername
-    };
-  }
-
-  const separatorIndex = decoded.indexOf(":");
-  if (separatorIndex < 0) {
-    return {
-      configured: true,
-      authenticated: false,
-      username: adminUsername
-    };
-  }
-
-  const providedUsername = decoded.slice(0, separatorIndex);
-  const providedPassword = decoded.slice(separatorIndex + 1);
-  return {
-    configured: true,
-    authenticated:
-      timingSafeStringEquals(providedUsername, adminUsername) &&
-      timingSafeStringEquals(providedPassword, adminPassword),
-    username: adminUsername
-  };
-};
-
-const requireAdminAuth = (req, res) => {
-  const state = getAdminAuthState(req);
-  if (!state.configured) {
-    json(res, 503, {
-      ok: false,
-      error: "Admin review is not configured.",
-      configured: false
-    });
-    return false;
-  }
-
-  if (!state.authenticated) {
-    res.writeHead(401, {
-      "WWW-Authenticate": 'Basic realm="AID One-Click Admin"'
-    });
-    res.end();
-    return false;
-  }
-
-  return true;
-};
-
-const ensureRuntimeDir = async () => {
-  await mkdir(runtimeDir, { recursive: true });
-};
-
-const ensureSubmissionDirs = async () => {
-  await Promise.all(
-    Object.values(submissionStateDirs).map((dir) => mkdir(dir, { recursive: true }))
-  );
 };
 
 const sanitizeMarkdownPreview = (value) =>
@@ -221,12 +134,242 @@ const getSafeUrl = (value) => {
   }
 };
 
+const requireTrimmedString = (payload, fieldName, maxLength) => {
+  if (typeof payload[fieldName] !== "string") {
+    throw new Error(`Field "${fieldName}" must be a string.`);
+  }
+
+  const value = payload[fieldName].trim();
+  if (!value) {
+    throw new Error(`Field "${fieldName}" is required.`);
+  }
+
+  if (value.length > maxLength) {
+    throw new Error(`Field "${fieldName}" exceeds the maximum allowed length.`);
+  }
+
+  return value;
+};
+
+const getOptionalTrimmedString = (payload, fieldName, maxLength) => {
+  if (payload[fieldName] == null) {
+    return "";
+  }
+
+  if (typeof payload[fieldName] !== "string") {
+    throw new Error(`Field "${fieldName}" must be a string.`);
+  }
+
+  const value = payload[fieldName].trim();
+  if (value.length > maxLength) {
+    throw new Error(`Field "${fieldName}" exceeds the maximum allowed length.`);
+  }
+
+  return value;
+};
+
+const requireScriptContent = (value, fieldName, maxLength) => {
+  if (typeof value !== "string") {
+    throw new Error(`Field "${fieldName}" must be a string.`);
+  }
+
+  const normalized = normalizeMultilineText(value);
+  if (normalized.length > maxLength) {
+    throw new Error(`Field "${fieldName}" exceeds the maximum allowed length.`);
+  }
+
+  return normalized;
+};
+
+const validateAidProfileUrl = (value) => {
+  let url;
+
+  try {
+    url = new URL(value.trim());
+  } catch {
+    throw new Error("Author profile URL must be a valid URL.");
+  }
+
+  if (url.protocol !== "https:" || url.hostname !== "play.aidungeon.com") {
+    throw new Error("Author profile URL must use https://play.aidungeon.com/profile/<handle>.");
+  }
+
+  const segments = url.pathname.split("/").filter(Boolean);
+  if (segments.length !== 2 || segments[0] !== "profile" || !segments[1]) {
+    throw new Error("Author profile URL must use https://play.aidungeon.com/profile/<handle>.");
+  }
+
+  url.search = "";
+  url.hash = "";
+  return url.toString();
+};
+
+const ensureRuntimeDir = async () => {
+  await mkdir(runtimeDir, { recursive: true });
+};
+
+const ensurePackageDirs = async () => {
+  await Promise.all([
+    mkdir(packageSourcesDir, { recursive: true }),
+    mkdir(packagesDir, { recursive: true })
+  ]);
+};
+
+const fileExists = async (filePath) => {
+  try {
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const getPackageSourceDir = (packageId) => {
+  if (!PACKAGE_ID_PATTERN.test(packageId)) {
+    throw new Error(`Invalid package ID: ${packageId}`);
+  }
+
+  return path.join(packageSourcesDir, packageId);
+};
+
+const getPackageSourceFilePath = (packageId, fileName) =>
+  path.join(getPackageSourceDir(packageId), fileName);
+
+const readJsonFile = async (filePath) => JSON.parse(stripUtf8Bom(await readFile(filePath, "utf8")));
+
+const readRequiredSourceText = async (packageId, fileName, maxLength) => {
+  const raw = await readFile(getPackageSourceFilePath(packageId, fileName), "utf8");
+  return requireScriptContent(raw, fileName, maxLength);
+};
+
+const buildPackageThumbnailUrl = (packageId) =>
+  `${API_BASE_PATH}/packages/${encodeURIComponent(packageId)}/thumbnail`;
+
 const normalizePackageManifest = (entry) => ({
   ...entry,
   author: isNonEmptyString(entry.author) ? entry.author.trim() : "Unknown",
   authorProfileUrl: getSafeUrl(entry.authorProfileUrl),
   thumbnailUrl: getPublicAssetUrl(entry.thumbnailUrl)
 });
+
+const buildPackageSummary = (entry, installCounts) => ({
+  id: entry.id,
+  name: entry.name,
+  version: entry.version,
+  description: buildDescriptionPreview(entry.description),
+  author: entry.author,
+  authorProfileUrl: entry.authorProfileUrl,
+  thumbnailUrl: getPublicAssetUrl(entry.thumbnailUrl),
+  installCount: installCounts.get(entry.id) || 0
+});
+
+const validatePackageSourceMetadata = (packageId, payload) => {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw new Error(`metadata.json for ${packageId} must contain an object.`);
+  }
+
+  const version = requireTrimmedString(payload, "version", 40);
+  if (!SEMVER_PATTERN.test(version)) {
+    throw new Error(`Version for ${packageId} must look like semantic versioning, for example 1.2.3.`);
+  }
+
+  const minInstallerVersion =
+    getOptionalTrimmedString(payload, "minInstallerVersion", 40) || defaultMinInstallerVersion;
+  if (!SEMVER_PATTERN.test(minInstallerVersion)) {
+    throw new Error(
+      `minInstallerVersion for ${packageId} must look like semantic versioning, for example 0.1.0.`
+    );
+  }
+
+  return {
+    name: requireTrimmedString(payload, "name", 120),
+    version,
+    author: requireTrimmedString(payload, "author", 120),
+    authorProfileUrl: validateAidProfileUrl(requireTrimmedString(payload, "authorProfileUrl", 200)),
+    description: requireTrimmedString(payload, "description", 24000),
+    minInstallerVersion
+  };
+};
+
+const buildManifestHash = (manifest) => {
+  const hash = createHash("sha256").update(JSON.stringify(manifest), "utf8").digest("hex");
+  return `sha256:${hash}`;
+};
+
+const buildManifestFromSource = async (packageId) => {
+  const metadata = validatePackageSourceMetadata(
+    packageId,
+    await readJsonFile(getPackageSourceFilePath(packageId, SOURCE_FILE_NAMES.metadata))
+  );
+  const sharedLibrary = await readRequiredSourceText(
+    packageId,
+    SOURCE_FILE_NAMES.sharedLibrary,
+    200000
+  );
+  const onInput = await readRequiredSourceText(packageId, SOURCE_FILE_NAMES.onInput, 200000);
+  const onModelContext = await readRequiredSourceText(
+    packageId,
+    SOURCE_FILE_NAMES.onModelContext,
+    200000
+  );
+  const onOutput = await readRequiredSourceText(packageId, SOURCE_FILE_NAMES.onOutput, 200000);
+  const hasThumbnail = await fileExists(
+    getPackageSourceFilePath(packageId, SOURCE_FILE_NAMES.thumbnail)
+  );
+
+  const manifest = {
+    id: packageId,
+    name: metadata.name,
+    version: metadata.version,
+    description: metadata.description,
+    author: metadata.author,
+    authorProfileUrl: metadata.authorProfileUrl,
+    ...(hasThumbnail ? { thumbnailUrl: buildPackageThumbnailUrl(packageId) } : {}),
+    minInstallerVersion: metadata.minInstallerVersion,
+    sharedLibrary,
+    onInput,
+    onModelContext,
+    onOutput
+  };
+
+  return {
+    ...manifest,
+    hash: buildManifestHash(manifest)
+  };
+};
+
+const buildPackageManifests = async () => {
+  await ensurePackageDirs();
+
+  const existingEntries = await readdir(packagesDir, { withFileTypes: true });
+  for (const entry of existingEntries) {
+    if (entry.isFile() && entry.name.endsWith(".json")) {
+      await unlink(path.join(packagesDir, entry.name));
+    }
+  }
+
+  const sourceEntries = await readdir(packageSourcesDir, { withFileTypes: true });
+  const packageIds = sourceEntries
+    .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
+    .map((entry) => entry.name)
+    .sort((left, right) => left.localeCompare(right));
+
+  const manifests = [];
+  for (const packageId of packageIds) {
+    if (!PACKAGE_ID_PATTERN.test(packageId)) {
+      throw new Error(
+        `Invalid package source directory "${packageId}". Package IDs must use lowercase letters, numbers, and hyphens only.`
+      );
+    }
+
+    const manifest = await buildManifestFromSource(packageId);
+    const manifestPath = path.join(packagesDir, `${manifest.id}.json`);
+    await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+    manifests.push(manifest);
+  }
+
+  return manifests;
+};
 
 const loadPackages = async () => {
   const entries = await readdir(packagesDir, { withFileTypes: true });
@@ -240,7 +383,7 @@ const loadPackages = async () => {
     manifests.push(normalizePackageManifest(JSON.parse(raw)));
   }
 
-  manifests.sort((a, b) => a.name.localeCompare(b.name));
+  manifests.sort((left, right) => left.name.localeCompare(right.name));
   return manifests;
 };
 
@@ -290,182 +433,6 @@ const loadInstallCounts = async () => {
     return new Map();
   }
 };
-const loadSubmissionsInState = async (state) => {
-  const dir = submissionStateDirs[state];
-  const entries = await readdir(dir, { withFileTypes: true });
-  const files = entries
-    .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
-    .map((entry) => path.join(dir, entry.name));
-
-  const submissions = [];
-  for (const file of files) {
-    const raw = await readFile(file, "utf8");
-    submissions.push(JSON.parse(raw));
-  }
-
-  submissions.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  return submissions;
-};
-
-const loadSubmissionCounts = async () => {
-  const counts = {};
-
-  for (const state of submissionStates) {
-    counts[state] = (await loadSubmissionsInState(state)).length;
-  }
-
-  return counts;
-};
-
-const findSubmissionRecord = async (submissionId) => {
-  for (const state of submissionStates) {
-    const filePath = path.join(submissionStateDirs[state], `${submissionId}.json`);
-
-    try {
-      const raw = await readFile(filePath, "utf8");
-      return {
-        state,
-        filePath,
-        submission: JSON.parse(raw)
-      };
-    } catch {
-      // Continue searching.
-    }
-  }
-
-  return null;
-};
-
-const resolveSubmissionStates = (filter) => {
-  if (!filter || filter === "all") {
-    return submissionStates;
-  }
-
-  if (!submissionStateDirs[filter]) {
-    throw new Error(`Unknown submission state: ${filter}`);
-  }
-
-  return [filter];
-};
-
-const buildPackageSummary = (entry, installCounts) => ({
-  id: entry.id,
-  name: entry.name,
-  version: entry.version,
-  description: buildDescriptionPreview(entry.description),
-  author: entry.author,
-  authorProfileUrl: entry.authorProfileUrl,
-  thumbnailUrl: getPublicAssetUrl(entry.thumbnailUrl),
-  installCount: installCounts.get(entry.id) || 0
-});
-
-const normalizeSubmissionForAdmin = (entry, state) => ({
-  ...entry,
-  status: state,
-  package: {
-    ...entry.package,
-    author: isNonEmptyString(entry.package.author) ? entry.package.author.trim() : "Unknown",
-    authorProfileUrl: getSafeUrl(entry.package.authorProfileUrl),
-    thumbnailUrl: entry.package.thumbnailUrl || DEFAULT_THUMBNAIL_PATH,
-    thumbnailPreviewUrl: getPublicAssetUrl(entry.package.thumbnailUrl),
-    descriptionPreview: buildDescriptionPreview(entry.package.description)
-  }
-});
-
-const buildSubmissionSummary = (entry, state) => {
-  const normalized = normalizeSubmissionForAdmin(entry, state);
-  return {
-    submissionId: normalized.submissionId,
-    status: normalized.status,
-    createdAt: normalized.createdAt,
-    updatedAt: normalized.updatedAt,
-    package: {
-      id: normalized.package.id,
-      name: normalized.package.name,
-      version: normalized.package.version,
-      author: normalized.package.author,
-      authorProfileUrl: normalized.package.authorProfileUrl,
-      thumbnailPreviewUrl: normalized.package.thumbnailPreviewUrl,
-      descriptionPreview: normalized.package.descriptionPreview
-    },
-    contact: {
-      discordUsername: normalized.contact.discordUsername
-    },
-    review: normalized.review,
-    publishedManifestFile: normalized.publishedManifestFile || null,
-    publishedHash: normalized.publishedHash || null
-  };
-};
-
-const buildManifestFromSubmission = (submission) => {
-  const manifest = {
-    id: submission.package.id,
-    name: submission.package.name,
-    version: submission.package.version,
-    description: submission.package.description,
-    author: submission.package.author,
-    authorProfileUrl: submission.package.authorProfileUrl,
-    ...(submission.package.thumbnailUrl ? { thumbnailUrl: submission.package.thumbnailUrl } : {}),
-    minInstallerVersion: submission.package.minInstallerVersion || defaultMinInstallerVersion,
-    sharedLibrary: submission.package.sharedLibrary,
-    onInput: submission.package.onInput,
-    onModelContext: submission.package.onModelContext,
-    onOutput: submission.package.onOutput
-  };
-
-  const hash = createHash("sha256").update(JSON.stringify(manifest), "utf8").digest("hex");
-  return {
-    ...manifest,
-    hash: `sha256:${hash}`
-  };
-};
-
-const requireTrimmedString = (payload, fieldName, maxLength) => {
-  if (typeof payload[fieldName] !== "string") {
-    throw new Error(`Field \"${fieldName}\" must be a string.`);
-  }
-
-  const value = payload[fieldName].trim();
-  if (!value) {
-    throw new Error(`Field \"${fieldName}\" is required.`);
-  }
-
-  if (value.length > maxLength) {
-    throw new Error(`Field \"${fieldName}\" exceeds the maximum allowed length.`);
-  }
-
-  return value;
-};
-
-const getOptionalTrimmedString = (payload, fieldName, maxLength) => {
-  if (payload[fieldName] == null) {
-    return "";
-  }
-
-  if (typeof payload[fieldName] !== "string") {
-    throw new Error(`Field \"${fieldName}\" must be a string.`);
-  }
-
-  const value = payload[fieldName].trim();
-  if (value.length > maxLength) {
-    throw new Error(`Field \"${fieldName}\" exceeds the maximum allowed length.`);
-  }
-
-  return value;
-};
-
-const requireScriptField = (payload, fieldName, maxLength) => {
-  if (typeof payload[fieldName] !== "string") {
-    throw new Error(`Field \"${fieldName}\" must be a string.`);
-  }
-
-  const value = normalizeMultilineText(payload[fieldName]);
-  if (value.length > maxLength) {
-    throw new Error(`Field \"${fieldName}\" exceeds the maximum allowed length.`);
-  }
-
-  return value;
-};
 
 const validateInstallSuccessEvent = (payload) => {
   const keys = Object.keys(payload).sort();
@@ -487,7 +454,7 @@ const validateInstallSuccessEvent = (payload) => {
 
   for (const field of ["installId", "packageId", "packageVersion", "timestamp"]) {
     if (typeof payload[field] !== "string" || payload[field].trim().length === 0) {
-      throw new Error(`Telemetry field \"${field}\" must be a non-empty string.`);
+      throw new Error(`Telemetry field "${field}" must be a non-empty string.`);
     }
   }
 
@@ -509,169 +476,6 @@ const validateInstallSuccessEvent = (payload) => {
   };
 };
 
-const validateAidProfileUrl = (value) => {
-  let url;
-
-  try {
-    url = new URL(value.trim());
-  } catch {
-    throw new Error("Author profile URL must be a valid URL.");
-  }
-
-  if (url.protocol !== "https:" || url.hostname !== "play.aidungeon.com") {
-    throw new Error("Author profile URL must use https://play.aidungeon.com/profile/<handle>.");
-  }
-
-  const segments = url.pathname.split("/").filter(Boolean);
-  if (segments.length !== 2 || segments[0] !== "profile" || !segments[1]) {
-    throw new Error("Author profile URL must use https://play.aidungeon.com/profile/<handle>.");
-  }
-
-  url.search = "";
-  url.hash = "";
-  return url.toString();
-};
-
-const deriveAuthorFromProfileUrl = (value) => {
-  const url = new URL(value);
-  const segments = url.pathname.split("/").filter(Boolean);
-  return decodeURIComponent(segments[segments.length - 1]);
-};
-
-const validateThumbnailUrl = (value) => {
-  if (!isNonEmptyString(value)) {
-    return undefined;
-  }
-
-  const trimmed = value.trim();
-  if (trimmed.startsWith("/")) {
-    return trimmed;
-  }
-
-  const url = getSafeUrl(trimmed);
-  if (!url) {
-    throw new Error("Thumbnail URL must be empty, root-relative, or a valid http/https URL.");
-  }
-
-  return url;
-};
-const validateSubmissionPayload = (payload) => {
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    throw new Error("Submission payload must be an object.");
-  }
-
-  const packageId = requireTrimmedString(payload, "packageId", 80);
-  if (!PACKAGE_ID_PATTERN.test(packageId)) {
-    throw new Error("Package ID must be a lowercase slug using letters, numbers, and hyphens only.");
-  }
-
-  const version = requireTrimmedString(payload, "version", 40);
-  if (!SEMVER_PATTERN.test(version)) {
-    throw new Error("Version must look like semantic versioning, for example 1.2.3.");
-  }
-
-  const authorProfileUrl = validateAidProfileUrl(
-    requireTrimmedString(payload, "authorProfileUrl", 200)
-  );
-  const author = deriveAuthorFromProfileUrl(authorProfileUrl);
-  const description = requireTrimmedString(payload, "description", 24000);
-  const discordUsername = requireTrimmedString(payload, "discordUsername", 80);
-  const thumbnailUrl = validateThumbnailUrl(payload.thumbnailUrl);
-
-  return {
-    package: {
-      id: packageId,
-      name: requireTrimmedString(payload, "name", 120),
-      version,
-      description,
-      author,
-      authorProfileUrl,
-      ...(thumbnailUrl ? { thumbnailUrl } : {}),
-      sharedLibrary: requireScriptField(payload, "sharedLibrary", 200000),
-      onInput: requireScriptField(payload, "onInput", 200000),
-      onModelContext: requireScriptField(payload, "onModelContext", 200000),
-      onOutput: requireScriptField(payload, "onOutput", 200000),
-      minInstallerVersion: defaultMinInstallerVersion
-    },
-    contact: {
-      discordUsername
-    }
-  };
-};
-
-const validateAdminReviewPayload = (payload) => {
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    throw new Error("Review payload must be an object.");
-  }
-
-  const action = requireTrimmedString(payload, "action", 40);
-  if (!["approve", "reject", "needs_changes"].includes(action)) {
-    throw new Error("Review action must be approve, reject, or needs_changes.");
-  }
-
-  const reviewer = getOptionalTrimmedString(payload, "reviewer", 120) || adminUsername;
-  const notes = getOptionalTrimmedString(payload, "notes", 16000);
-
-  if ((action === "reject" || action === "needs_changes") && !notes) {
-    throw new Error("Review notes are required when rejecting a submission or requesting changes.");
-  }
-
-  return {
-    action,
-    reviewer,
-    notes
-  };
-};
-
-const createSubmissionRecord = (payload) => {
-  const timestamp = new Date().toISOString();
-
-  return {
-    submissionId: `sub_${randomUUID()}`,
-    status: "pending",
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    package: payload.package,
-    contact: payload.contact,
-    review: {
-      reviewer: null,
-      reviewedAt: null,
-      notes: ""
-    }
-  };
-};
-
-const persistSubmissionRecord = async (record) => {
-  await ensureSubmissionDirs();
-  const filePath = path.join(submissionStateDirs.pending, `${record.submissionId}.json`);
-  await writeFile(filePath, `${JSON.stringify(record, null, 2)}\n`, "utf8");
-};
-
-const persistSubmissionRecordInState = async (current, nextStatus, options = {}) => {
-  const reviewedAt = new Date().toISOString();
-  const updated = {
-    ...current.submission,
-    status: nextStatus,
-    updatedAt: reviewedAt,
-    review: {
-      reviewer: options.reviewer || adminUsername,
-      reviewedAt,
-      notes: options.notes || ""
-    },
-    ...(options.publishedManifestFile ? { publishedManifestFile: options.publishedManifestFile } : {}),
-    ...(options.publishedHash ? { publishedHash: options.publishedHash } : {})
-  };
-
-  const nextFilePath = path.join(submissionStateDirs[nextStatus], `${updated.submissionId}.json`);
-  await writeFile(nextFilePath, `${JSON.stringify(updated, null, 2)}\n`, "utf8");
-
-  if (current.filePath !== nextFilePath) {
-    await unlink(current.filePath);
-  }
-
-  return updated;
-};
-
 const persistInstallSuccessEvent = async (event) => {
   await ensureRuntimeDir();
 
@@ -684,40 +488,6 @@ const persistInstallSuccessEvent = async (event) => {
   await storeDedupeIds(installIds);
   await appendFile(telemetryLogFile, `${JSON.stringify(event)}\n`, "utf8");
   return { deduped: false };
-};
-
-const applySubmissionReview = async (submissionId, review) => {
-  const current = await findSubmissionRecord(submissionId);
-  if (!current) {
-    throw new Error(`Submission not found: ${submissionId}`);
-  }
-
-  if (current.state !== "pending") {
-    throw new Error(`Only pending submissions can be reviewed. Current state: ${current.state}`);
-  }
-
-  if (review.action === "approve") {
-    const manifest = buildManifestFromSubmission(current.submission);
-    const manifestPath = path.join(packagesDir, `${manifest.id}.json`);
-    await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
-
-    const updated = await persistSubmissionRecordInState(current, "approved", {
-      reviewer: review.reviewer,
-      notes: review.notes,
-      publishedManifestFile: path.relative(appRoot, manifestPath).replace(/\\/g, "/"),
-      publishedHash: manifest.hash
-    });
-
-    return normalizeSubmissionForAdmin(updated, "approved");
-  }
-
-  const nextStatus = review.action === "needs_changes" ? "needs_changes" : "rejected";
-  const updated = await persistSubmissionRecordInState(current, nextStatus, {
-    reviewer: review.reviewer,
-    notes: review.notes
-  });
-
-  return normalizeSubmissionForAdmin(updated, nextStatus);
 };
 
 const servePublicAsset = async (res, pathname) => {
@@ -742,6 +512,24 @@ const servePublicAsset = async (res, pathname) => {
   }
 };
 
+const servePackageThumbnail = async (res, packageId) => {
+  if (!PACKAGE_ID_PATTERN.test(packageId)) {
+    notFound(res);
+    return;
+  }
+
+  try {
+    const body = await readFile(getPackageSourceFilePath(packageId, SOURCE_FILE_NAMES.thumbnail));
+    res.writeHead(200, {
+      "Content-Type": CONTENT_TYPES[".png"],
+      "Content-Length": body.byteLength
+    });
+    res.end(body);
+  } catch {
+    notFound(res);
+  }
+};
+
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url || "/", publicBaseUrl);
@@ -749,90 +537,6 @@ const server = createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/health") {
       json(res, 200, { ok: true });
       return;
-    }
-
-    if (req.method === "GET" && url.pathname === `${API_BASE_PATH}/admin/status`) {
-      const state = getAdminAuthState(req);
-      json(res, 200, {
-        ok: true,
-        configured: state.configured,
-        authenticated: state.authenticated,
-        username: state.username
-      });
-      return;
-    }
-
-    if (req.method === "GET" && url.pathname === `${API_BASE_PATH}/admin/submissions`) {
-      if (!requireAdminAuth(req, res)) {
-        return;
-      }
-
-      const statusFilter = url.searchParams.get("status") || "pending";
-      const counts = await loadSubmissionCounts();
-      const submissions = [];
-
-      for (const state of resolveSubmissionStates(statusFilter)) {
-        const records = await loadSubmissionsInState(state);
-        submissions.push(...records.map((record) => buildSubmissionSummary(record, state)));
-      }
-
-      submissions.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-      json(res, 200, {
-        ok: true,
-        counts,
-        statusFilter,
-        submissions
-      });
-      return;
-    }
-
-    if (req.method === "GET" && url.pathname.startsWith(`${API_BASE_PATH}/admin/submissions/`)) {
-      if (!requireAdminAuth(req, res)) {
-        return;
-      }
-
-      const segments = url.pathname
-        .replace(`${API_BASE_PATH}/admin/submissions/`, "")
-        .split("/")
-        .filter(Boolean);
-
-      if (segments.length === 1) {
-        const submissionId = decodeURIComponent(segments[0]);
-        const current = await findSubmissionRecord(submissionId);
-        if (!current) {
-          notFound(res);
-          return;
-        }
-
-        json(res, 200, {
-          ok: true,
-          submission: normalizeSubmissionForAdmin(current.submission, current.state)
-        });
-        return;
-      }
-    }
-
-    if (req.method === "POST" && url.pathname.startsWith(`${API_BASE_PATH}/admin/submissions/`)) {
-      if (!requireAdminAuth(req, res)) {
-        return;
-      }
-
-      const segments = url.pathname
-        .replace(`${API_BASE_PATH}/admin/submissions/`, "")
-        .split("/")
-        .filter(Boolean);
-
-      if (segments.length === 2 && segments[1] === "review") {
-        const submissionId = decodeURIComponent(segments[0]);
-        const review = validateAdminReviewPayload(await parseJsonBody(req, 100_000));
-        const updated = await applySubmissionReview(submissionId, review);
-
-        json(res, 200, {
-          ok: true,
-          submission: updated
-        });
-        return;
-      }
     }
 
     if (
@@ -855,26 +559,39 @@ const server = createServer(async (req, res) => {
       const prefix = url.pathname.startsWith(`${API_BASE_PATH}/packages/`)
         ? `${API_BASE_PATH}/packages/`
         : "/api/packages/";
-      const packageId = decodeURIComponent(url.pathname.replace(prefix, ""));
-      const [manifest, installCounts] = await Promise.all([
-        loadPackageById(packageId),
-        loadInstallCounts()
-      ]);
+      const segments = url.pathname
+        .replace(prefix, "")
+        .split("/")
+        .filter(Boolean)
+        .map((segment) => decodeURIComponent(segment));
 
-      if (!manifest) {
-        notFound(res);
+      if (segments.length === 2 && segments[1] === "thumbnail") {
+        await servePackageThumbnail(res, segments[0]);
         return;
       }
 
-      json(res, 200, {
-        ok: true,
-        package: {
-          ...manifest,
-          thumbnailUrl: getPublicAssetUrl(manifest.thumbnailUrl),
-          installCount: installCounts.get(packageId) || 0
+      if (segments.length === 1) {
+        const packageId = segments[0];
+        const [manifest, installCounts] = await Promise.all([
+          loadPackageById(packageId),
+          loadInstallCounts()
+        ]);
+
+        if (!manifest) {
+          notFound(res);
+          return;
         }
-      });
-      return;
+
+        json(res, 200, {
+          ok: true,
+          package: {
+            ...manifest,
+            thumbnailUrl: getPublicAssetUrl(manifest.thumbnailUrl),
+            installCount: installCounts.get(packageId) || 0
+          }
+        });
+        return;
+      }
     }
 
     if (
@@ -893,39 +610,8 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    if (
-      req.method === "POST" &&
-      (url.pathname === `${API_BASE_PATH}/submissions` || url.pathname === "/api/submissions")
-    ) {
-      const payload = await parseJsonBody(req, 1_500_000);
-      const normalized = validateSubmissionPayload(payload);
-      const record = createSubmissionRecord(normalized);
-      await persistSubmissionRecord(record);
-
-      json(res, 202, {
-        ok: true,
-        submissionId: record.submissionId,
-        status: record.status
-      });
-      return;
-    }
-
     if (req.method === "GET" && url.pathname === "/") {
       await servePublicAsset(res, "/index.html");
-      return;
-    }
-
-    if (req.method === "GET" && (url.pathname === "/submit" || url.pathname === "/submit/")) {
-      await servePublicAsset(res, "/submit.html");
-      return;
-    }
-
-    if (req.method === "GET" && (url.pathname === "/admin" || url.pathname === "/admin/")) {
-      if (adminConfigured && !requireAdminAuth(req, res)) {
-        return;
-      }
-
-      await servePublicAsset(res, "/admin-review.html");
       return;
     }
 
@@ -943,6 +629,17 @@ const server = createServer(async (req, res) => {
   }
 });
 
-server.listen(port, host, () => {
-  console.log(`[catalog] listening on ${publicBaseUrl}`);
+const start = async () => {
+  const manifests = await buildPackageManifests();
+  server.listen(port, host, () => {
+    console.log(`[catalog] built ${manifests.length} package manifests from ${packageSourcesDir}`);
+    console.log(`[catalog] listening on ${publicBaseUrl}`);
+  });
+};
+
+start().catch((error) => {
+  console.error("[catalog] failed to start", error);
+  process.exit(1);
 });
+
+

@@ -1,15 +1,10 @@
-﻿# Submission Storage
+﻿# Legacy Submission Queue
 
-This directory holds file-backed package submissions for the catalog review workflow.
+This directory is left in place only to avoid destroying older local submission records.
 
-Status directories:
-- `pending`
-- `approved`
-- `rejected`
-- `needs_changes`
+The current catalog no longer uses an in-app submission or browser-based moderation workflow.
 
-Important:
-- submission records may contain private contact details such as Discord usernames
-- these records are reviewed from the protected `/admin` page inside the catalog service
-- these records are not part of the public catalog API
-- do not publish or expose this directory as a static asset path
+Current package source-of-truth lives under [../scripts](/C:/github/AID-OneClick/apps/catalog/data/scripts), and the catalog rebuilds generated package manifests into [../packages](/C:/github/AID-OneClick/apps/catalog/data/packages) when it starts.
+
+If you no longer need old local submission files here, you can remove them manually outside the active package workflow.
+

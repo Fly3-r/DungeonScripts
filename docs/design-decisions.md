@@ -222,7 +222,7 @@ Submission descriptions are stored as long-form Markdown-capable text, with the 
 Reason:
 Uploaders need enough space to include setup notes and links, but the catalog homepage should stay compact and scannable.
 
-### Replace the host-local CLI review flow with an in-app admin page
+### Replace the host-local CLI review flow with an in-app admin page (Superseded 2026-03-20)
 
 Decision:
 Submission review now happens from a protected `/admin` page served by the catalog app itself, not from separate Windows and Linux CLI tools.
@@ -230,7 +230,7 @@ Submission review now happens from a protected `/admin` page served by the catal
 Reason:
 The review workflow is part of the catalog product surface now. Keeping it inside the web app makes approval easier to operate and aligns better with the Docker-hosted deployment model.
 
-### Use shared admin credentials for the review page
+### Use shared admin credentials for the review page (Superseded 2026-03-20)
 
 Decision:
 The catalog admin page is protected with shared admin credentials supplied through `CATALOG_ADMIN_USERNAME` and `CATALOG_ADMIN_PASSWORD`.
@@ -238,7 +238,7 @@ The catalog admin page is protected with shared admin credentials supplied throu
 Reason:
 This adds a practical approval gate without introducing a full user-account system. It keeps the approval workflow tied to the catalog service while staying small enough for the MVP.
 
-### Persist submission and package data through Docker bind mounts
+### Persist submission and package data through Docker bind mounts (Superseded 2026-03-20)
 
 Decision:
 The Docker runtime must mount `apps/catalog/data/packages`, `apps/catalog/data/submissions`, and `apps/catalog/data/runtime` into the container.
@@ -246,3 +246,28 @@ The Docker runtime must mount `apps/catalog/data/packages`, `apps/catalog/data/s
 Reason:
 The admin page now publishes packages and updates the submission queue from inside the container. Those writes need to persist on the host across container restarts.
 
+
+
+### Replace in-app submission and approval with repo-driven package sources
+
+Decision:
+Package authorship and review now happen through the Git workflow for `apps/catalog/data/scripts/<package-id>`, not through `/submit` and `/admin` pages inside the catalog app.
+
+Reason:
+The in-app workflow added authentication, queue-state, and moderation complexity that was not necessary for the actual operating model. Keeping package source-of-truth in the repo is simpler and easier to audit.
+
+### Generate public package manifests from the repo source tree at catalog startup
+
+Decision:
+The catalog now rebuilds `apps/catalog/data/packages/*.json` from `apps/catalog/data/scripts/<package-id>` each time the service starts.
+
+Reason:
+This keeps the public package API stable for the extension while moving package authoring to a simpler file-based source layout.
+
+### Keep thumbnails file-based inside each package source folder
+
+Decision:
+Each package source folder may include an optional `Thumbnail.png`, and the catalog serves it through a package-specific API route. Missing thumbnails fall back to the bundled placeholder image.
+
+Reason:
+Keeping thumbnails beside the script files and metadata makes each package self-contained without introducing extra asset-mapping metadata.

@@ -5,6 +5,7 @@ npm-debug.log*
 .env.local
 
 apps/catalog/data/runtime/
+apps/catalog/data/packages/*.json
 apps/catalog/data/submissions/**/*.json
 
 .DS_Store

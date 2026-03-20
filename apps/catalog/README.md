@@ -5,8 +5,6 @@ This app is the external website and API used by the Chrome extension.
 ## Runtime Split
 
 - `/` serves the human-facing catalog homepage.
-- `/submit` serves the public package-submission page.
-- `/admin` serves the protected submission-review page.
 - `/api/v1/*` serves machine-readable JSON for the extension and future clients.
 - `/health` remains a simple health check.
 
@@ -17,8 +15,8 @@ The default containerized runtime is the repo-root [docker-compose.yml](/C:/gith
 The compose service:
 - builds from [Dockerfile](/C:/github/AID-OneClick/apps/catalog/Dockerfile)
 - exposes the catalog on `http://127.0.0.1:3000`
-- passes through `CATALOG_ADMIN_USERNAME` and `CATALOG_ADMIN_PASSWORD`
-- persists package manifests, submission queue files, and telemetry data under [data](/C:/github/AID-OneClick/apps/catalog/data)
+- passes through `DEFAULT_MIN_INSTALLER_VERSION`
+- persists package source files, generated package manifests, and telemetry data under [data](/C:/github/AID-OneClick/apps/catalog/data)
 
 ## Direct Node Runtime
 
@@ -28,19 +26,18 @@ If you do not want to use Docker, run the server directly:
 npm run catalog:dev
 ```
 
-## Submission Workflow
+## Package Workflow
 
-The catalog accepts public package submissions and reviews them in-app:
-- `/submit` provides the public upload form
-- `POST /api/v1/submissions` stores submissions into the private pending queue
-- `/admin` provides the protected review interface
-- `GET /api/v1/admin/submissions` and `POST /api/v1/admin/submissions/:id/review` power the review page
-- admin access is protected with HTTP Basic Auth using `CATALOG_ADMIN_USERNAME` and `CATALOG_ADMIN_PASSWORD`
+The catalog now uses a repo-driven package model:
+- package source-of-truth lives under [data/scripts](/C:/github/AID-OneClick/apps/catalog/data/scripts)
+- each package folder contains `metadata.json`, `Library.js`, `Input.js`, `Context.js`, `Output.js`, and an optional `Thumbnail.png`
+- the catalog rebuilds [data/packages](/C:/github/AID-OneClick/apps/catalog/data/packages) from those source folders each time the service starts
+- install counts remain in runtime telemetry and are still keyed by package ID
 
 ## Data Locations
 
-- Package manifests: [data/packages](/C:/github/AID-OneClick/apps/catalog/data/packages)
-- Submission queue: [data/submissions](/C:/github/AID-OneClick/apps/catalog/data/submissions)
+- Package source tree: [data/scripts](/C:/github/AID-OneClick/apps/catalog/data/scripts)
+- Generated package manifests: [data/packages](/C:/github/AID-OneClick/apps/catalog/data/packages)
 - Telemetry runtime files: [data/runtime](/C:/github/AID-OneClick/apps/catalog/data/runtime)
 - Static site assets: [public](/C:/github/AID-OneClick/apps/catalog/public)
 - HTTP server entrypoint: [src/server.js](/C:/github/AID-OneClick/apps/catalog/src/server.js)

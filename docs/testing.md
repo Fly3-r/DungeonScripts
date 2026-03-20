@@ -1,4 +1,4 @@
-# Testing
+﻿# Testing
 
 This project now includes a repeatable Chrome DevTools Protocol regression harness for the live install and rollback flow.
 
@@ -10,7 +10,7 @@ The script [scripts/test-install-regression.ps1](/C:/github/AID-OneClick/scripts
 - AI Dungeon auth/session readiness
 - install triggered from the catalog page
 - full AI Dungeon page reload after install
-- active root-scenario script verification against the package manifest
+- active root-scenario script verification against the generated package manifest
 - rollback triggered from the catalog page
 - full AI Dungeon page reload after rollback
 - restore verification back to the pre-install snapshot for the active root scenario
@@ -21,6 +21,7 @@ The script [scripts/test-install-regression.ps1](/C:/github/AID-OneClick/scripts
 - Chrome must be running with remote debugging enabled on `127.0.0.1:9222`
 - the unpacked extension must already be loaded
 - the catalog site must be running
+- the catalog startup must have generated package manifests from `apps/catalog/data/scripts`
 - an AI Dungeon edit page must already be open
 - the catalog page must already be open
 

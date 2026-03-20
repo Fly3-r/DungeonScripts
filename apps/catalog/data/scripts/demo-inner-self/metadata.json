@@ -1,0 +1,8 @@
+﻿{
+  "name": "Demo Inner Self",
+  "version": "0.1.0",
+  "author": "AID-OneClick",
+  "authorProfileUrl": "https://play.aidungeon.com/profile/AID-OneClick",
+  "description": "Sample script package used to verify catalog browsing, one-click install, and rollback plumbing.",
+  "minInstallerVersion": "0.1.0"
+}
