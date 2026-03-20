@@ -269,3 +269,19 @@ The homepage footer link should be labeled DungeonScripts GitHub and point direc
 
 Reason:
 The footer should take users to the actual project repository rather than a placeholder destination.
+
+### Make install preview compare against every install target, not just the current branch
+
+Decision:
+The preview modal should compare the selected package against the root scenario and every playable leaf, matching the same target set the installer will overwrite.
+
+Reason:
+A pre-install preview is only trustworthy if it reflects the full scope of the actual write operation.
+
+### Keep the preview path read-only and render diffs in a catalog modal
+
+Decision:
+Preview requests fetch the current script state through the extension, compare it to the selected package, and render the diff in a modal on the catalog page without creating restore points or mutating AI Dungeon.
+
+Reason:
+Preview should be safe to run repeatedly and should not create backup noise or change scenario state before the user confirms installation.

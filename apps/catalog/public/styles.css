@@ -392,6 +392,215 @@ code {
   text-decoration: underline;
 }
 
+
+body.preview-modal-open {
+  overflow: hidden;
+}
+
+.preview-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+}
+
+.preview-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 3, 10, 0.78);
+  backdrop-filter: blur(12px);
+}
+
+.preview-modal-dialog {
+  position: relative;
+  width: min(1120px, calc(100% - 32px));
+  max-height: calc(100vh - 48px);
+  margin: 24px auto;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01)),
+    var(--panel-strong);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.preview-modal-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.preview-modal-summary {
+  margin: 18px 0 0;
+  line-height: 1.55;
+}
+
+.preview-modal-body {
+  max-height: calc(100vh - 220px);
+  margin-top: 18px;
+  padding-right: 6px;
+  overflow: auto;
+}
+
+.preview-empty {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.preview-target-list {
+  display: grid;
+  gap: 16px;
+}
+
+.preview-target {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  overflow: hidden;
+}
+
+.preview-target summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.preview-target summary::-webkit-details-marker {
+  display: none;
+}
+
+.preview-target-summary {
+  display: grid;
+  gap: 6px;
+}
+
+.preview-target-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink-strong);
+}
+
+.preview-target-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.preview-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(198, 156, 255, 0.18);
+  background: rgba(159, 103, 255, 0.12);
+  color: var(--accent-bright);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.preview-chip.success {
+  border-color: rgba(100, 217, 171, 0.24);
+  background: rgba(100, 217, 171, 0.12);
+  color: #d9fff0;
+}
+
+.preview-chip.warning {
+  border-color: rgba(255, 191, 102, 0.24);
+  background: rgba(255, 191, 102, 0.12);
+  color: #ffe4bf;
+}
+
+.preview-target-content {
+  display: grid;
+  gap: 12px;
+  padding: 0 20px 20px;
+}
+
+.preview-file {
+  border: 1px solid rgba(198, 156, 255, 0.12);
+  border-radius: 16px;
+  background: rgba(8, 6, 16, 0.76);
+}
+
+.preview-file-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(198, 156, 255, 0.1);
+}
+
+.preview-file-title {
+  font-weight: 700;
+  color: var(--ink-strong);
+}
+
+.preview-file-status {
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+
+.preview-file-status.changed {
+  color: #ffd6ec;
+}
+
+.preview-file-status.unchanged {
+  color: #d9fff0;
+}
+
+.preview-diff {
+  padding: 10px 0;
+}
+
+.preview-diff-row {
+  display: grid;
+  grid-template-columns: 56px 56px 1fr;
+  align-items: start;
+  gap: 12px;
+  padding: 3px 16px;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.preview-diff-row + .preview-diff-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.preview-diff-row.equal {
+  color: #cbb9ea;
+}
+
+.preview-diff-row.add {
+  background: rgba(100, 217, 171, 0.08);
+  color: #d9fff0;
+}
+
+.preview-diff-row.remove {
+  background: rgba(217, 76, 146, 0.08);
+  color: #ffd7ea;
+}
+
+.preview-diff-line-number {
+  color: rgba(255, 255, 255, 0.38);
+  text-align: right;
+  user-select: none;
+}
+
+.preview-diff-code {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 .site-footer {
   margin-top: 22px;
   padding: 22px 24px;
@@ -456,6 +665,30 @@ code {
     margin-top: 2px;
   }
 
+
+  .preview-modal-dialog {
+    width: min(100% - 16px, 1120px);
+    max-height: calc(100vh - 16px);
+    margin: 8px auto;
+    padding: 18px;
+    border-radius: 18px;
+  }
+
+  .preview-modal-header,
+  .preview-target summary,
+  .preview-file-header {
+    display: block;
+  }
+
+  .preview-modal-body {
+    max-height: calc(100vh - 210px);
+  }
+
+  .preview-diff-row {
+    grid-template-columns: 42px 42px 1fr;
+    gap: 8px;
+    padding: 3px 12px;
+  }
   .action-button {
     width: 100%;
   }

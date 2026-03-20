@@ -261,3 +261,11 @@ The install-extension change adds a conditional GitHub CTA to the bridge header 
 
 Reason:
 This request is a small discovery and onboarding improvement. Keeping it isolated avoids coupling a simple page CTA to the extension runtime logic.
+
+### Implement preview inside the existing catalog bridge instead of the site runtime
+
+Decision:
+The new Preview action is rendered by the catalog page, but the extension bridge owns the preview fetch, diff generation, and modal lifecycle because only the bridge can read the live AI Dungeon scenario state.
+
+Reason:
+Keeping preview in the bridge reuses the existing extension permission boundary and avoids leaking AI Dungeon state-fetch logic into the public website runtime.

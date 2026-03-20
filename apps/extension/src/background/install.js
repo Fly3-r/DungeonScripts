@@ -1,4 +1,4 @@
-﻿import { getAidGraphqlUrl } from "./aid/constants.js";
+import { getAidGraphqlUrl } from "./aid/constants.js";
 import { queryScenarioInstallState } from "./aid/query-scenario-install-state.js";
 import { updateScenario } from "./aid/update-scenario.js";
 import { updateScripts } from "./aid/update-scripts.js";
@@ -36,6 +36,32 @@ const getRestoreTargets = (restorePoint) => {
   return [];
 };
 
+const getPackageScripts = (pkg) => ({
+  sharedLibrary: pkg?.sharedLibrary || "",
+  onInput: pkg?.onInput || "",
+  onModelContext: pkg?.onModelContext || "",
+  onOutput: pkg?.onOutput || ""
+});
+
+const loadTargetSnapshots = async ({ token, origin, scenarioState, targets }) => {
+  const url = getAidGraphqlUrl(origin);
+  const installTargets = Array.isArray(targets) ? targets : buildInstallTargets(scenarioState);
+  const snapshots = [];
+
+  for (const target of installTargets) {
+    const scenario = await queryScenarioInstallState(url, token, target.shortId);
+    snapshots.push({
+      shortId: scenario.shortId,
+      title: scenario.title || target.title || "Untitled",
+      isRoot: scenario.shortId === scenarioState?.rootShortId,
+      scriptsEnabled: !!scenario.scriptsEnabled,
+      gameCode: toGameCode(scenario.state?.scripts)
+    });
+  }
+
+  return snapshots;
+};
+
 export const buildInstallTargets = (scenarioState) => {
   const targets = [];
   const seen = new Set();
@@ -52,20 +78,34 @@ export const buildInstallTargets = (scenarioState) => {
   return targets;
 };
 
-export const createRestorePoint = async ({ token, origin, scenarioState, pkg, targets }) => {
-  const url = getAidGraphqlUrl(origin);
-  const installTargets = Array.isArray(targets) ? targets : buildInstallTargets(scenarioState);
-  const snapshots = [];
+export const createInstallPreview = async ({ token, origin, scenarioState, pkg, targets }) => {
+  const snapshots = await loadTargetSnapshots({ token, origin, scenarioState, targets });
 
-  for (const target of installTargets) {
-    const scenario = await queryScenarioInstallState(url, token, target.shortId);
-    snapshots.push({
-      shortId: scenario.shortId,
-      title: scenario.title || target.title || "Untitled",
-      scriptsEnabled: !!scenario.scriptsEnabled,
-      gameCode: toGameCode(scenario.state?.scripts)
-    });
-  }
+  return {
+    rootShortId: scenarioState.rootShortId,
+    rootTitle: scenarioState.rootTitle,
+    leafCount: Number.isInteger(scenarioState?.leafCount)
+      ? scenarioState.leafCount
+      : snapshots.length,
+    targetCount: snapshots.length,
+    package: {
+      id: pkg.id,
+      name: pkg.name,
+      version: pkg.version
+    },
+    packageScripts: getPackageScripts(pkg),
+    targets: snapshots.map((target) => ({
+      shortId: target.shortId,
+      title: target.title,
+      isRoot: target.isRoot,
+      scriptsEnabled: target.scriptsEnabled,
+      currentScripts: target.gameCode
+    }))
+  };
+};
+
+export const createRestorePoint = async ({ token, origin, scenarioState, pkg, targets }) => {
+  const snapshots = await loadTargetSnapshots({ token, origin, scenarioState, targets });
 
   return {
     id: crypto.randomUUID(),
@@ -78,20 +118,20 @@ export const createRestorePoint = async ({ token, origin, scenarioState, pkg, ta
     packageVersion: pkg.version,
     leafCount: Number.isInteger(scenarioState?.leafCount)
       ? scenarioState.leafCount
-      : installTargets.length,
+      : snapshots.length,
     targetCount: snapshots.length,
-    targets: snapshots
+    targets: snapshots.map((target) => ({
+      shortId: target.shortId,
+      title: target.title,
+      scriptsEnabled: target.scriptsEnabled,
+      gameCode: target.gameCode
+    }))
   };
 };
 
 export const installPackageToTargets = async ({ token, origin, targets, pkg }) => {
   const url = getAidGraphqlUrl(origin);
-  const gameCode = {
-    sharedLibrary: pkg.sharedLibrary,
-    onInput: pkg.onInput,
-    onModelContext: pkg.onModelContext,
-    onOutput: pkg.onOutput
-  };
+  const gameCode = getPackageScripts(pkg);
 
   let appliedCount = 0;
 

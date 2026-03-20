@@ -1,4 +1,4 @@
-﻿const FALLBACK_THUMBNAIL_URL = "/assets/thumbnail-placeholder.svg";
+const FALLBACK_THUMBNAIL_URL = "/assets/thumbnail-placeholder.svg";
 const packageList = document.getElementById("package-list");
 
 const createStat = (label, value) => {
@@ -97,6 +97,15 @@ const renderPackages = (packages) => {
     const actions = document.createElement("div");
     actions.className = "package-actions";
 
+    const previewButton = document.createElement("button");
+    previewButton.type = "button";
+    previewButton.className = "action-button secondary";
+    previewButton.dataset.oneclickPreview = "true";
+    previewButton.dataset.packageId = pkg.id;
+    previewButton.dataset.packageName = pkg.name;
+    previewButton.textContent = "Preview";
+    previewButton.disabled = true;
+
     const installButton = document.createElement("button");
     installButton.type = "button";
     installButton.className = "action-button";
@@ -119,7 +128,7 @@ const renderPackages = (packages) => {
     const packageId = document.createElement("code");
     packageId.textContent = pkg.id;
 
-    actions.append(installButton, rollbackButton, packageId);
+    actions.append(previewButton, installButton, rollbackButton, packageId);
     header.append(title);
     body.append(header, description, meta, actions);
     media.append(thumbnail);

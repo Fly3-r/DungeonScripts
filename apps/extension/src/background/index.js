@@ -1,4 +1,4 @@
-﻿import {
+import {
   DEFAULT_CATALOG_ORIGIN,
   MESSAGE_TYPES
 } from "../shared/constants.js";
@@ -21,6 +21,7 @@ import { discoverScenarioLeaves } from "./aid/discover-leaves.js";
 import { fetchCatalogPackage, fetchCatalogPackages } from "./catalog.js";
 import {
   buildInstallTargets,
+  createInstallPreview,
   createRestorePoint,
   installPackageToTargets,
   restoreFromPoint
@@ -306,6 +307,35 @@ const getCatalogPackagesPayload = async () => {
   return { packages };
 };
 
+const previewSelectedPackage = async (packageId) => {
+  if (typeof packageId !== "string" || packageId.trim().length === 0) {
+    throw new Error("Select a package before previewing.");
+  }
+
+  const [settings, authState, scenarioState, installState] = await Promise.all([
+    loadSettings(),
+    loadAuthState(),
+    loadScenarioState(),
+    loadInstallState()
+  ]);
+
+  if (BUSY_INSTALL_STATES.has(installState?.status)) {
+    throw new Error("Another install action is already running.");
+  }
+
+  const installTargets = requireInstallContext({ authState, scenarioState });
+  const pkg = await fetchCatalogPackage(settings.catalogOrigin, packageId.trim());
+  const preview = await createInstallPreview({
+    token: authState.token,
+    origin: scenarioState.origin,
+    scenarioState,
+    pkg,
+    targets: installTargets
+  });
+
+  return { preview };
+};
+
 const installSelectedPackage = async (packageId) => {
   if (typeof packageId !== "string" || packageId.trim().length === 0) {
     throw new Error("Select a package before installing.");
@@ -559,6 +589,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
 
+  if (message?.type === MESSAGE_TYPES.PREVIEW_PACKAGE) {
+    previewSelectedPackage(message.packageId)
+      .then((payload) => sendResponse({ ok: true, ...payload }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
   if (message?.type === MESSAGE_TYPES.INSTALL_PACKAGE) {
     installSelectedPackage(message.packageId)
       .then((payload) => sendResponse({ ok: true, ...payload }))
