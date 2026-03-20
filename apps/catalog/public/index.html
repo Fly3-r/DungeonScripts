@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8">
@@ -10,11 +10,8 @@
     <main class="shell">
       <section class="hero panel panel-hero">
         <p class="eyebrow">External Catalog</p>
-        <h1>Install Scripts In One Click</h1>
-        <p class="lede">
-          Browse script packages built from the repo source tree, inspect authors and versions,
-          and install directly into the scenario currently loaded in the AID One-Click extension.
-        </p>
+        <h1>DungeonScripts</h1>
+        <p class="lede">Install AI Dungeon Scripts into your scenario's in a single click.</p>
         <div class="hero-actions">
           <a class="action-button secondary" href="/api/v1/packages">Browse JSON API</a>
         </div>
@@ -59,12 +56,26 @@
             <p class="eyebrow">Catalog</p>
             <h2>Available Packages</h2>
           </div>
-          <p class="muted">Human-friendly cards on `/`, JSON under `/api/v1/*`.</p>
+          <p class="muted">Browse the list of available scripts below.</p>
         </div>
         <div id="package-list" class="package-list">
           <p class="muted">Loading packages...</p>
         </div>
       </section>
+
+      <footer class="site-footer">
+        <div class="site-footer-inner">
+          <a class="footer-link" href="https://github.com/" target="_blank" rel="noreferrer noopener">
+            Project GitHub
+          </a>
+          <p>
+            DungeonScripts created by Flyer, A lot of inspiration from
+            <a class="footer-link" href="https://github.com/LewdLeah/Multiple-Choice-Assistant" target="_blank" rel="noreferrer noopener">
+              MCA by LewdLeah
+            </a>.
+          </p>
+        </div>
+      </footer>
     </main>
 
     <script type="module" src="/app.js"></script>

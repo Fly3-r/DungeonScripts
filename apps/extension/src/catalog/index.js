@@ -1,4 +1,4 @@
-﻿(() => {
+(() => {
 const MESSAGE_TYPES = {
   GET_STATUS: "GET_STATUS",
   INSTALL_PACKAGE: "INSTALL_PACKAGE",
@@ -119,7 +119,7 @@ if (!globalThis[BRIDGE_FLAG]) {
     }
 
     if (!authState?.hasToken) {
-      return "Extension detected, but the AI Dungeon auth token is not available yet.";
+      return "Extension Detected, Please open your scenario edit page";
     }
 
     if (scenarioState?.status !== "ready") {
@@ -374,4 +374,3 @@ if (!globalThis[BRIDGE_FLAG]) {
   setInterval(refreshExtensionState, POLL_MS);
 }
 })();
-

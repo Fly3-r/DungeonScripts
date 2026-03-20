@@ -237,3 +237,19 @@ The unused `apps/catalog/data/submissions` directory and the remaining submissio
 
 Reason:
 Dormant queue artifacts and dead workflow notes were making the active package source path less obvious than it needed to be.
+
+### Tighten the catalog homepage copy around the DungeonScripts brand
+
+Decision:
+The catalog homepage should use the `DungeonScripts` product name in the hero and simplify the surrounding copy to focus on one-click installation.
+
+Reason:
+The earlier wording described implementation details instead of the product. Shorter, branded copy is clearer and reads more like a real catalog front page.
+
+### Add an attribution footer to the catalog homepage
+
+Decision:
+The homepage should end with a small footer that links to the project GitHub placeholder and credits inspiration from MCA by LewdLeah.
+
+Reason:
+The footer gives the page a cleaner finished edge and makes project attribution visible without interrupting the install flow.

@@ -245,3 +245,11 @@ After the repo-driven package workflow was validated, the dead `apps/catalog/dat
 
 Reason:
 The project no longer benefits from keeping a second, inactive workflow visible in the tree. Pruning it makes the current package path and docs easier to follow.
+
+### Keep the homepage polish pass scoped to copy, footer markup, and styling
+
+Decision:
+The DungeonScripts polish request updates only the catalog homepage text, the extension bridge summary string, the footer markup, and supporting CSS.
+
+Reason:
+This is a presentation pass. Keeping it scoped avoids accidental changes to package APIs or the install flow while still letting the page feel more finished.

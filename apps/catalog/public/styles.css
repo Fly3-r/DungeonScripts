@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   color-scheme: dark;
   --bg: #0c0816;
   --bg-deep: #070510;
@@ -385,6 +385,33 @@ code {
   text-decoration: underline;
 }
 
+.site-footer {
+  margin-top: 22px;
+  padding: 22px 24px;
+  border-top: 1px solid var(--line);
+}
+
+.site-footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--muted);
+}
+
+.site-footer-inner p {
+  margin: 0;
+}
+
+.footer-link {
+  color: var(--accent-bright);
+  text-decoration: none;
+}
+
+.footer-link:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 760px) {
   .shell {
     width: min(100% - 20px, 1120px);
@@ -409,6 +436,7 @@ code {
 
   .hero-actions,
   .package-actions,
+  .site-footer-inner,
   .form-actions {
     display: flex;
     flex-direction: column;
@@ -424,6 +452,3 @@ code {
     width: 100%;
   }
 }
-
-
-
