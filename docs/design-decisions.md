@@ -293,3 +293,11 @@ The catalog builder now allows much larger source script files by default and re
 
 Reason:
 Real AI Dungeon packages such as Inner Self exceed the earlier 200,000-character cap. The repo-driven model should accept legitimate large script libraries instead of rejecting them at catalog startup.
+
+### Give the repo-driven catalog enough headroom for very large script libraries
+
+Decision:
+The default MAX_SOURCE_SCRIPT_LENGTH is raised to 5,000,000 characters per script file while remaining overrideable by environment variable.
+
+Reason:
+localized-languages is roughly 1.96 million characters in Library.js, so the previous 1,000,000-character default still rejected a legitimate package. A higher default avoids repeated policy churn while keeping the limit explicit and configurable.

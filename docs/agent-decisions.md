@@ -277,3 +277,11 @@ The Inner Self startup failure is resolved by raising the catalog source-script 
 
 Reason:
 The package was already valid for the repo-driven model. The failure came from an overly conservative builder limit, so changing the validation policy is the narrowest fix.
+
+### Fix the second catalog size failure by increasing the default ceiling, not by special-casing packages
+
+Decision:
+The second startup failure is resolved by raising the shared default script-size ceiling so both inner-self and localized-languages fit under the same repo-wide policy.
+
+Reason:
+A package-specific exception would just reintroduce the same maintenance problem under a different shape. The real issue was that the default ceiling was still below the current package set.

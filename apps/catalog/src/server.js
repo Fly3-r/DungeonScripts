@@ -24,7 +24,7 @@ const parsePositiveInteger = (value, fallback) => {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 };
 const defaultMinInstallerVersion = process.env.DEFAULT_MIN_INSTALLER_VERSION || "0.1.0";
-const maxSourceScriptLength = parsePositiveInteger(process.env.MAX_SOURCE_SCRIPT_LENGTH, 1_000_000);
+const maxSourceScriptLength = parsePositiveInteger(process.env.MAX_SOURCE_SCRIPT_LENGTH, 5_000_000);
 const allowedEventKeys = [
   "event",
   "installId",
