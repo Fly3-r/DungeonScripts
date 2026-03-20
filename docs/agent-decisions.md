@@ -1,4 +1,4 @@
-﻿# Agent Decisions
+# Agent Decisions
 
 This file records workflow, implementation-process, and agent-execution decisions for AID-OneClick.
 
@@ -271,3 +271,19 @@ Each package now lives as a self-contained folder containing metadata, the four 
 
 Reason:
 A self-contained folder is easier to review in Git than one large generated manifest, and it matches how maintainers think about package ownership.
+
+### Make the live regression harness resolve repo-relative inputs and use the generic extensions page
+
+Decision:
+The install regression harness now resolves `PackageManifestPath` relative to the repo root and targets `chrome://extensions/` instead of the more brittle `chrome://extensions/?errors=<extensionId>` URL.
+
+Reason:
+The previous assumptions broke as soon as the repo root changed or the Chrome extensions page was open on its normal URL. The harness should fail on real product regressions, not on caller working-directory or tab-URL trivia.
+
+### Use the popup page as the extension test control surface when DevTools does not expose a worker target
+
+Decision:
+The install regression harness now treats the extension popup page as the extension control client for storage-backed state reads and action dispatch, instead of requiring a separately visible `service_worker` DevTools target.
+
+Reason:
+In the current Chrome remote-debugging session, the popup page is visible and fully capable of reading `chrome.storage.session` and sending runtime messages, while the extension worker target is not consistently exposed through `/json/list`.

@@ -1,4 +1,4 @@
-﻿# Testing
+# Testing
 
 This project now includes a repeatable Chrome DevTools Protocol regression harness for the live install and rollback flow.
 
@@ -20,6 +20,7 @@ The script [scripts/test-install-regression.ps1](/C:/github/AID-OneClick/scripts
 
 - Chrome must be running with remote debugging enabled on `127.0.0.1:9222`
 - the unpacked extension must already be loaded
+- a `chrome://extensions/` tab should already be open so the harness can reload the unpacked extension
 - the catalog site must be running
 - the catalog startup must have generated package manifests from `apps/catalog/data/scripts`
 - an AI Dungeon edit page must already be open

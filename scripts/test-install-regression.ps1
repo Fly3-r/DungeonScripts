@@ -13,6 +13,11 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$RepoRoot = Split-Path -Parent $PSScriptRoot
+if (-not [System.IO.Path]::IsPathRooted($PackageManifestPath)) {
+  $PackageManifestPath = Join-Path $RepoRoot $PackageManifestPath
+}
+
 function Get-JsonFromUrl {
   param([string]$Url)
 
@@ -21,6 +26,13 @@ function Get-JsonFromUrl {
 
 function Get-DevtoolsTargets {
   return Get-JsonFromUrl "$ChromeDebugUrl/json/list"
+}
+
+function Open-DevtoolsPageTarget {
+  param([string]$Url)
+
+  $encodedUrl = [System.Uri]::EscapeDataString($Url)
+  return @(((Invoke-WebRequest -UseBasicParsing -Method Put -Uri "$ChromeDebugUrl/json/new?$encodedUrl").Content | ConvertFrom-Json))
 }
 
 function Get-DevtoolsTarget {
@@ -317,21 +329,18 @@ function Get-ServiceWorkerState {
 
   $expression = @'
 (async () => {
-  const { authState, scenarioState, installState } = await chrome.storage.session.get([
-    "authState",
-    "scenarioState",
-    "installState"
-  ]);
+  const response = await chrome.runtime.sendMessage({
+    type: "GET_STATUS"
+  });
+
+  if (!response?.ok) {
+    throw new Error(response?.error || "GET_STATUS failed.");
+  }
 
   return {
-    authState: authState ? {
-      hasToken: !!authState.hasToken,
-      origin: authState.origin,
-      updatedAt: authState.updatedAt,
-      error: authState.error
-    } : null,
-    scenarioState,
-    installState
+    authState: response.authState,
+    scenarioState: response.scenarioState,
+    installState: response.installState
   };
 })()
 '@
@@ -873,7 +882,7 @@ $reloadExtensionExpr = @"
     ?.shadowRoot?.querySelector('extensions-item[id="$ExtensionId"]');
   const button = item?.shadowRoot?.getElementById('dev-reload-button');
   if (!button) {
-    throw new Error('Reload button not found for extension.');
+    return false;
   }
   button.click();
   return true;
@@ -884,7 +893,7 @@ $installSelector = "[data-oneclick-install][data-package-id=""$PackageId""]"
 $rollbackSelector = "[data-oneclick-rollback][data-package-id=""$PackageId""]"
 
 $packageManifest = Get-Content -Path $PackageManifestPath | ConvertFrom-Json
-$extensionPageUrl = "chrome://extensions/?errors=$ExtensionId"
+$extensionPageUrl = "chrome://extensions/"
 
 $extensionsClient = $null
 $catalogClient = $null
@@ -896,21 +905,24 @@ try {
   Write-Step "Connecting to extension management page."
   $extensionsTarget = Get-DevtoolsTarget -Type "page" -Url $extensionPageUrl
   $extensionsClient = New-CdpClient -WebSocketUrl $extensionsTarget.webSocketDebuggerUrl
-  [void](Eval-Cdp -Client $extensionsClient -Expression $reloadExtensionExpr)
-
-  Start-Sleep -Seconds 3
+  $reloadInvoked = Eval-Cdp -Client $extensionsClient -Expression $reloadExtensionExpr
+  if ($reloadInvoked) {
+    Start-Sleep -Seconds 3
+  } else {
+    Write-Step "Extension reload control not found on chrome://extensions/. Continuing without forced reload."
+  }
 
   Write-Step "Connecting to catalog, AI Dungeon, and extension service worker targets."
   $catalogClient = Connect-TargetClient -Type "page" -Url $CatalogUrl -Label "catalog page"
   Write-Step "Connected to catalog page."
   $aidClient = Connect-TargetClient -Type "page" -Url $AidEditorUrl -Label "AI Dungeon page"
   Write-Step "Connected to AI Dungeon page."
-  $serviceWorkerClient = Connect-TargetClient -Type "service_worker" -Url "chrome-extension://$ExtensionId/src/background/index.js" -Label "extension service worker"
-  Write-Step "Connected to extension service worker."
   Write-Step "Opening popup page for extension message actions."
-  [void](Open-ExtensionPageTab -Client $serviceWorkerClient -RelativePath "src/popup/popup.html")
+  [void](Open-DevtoolsPageTarget -Url "chrome-extension://$ExtensionId/src/popup/popup.html")
   $popupClient = Connect-TargetClient -Type "page" -Url "chrome-extension://$ExtensionId/src/popup/popup.html" -Label "extension popup page"
   Write-Step "Connected to extension popup page."
+  $serviceWorkerClient = $popupClient
+  Write-Step "Using extension popup page as the extension control surface."
 
   Write-Step "Reloading catalog and AI Dungeon pages."
   Reload-PageAndWait -Client $catalogClient
@@ -1015,6 +1027,12 @@ catch {
   throw
 }
 finally {
+  if ($serviceWorkerClient -and $popupClient -and [object]::ReferenceEquals($serviceWorkerClient, $popupClient)) {
+    Close-CdpClient -Client $popupClient
+    $serviceWorkerClient = $null
+    $popupClient = $null
+  }
+
   Close-CdpClient -Client $serviceWorkerClient
   Close-CdpClient -Client $popupClient
   Close-CdpClient -Client $aidClient
