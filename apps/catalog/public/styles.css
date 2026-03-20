@@ -605,6 +605,81 @@ body.preview-modal-open {
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+.install-modal-dialog {
+  width: min(760px, calc(100% - 32px));
+}
+
+.install-modal-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.install-selection-summary {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.install-modal-body {
+  max-height: calc(100vh - 320px);
+}
+
+.install-target-list {
+  display: grid;
+  gap: 12px;
+}
+
+.install-target-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+}
+
+.install-target-row:hover {
+  border-color: rgba(198, 156, 255, 0.3);
+  background: rgba(159, 103, 255, 0.08);
+}
+
+.install-target-checkbox {
+  width: 18px;
+  height: 18px;
+  margin-top: 4px;
+  accent-color: var(--accent);
+}
+
+.install-target-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.install-target-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink-strong);
+}
+
+.install-target-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.install-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 18px;
+}
 .site-footer {
   margin-top: 22px;
   padding: 22px 24px;

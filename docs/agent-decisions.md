@@ -325,3 +325,19 @@ The forced-failure test exposed that a manual flush still obeyed nextAttemptAt. 
 
 Reason:
 That preserves normal bounded retry behavior while making the regression harness able to verify recovery in one run.
+
+### Move install confirmation testing to the catalog modal path
+
+Decision:
+The live regression harness now opens the catalog install modal, verifies the default target selection, and confirms the install through the same modal path the user sees in the browser.
+
+Reason:
+The install confirmation logic is now part of the real product flow. Testing it through the page modal catches regressions that a direct background-message shortcut would miss.
+
+### Verify install and rollback against the full discovered target set
+
+Decision:
+The regression harness now verifies install and rollback state through GraphQL snapshots for the root scenario and every discovered playable leaf instead of limiting verification to the active root scenario.
+
+Reason:
+The product now supports per-target install selection, so root-only verification is no longer enough. Snapshot-based full-target checks give reliable branch coverage without depending on brittle editor-side leaf navigation automation.

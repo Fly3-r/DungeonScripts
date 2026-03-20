@@ -48,19 +48,20 @@ This scaffold includes:
 - AI Dungeon editor detection and auth token extraction plumbing
 - authenticated AI Dungeon scenario reads and leaf discovery
 - restore-point capture before script mutations
-- catalog package fetch and install-to-root-plus-leaves execution
+- catalog package fetch and install execution across selectable root and leaf targets
 - rollback of the latest restore point from the popup and matching catalog card
-- durable anonymous install-success telemetry queue and retry inside the extension, with best-effort POSTs to the external catalog/API
-- browsable catalog homepage on `/` with thumbnail cards, fallback placeholder artwork, install counters, and install diff preview modal
+- durable anonymous install-success telemetry queueing with retry in the extension
+- browsable catalog homepage on `/` with thumbnail cards, fallback placeholder artwork, and install counters
+- in-page install target-selection modal on the catalog with default-checked root and leaf targets
+- in-page preview diff modal before overwrite across the full install target set
 - versioned JSON API under `/api/v1/*`
 - repo-driven package sources under `apps/catalog/data/scripts/<package-id>`
 - startup generation of public package manifests into `apps/catalog/data/packages`
 - sample package source files and shared JSON schemas for package metadata, package manifests, and telemetry payloads
-- a repeatable Chrome DevTools Protocol regression script for install, telemetry retry, and rollback verification
+- a repeatable Chrome DevTools Protocol regression script for install selection, telemetry retry, and full-target install/rollback verification
 
 What is not implemented yet:
 - restore-point browsing beyond the latest snapshot
-- branch-by-branch automated verification beyond the active root scenario
 - public package detail pages beyond the homepage cards
 - automated policy or malware scanning of package changes
 

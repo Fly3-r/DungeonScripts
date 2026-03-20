@@ -10,18 +10,19 @@ const toGameCode = (scripts) => ({
   onOutput: scripts?.onOutput || ""
 });
 
-const toScenarioTarget = ({ shortId, title }) => ({
+const toScenarioTarget = ({ shortId, title }, isRoot = false) => ({
   shortId,
-  title: title || "Untitled"
+  title: title || "Untitled",
+  isRoot
 });
 
-const addUniqueTarget = (targets, seen, scenario) => {
+const addUniqueTarget = (targets, seen, scenario, isRoot = false) => {
   if (!scenario?.shortId || seen.has(scenario.shortId)) {
     return;
   }
 
   seen.add(scenario.shortId);
-  targets.push(toScenarioTarget(scenario));
+  targets.push(toScenarioTarget(scenario, isRoot));
 };
 
 const getRestoreTargets = (restorePoint) => {
@@ -42,6 +43,9 @@ const getPackageScripts = (pkg) => ({
   onModelContext: pkg?.onModelContext || "",
   onOutput: pkg?.onOutput || ""
 });
+
+const countLeafTargets = (scenarioState, targets) =>
+  targets.filter((target) => target.shortId && target.shortId !== scenarioState?.rootShortId).length;
 
 const loadTargetSnapshots = async ({ token, origin, scenarioState, targets }) => {
   const url = getAidGraphqlUrl(origin);
@@ -66,16 +70,39 @@ export const buildInstallTargets = (scenarioState) => {
   const targets = [];
   const seen = new Set();
 
-  addUniqueTarget(targets, seen, {
-    shortId: scenarioState?.rootShortId,
-    title: scenarioState?.rootTitle
-  });
+  addUniqueTarget(
+    targets,
+    seen,
+    {
+      shortId: scenarioState?.rootShortId,
+      title: scenarioState?.rootTitle
+    },
+    true
+  );
 
   for (const leaf of scenarioState?.leaves || []) {
-    addUniqueTarget(targets, seen, leaf);
+    addUniqueTarget(targets, seen, leaf, false);
   }
 
   return targets;
+};
+
+export const resolveInstallTargets = (scenarioState, targetShortIds = null) => {
+  const allTargets = buildInstallTargets(scenarioState);
+
+  if (!Array.isArray(targetShortIds)) {
+    return allTargets;
+  }
+
+  const selectedTargetIds = new Set(
+    targetShortIds.filter((targetShortId) => typeof targetShortId === "string" && targetShortId)
+  );
+
+  if (selectedTargetIds.size === 0) {
+    return [];
+  }
+
+  return allTargets.filter((target) => selectedTargetIds.has(target.shortId));
 };
 
 export const createInstallPreview = async ({ token, origin, scenarioState, pkg, targets }) => {
@@ -84,9 +111,7 @@ export const createInstallPreview = async ({ token, origin, scenarioState, pkg, 
   return {
     rootShortId: scenarioState.rootShortId,
     rootTitle: scenarioState.rootTitle,
-    leafCount: Number.isInteger(scenarioState?.leafCount)
-      ? scenarioState.leafCount
-      : snapshots.length,
+    leafCount: countLeafTargets(scenarioState, snapshots),
     targetCount: snapshots.length,
     package: {
       id: pkg.id,
@@ -116,9 +141,7 @@ export const createRestorePoint = async ({ token, origin, scenarioState, pkg, ta
     packageId: pkg.id,
     packageName: pkg.name,
     packageVersion: pkg.version,
-    leafCount: Number.isInteger(scenarioState?.leafCount)
-      ? scenarioState.leafCount
-      : snapshots.length,
+    leafCount: countLeafTargets(scenarioState, snapshots),
     targetCount: snapshots.length,
     targets: snapshots.map((target) => ({
       shortId: target.shortId,

@@ -273,6 +273,29 @@ function Click-Button {
   return Eval-Cdp -Client $Client -Expression $expression
 }
 
+function Get-InstallModalState {
+  param([System.Net.WebSockets.ClientWebSocket]$Client)
+
+  $expression = @"
+(() => {
+  const modal = document.querySelector('[data-oneclick-install-modal]');
+  if (!modal || modal.hidden) {
+    return null;
+  }
+
+  const checkboxes = Array.from(modal.querySelectorAll('[data-oneclick-target-checkbox]'));
+  const confirm = modal.querySelector('[data-oneclick-install-confirm]');
+  return {
+    totalTargets: checkboxes.length,
+    checkedTargets: checkboxes.filter((checkbox) => checkbox.checked).map((checkbox) => checkbox.dataset.targetShortId),
+    confirmEnabled: !!confirm && !confirm.disabled
+  };
+})()
+"@
+
+  return Eval-Cdp -Client $Client -Expression $expression -AwaitPromise $true
+}
+
 function Invoke-ExtensionAction {
   param(
     [System.Net.WebSockets.ClientWebSocket]$Client,
@@ -965,6 +988,21 @@ function Connect-TargetClient {
   } -PollMilliseconds 1000
 }
 
+function Connect-OrOpenPageClient {
+  param(
+    [string]$Url,
+    [string]$Label
+  )
+
+  try {
+    return Connect-TargetClient -Type "page" -Url $Url -Label $Label
+  } catch {
+    Write-Step "Opening $Label because no existing target matched $Url."
+    [void](Open-DevtoolsPageTarget -Url $Url)
+    return Connect-TargetClient -Type "page" -Url $Url -Label $Label
+  }
+}
+
 $reloadExtensionExpr = @"
 (() => {
   const item = document.querySelector('extensions-manager')
@@ -1003,9 +1041,9 @@ try {
   }
 
   Write-Step "Connecting to catalog, AI Dungeon, and extension service worker targets."
-  $catalogClient = Connect-TargetClient -Type "page" -Url $CatalogUrl -Label "catalog page"
+  $catalogClient = Connect-OrOpenPageClient -Url $CatalogUrl -Label "catalog page"
   Write-Step "Connected to catalog page."
-  $aidClient = Connect-TargetClient -Type "page" -Url $AidEditorUrl -Label "AI Dungeon page"
+  $aidClient = Connect-OrOpenPageClient -Url $AidEditorUrl -Label "AI Dungeon page"
   Write-Step "Connected to AI Dungeon page."
   Write-Step "Opening popup page for extension message actions."
   [void](Open-DevtoolsPageTarget -Url "chrome-extension://$ExtensionId/src/popup/popup.html")
@@ -1046,9 +1084,8 @@ try {
   Write-Step "Capturing pre-install snapshot."
   $preInstallSnapshot = Get-ScenarioSnapshot -Client $serviceWorkerClient
   $preInstallState = $readyState.installState
-  $verificationTargets = @($preInstallSnapshot.targets | Select-Object -First 1)
+  $verificationTargets = @($preInstallSnapshot.targets)
 
-  [void](Eval-Cdp -Client $catalogClient -Expression "window.confirm = () => true; true;")
   Write-Step "Waiting for install button readiness."
   Wait-Until -Label "install button readiness" -TimeoutSeconds $ReadyTimeoutSeconds -Predicate {
     if (Test-ButtonReady -Client $catalogClient -Selector $installSelector) {
@@ -1058,10 +1095,36 @@ try {
     return $null
   } | Out-Null
 
-  Write-Step "Triggering install through the extension message layer."
-  $installResponse = Invoke-ExtensionAction -Client $popupClient -MessageType "INSTALL_PACKAGE" -PackageId $PackageId
+  Write-Step "Opening the install selection modal from the catalog page."
+  Click-Button -Client $catalogClient -Selector $installSelector | Out-Null
+  $installModalState = Wait-Until -Label "install modal readiness" -TimeoutSeconds $ReadyTimeoutSeconds -Predicate {
+    $modalState = Get-InstallModalState -Client $catalogClient
+    if (
+      $modalState -and
+      $modalState.confirmEnabled -and
+      $modalState.totalTargets -eq $preInstallSnapshot.targetCount -and
+      @($modalState.checkedTargets).Count -eq $preInstallSnapshot.targetCount
+    ) {
+      return $modalState
+    }
+
+    return $null
+  }
+
+  $installResponse = [ordered]@{
+    ok = $true
+    source = "catalog-modal"
+    modalSelection = $installModalState
+  }
+
+  Write-Step "Confirming install target selection from the catalog modal."
+  Click-Button -Client $catalogClient -Selector "[data-oneclick-install-confirm]" | Out-Null
   Write-Step "Waiting for a fresh install-state transition."
   $installCompletionState = Wait-ForInstallTransition -Client $serviceWorkerClient -PackageId $PackageId -PreviousState $preInstallState
+
+  if ($installCompletionState.installState.appliedCount -ne $verificationTargets.Count) {
+    throw "Install appliedCount mismatch. Expected $($verificationTargets.Count) but got $($installCompletionState.installState.appliedCount)."
+  }
 
   if (-not $SkipTelemetryRetryCheck) {
     Write-Step "Waiting for the telemetry queue to retain the failed install event."
@@ -1079,8 +1142,11 @@ try {
     $telemetryAfterRecovery = Wait-ForTelemetryPendingCount -Client $serviceWorkerClient -PendingCount 0
   }
 
-  Write-Step "Verifying installed scripts on the active root scenario."
-  $postInstallTargets = Verify-TargetsByNavigation -AidClient $aidClient -ServiceWorkerClient $serviceWorkerClient -Targets $verificationTargets -Mode "package" -Package $packageManifest
+  Write-Step "Verifying installed scripts across all selected scenario targets."
+  $postInstallSnapshot = Wait-ForSnapshot -ServiceWorkerClient $serviceWorkerClient -AidClient $aidClient -MatchesExpected {
+    param($snapshot)
+    @((Compare-SnapshotToPackage -Snapshot $snapshot -Package $packageManifest)).Count -eq 0
+  } -Label "post-install snapshot verification"
 
   $preRollbackState = $installCompletionState.installState
 
@@ -1099,8 +1165,15 @@ try {
   Write-Step "Waiting for a fresh rollback-state transition."
   $rollbackCompletionState = Wait-ForRollbackTransition -Client $serviceWorkerClient -PreviousState $preRollbackState
 
-  Write-Step "Verifying rollback on the active root scenario."
-  $postRollbackTargets = Verify-TargetsByNavigation -AidClient $aidClient -ServiceWorkerClient $serviceWorkerClient -Targets $verificationTargets -Mode "snapshot" -ExpectedTargets $preInstallSnapshot.targets
+  if ($rollbackCompletionState.installState.appliedCount -ne $verificationTargets.Count) {
+    throw "Rollback appliedCount mismatch. Expected $($verificationTargets.Count) but got $($rollbackCompletionState.installState.appliedCount)."
+  }
+
+  Write-Step "Verifying rollback across all selected scenario targets."
+  $postRollbackSnapshot = Wait-ForSnapshot -ServiceWorkerClient $serviceWorkerClient -AidClient $aidClient -MatchesExpected {
+    param($snapshot)
+    @((Compare-Snapshots -Expected $preInstallSnapshot -Actual $snapshot)).Count -eq 0
+  } -Label "post-rollback snapshot verification"
 
   Navigate-ToScenarioTarget -AidClient $aidClient -ServiceWorkerClient $serviceWorkerClient -Target @{
     shortId = $preInstallSnapshot.rootShortId
@@ -1128,16 +1201,12 @@ try {
     install = [ordered]@{
       response = $installResponse
       installState = $installCompletionState.installState
-      targets = Get-TargetSummary -Snapshot @{
-        targets = $postInstallTargets
-      }
+      targets = Get-TargetSummary -Snapshot $postInstallSnapshot
     }
     rollback = [ordered]@{
       response = $rollbackResponse
       installState = $rollbackCompletionState.installState
-      targets = Get-TargetSummary -Snapshot @{
-        targets = $postRollbackTargets
-      }
+      targets = Get-TargetSummary -Snapshot $postRollbackSnapshot
     }
     testedAt = (Get-Date).ToString("o")
   }

@@ -1,6 +1,6 @@
 # Testing
 
-This project now includes a repeatable Chrome DevTools Protocol regression harness for the live install, telemetry retry, and rollback flow.
+This project now includes a repeatable Chrome DevTools Protocol regression harness for the live install, install-target selection, telemetry retry, and rollback flow.
 
 ## Current Coverage
 
@@ -8,15 +8,15 @@ The script [scripts/test-install-regression.ps1](/C:/github/AID-OneClick/scripts
 - unpacked extension reload
 - catalog page recognition of the extension
 - AI Dungeon auth/session readiness
-- install triggered from the catalog page with forced telemetry delivery failure injection
+- install triggered from the catalog page install modal with forced telemetry delivery failure injection
+- default target selection in the install modal across the root and discovered playable leaves
 - queued telemetry retention after the forced delivery failure
 - successful telemetry queue flush and drain after recovery
 - full AI Dungeon page reload after install
-- active root-scenario script verification against the generated package manifest
+- full install-state verification against the generated package manifest for the root scenario and each discovered playable leaf
 - rollback triggered from the catalog page
 - full AI Dungeon page reload after rollback
-- restore verification back to the pre-install snapshot for the active root scenario
-- discovery and reporting of the playable leaf targets for future branch-level automation
+- restore verification back to the pre-install snapshot for the root scenario and each discovered playable leaf
 
 ## Prerequisites
 
@@ -61,9 +61,10 @@ When a new feature changes the live install flow, extend this harness instead of
 
 Examples:
 - new install scope behavior: add new snapshot assertions
+- new target-selection behavior: add modal-selection assertions before confirming install
 - new rollback behavior: add restore-state assertions
 - new catalog UX gates: add page-state assertions before click
 - new telemetry side effects: extend the injected failure/flush assertions or add network-state checks after install
-- branch-specific features: extend the harness from root verification to explicit leaf switching and leaf-state assertions
+- new branch-specific UI flows: keep verification target-based unless the feature truly depends on editor-side leaf navigation
 
 The goal is to keep a single repeatable regression path for the real browser workflow.

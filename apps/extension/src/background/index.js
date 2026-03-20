@@ -21,10 +21,10 @@ import {
 import { discoverScenarioLeaves } from "./aid/discover-leaves.js";
 import { fetchCatalogPackage, fetchCatalogPackages } from "./catalog.js";
 import {
-  buildInstallTargets,
   createInstallPreview,
   createRestorePoint,
   installPackageToTargets,
+  resolveInstallTargets,
   restoreFromPoint
 } from "./install.js";
 import { flushTelemetryQueue, getTelemetryStatus, recordInstallSuccess } from "./telemetry.js";
@@ -110,7 +110,7 @@ const toPublicRestorePoint = (restorePoint) => {
   };
 };
 
-const requireInstallContext = ({ authState, scenarioState }) => {
+const requireInstallContext = ({ authState, scenarioState, targetShortIds = null }) => {
   if (!authState?.hasToken || !authState?.token) {
     throw new Error("AI Dungeon auth token is not available. Re-open the edit page first.");
   }
@@ -119,7 +119,11 @@ const requireInstallContext = ({ authState, scenarioState }) => {
     throw new Error("Scenario targets are not ready yet. Wait for the tree to finish loading.");
   }
 
-  const installTargets = buildInstallTargets(scenarioState);
+  if (Array.isArray(targetShortIds) && targetShortIds.length === 0) {
+    throw new Error("Select at least one scenario target before installing.");
+  }
+
+  const installTargets = resolveInstallTargets(scenarioState, targetShortIds);
   if (installTargets.length === 0) {
     throw new Error("No scenario targets were found for this scenario.");
   }
@@ -353,7 +357,7 @@ const previewSelectedPackage = async (packageId) => {
     throw new Error("Another install action is already running.");
   }
 
-  const installTargets = requireInstallContext({ authState, scenarioState });
+  const installTargets = requireInstallContext({ authState, scenarioState, targetShortIds });
   const pkg = await fetchCatalogPackage(settings.catalogOrigin, packageId.trim());
   const preview = await createInstallPreview({
     token: authState.token,
@@ -366,7 +370,7 @@ const previewSelectedPackage = async (packageId) => {
   return { preview };
 };
 
-const installSelectedPackage = async (packageId) => {
+const installSelectedPackage = async (packageId, targetShortIds = null) => {
   if (typeof packageId !== "string" || packageId.trim().length === 0) {
     throw new Error("Select a package before installing.");
   }
@@ -382,7 +386,7 @@ const installSelectedPackage = async (packageId) => {
     throw new Error("Another install action is already running.");
   }
 
-  const installTargets = requireInstallContext({ authState, scenarioState });
+  const installTargets = requireInstallContext({ authState, scenarioState, targetShortIds });
 
   let pkg = null;
   let restorePoint = null;
@@ -661,7 +665,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
   if (message?.type === MESSAGE_TYPES.INSTALL_PACKAGE) {
-    installSelectedPackage(message.packageId)
+    installSelectedPackage(message.packageId, message.targetShortIds)
       .then((payload) => sendResponse({ ok: true, ...payload }))
       .catch((error) => sendResponse({ ok: false, error: error.message }));
     return true;

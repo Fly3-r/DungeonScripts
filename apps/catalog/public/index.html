@@ -93,6 +93,38 @@
         </div>
       </section>
 
+      <section class="preview-modal install-modal" data-oneclick-install-modal hidden aria-hidden="true">
+        <div class="preview-modal-backdrop" data-oneclick-install-close></div>
+        <div class="preview-modal-dialog install-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="install-modal-title">
+          <div class="preview-modal-header">
+            <div>
+              <p class="eyebrow">Install Selection</p>
+              <h2 id="install-modal-title">Install Package</h2>
+            </div>
+            <button type="button" class="action-button secondary" data-oneclick-install-close>
+              Cancel
+            </button>
+          </div>
+          <p id="install-modal-summary" class="muted preview-modal-summary">
+            Choose which scenario targets to update.
+          </p>
+          <div class="install-modal-toolbar">
+            <p id="install-modal-selection-summary" class="install-selection-summary muted">
+              Loading install targets...
+            </p>
+          </div>
+          <div id="install-modal-body" class="preview-modal-body install-modal-body"></div>
+          <div class="install-modal-footer">
+            <button type="button" class="action-button secondary" data-oneclick-install-close>
+              Cancel
+            </button>
+            <button type="button" class="action-button" data-oneclick-install-confirm>
+              Install Selected
+            </button>
+          </div>
+        </div>
+      </section>
+
       <footer class="site-footer">
         <div class="site-footer-inner">
           <a class="footer-link" href="https://github.com/Fly3-r/DungeonScripts" target="_blank" rel="noreferrer noopener">

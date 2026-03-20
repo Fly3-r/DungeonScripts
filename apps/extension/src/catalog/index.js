@@ -21,7 +21,15 @@ const SELECTORS = {
   previewModalClose: "[data-oneclick-preview-close]",
   previewTitle: "#preview-modal-title",
   previewSummary: "#preview-modal-summary",
-  previewBody: "#preview-modal-body"
+  previewBody: "#preview-modal-body",
+  installModal: "[data-oneclick-install-modal]",
+  installModalClose: "[data-oneclick-install-close]",
+  installTitle: "#install-modal-title",
+  installSummary: "#install-modal-summary",
+  installSelectionSummary: "#install-modal-selection-summary",
+  installBody: "#install-modal-body",
+  installConfirm: "[data-oneclick-install-confirm]",
+  installTargetCheckbox: "[data-oneclick-target-checkbox]"
 };
 
 const SCRIPT_FIELDS = [
@@ -40,6 +48,7 @@ if (!globalThis[BRIDGE_FLAG]) {
   let latestStatus = null;
   let transientNotice = "Checking extension status...";
   let currentAction = null;
+  let currentInstallDraft = null;
 
   const getScenarioTargetCount = (scenarioState) => {
     if (Number.isInteger(scenarioState?.targetCount) && scenarioState.targetCount > 0) {
@@ -71,6 +80,41 @@ if (!globalThis[BRIDGE_FLAG]) {
     summary: document.querySelector(SELECTORS.previewSummary),
     body: document.querySelector(SELECTORS.previewBody)
   });
+
+  const getInstallModalElements = () => ({
+    modal: document.querySelector(SELECTORS.installModal),
+    title: document.querySelector(SELECTORS.installTitle),
+    summary: document.querySelector(SELECTORS.installSummary),
+    selectionSummary: document.querySelector(SELECTORS.installSelectionSummary),
+    body: document.querySelector(SELECTORS.installBody),
+    confirm: document.querySelector(SELECTORS.installConfirm)
+  });
+
+  const getScenarioTargets = (scenarioState) => {
+    const targets = [];
+    const seen = new Set();
+    const addTarget = (shortId, title, isRoot) => {
+      if (!shortId || seen.has(shortId)) {
+        return;
+      }
+
+      seen.add(shortId);
+      targets.push({
+        shortId,
+        title: title || "Untitled",
+        isRoot
+      });
+    };
+
+    addTarget(scenarioState?.rootShortId, scenarioState?.rootTitle, true);
+    for (const leaf of scenarioState?.leaves || []) {
+      addTarget(leaf.shortId, leaf.title, false);
+    }
+
+    return targets;
+  };
+
+  const countLeafTargets = (targets) => targets.filter((target) => !target.isRoot).length;
 
   const describeTargetCount = (targetCount, leafCount = null) => {
     if (!Number.isInteger(targetCount) || targetCount <= 0) {
@@ -408,26 +452,33 @@ if (!globalThis[BRIDGE_FLAG]) {
     body.append(targetList);
   };
 
-  const openPreviewModal = () => {
-    const { modal } = getPreviewModalElements();
+  const syncModalBodyLock = () => {
+    const previewModal = document.querySelector(SELECTORS.previewModal);
+    const installModal = document.querySelector(SELECTORS.installModal);
+    const hasOpenModal =
+      (previewModal && !previewModal.hidden) || (installModal && !installModal.hidden);
+
+    document.body.classList.toggle("preview-modal-open", !!hasOpenModal);
+  };
+
+  const setModalVisibility = (modal, isOpen) => {
     if (!modal) {
       return;
     }
 
-    modal.hidden = false;
-    modal.setAttribute("aria-hidden", "false");
-    document.body.classList.add("preview-modal-open");
+    modal.hidden = !isOpen;
+    modal.setAttribute("aria-hidden", isOpen ? "false" : "true");
+    syncModalBodyLock();
+  };
+
+  const openPreviewModal = () => {
+    const { modal } = getPreviewModalElements();
+    setModalVisibility(modal, true);
   };
 
   const closePreviewModal = () => {
     const { modal } = getPreviewModalElements();
-    if (!modal) {
-      return;
-    }
-
-    modal.hidden = true;
-    modal.setAttribute("aria-hidden", "true");
-    document.body.classList.remove("preview-modal-open");
+    setModalVisibility(modal, false);
   };
 
   const showPreviewLoading = (packageName) => {
@@ -454,6 +505,127 @@ if (!globalThis[BRIDGE_FLAG]) {
     body.innerHTML = "";
     body.append(createEmptyPreviewState(message));
     openPreviewModal();
+  };
+
+  const getSelectedInstallTargets = () => {
+    if (!currentInstallDraft) {
+      return [];
+    }
+
+    const { body } = getInstallModalElements();
+    if (!body) {
+      return [];
+    }
+
+    const selectedTargetIds = new Set(
+      Array.from(body.querySelectorAll(SELECTORS.installTargetCheckbox))
+        .filter((checkbox) => checkbox.checked)
+        .map((checkbox) => checkbox.dataset.targetShortId)
+    );
+
+    return currentInstallDraft.targets.filter((target) => selectedTargetIds.has(target.shortId));
+  };
+
+  const syncInstallModalSelection = () => {
+    const { selectionSummary, confirm } = getInstallModalElements();
+    const selectedTargets = getSelectedInstallTargets();
+    const selectedLeafCount = countLeafTargets(selectedTargets);
+    const isInstalling = currentAction?.type === "install";
+
+    if (selectionSummary) {
+      if (selectedTargets.length === 0) {
+        selectionSummary.textContent =
+          "Select at least one root or playable leaf before installing.";
+      } else {
+        selectionSummary.textContent =
+          `Selected ${describeTargetCount(selectedTargets.length, selectedLeafCount)}. ` +
+          "All targets start checked so you can leave branches untouched when you want different scripts on them.";
+      }
+    }
+
+    if (confirm) {
+      confirm.disabled = selectedTargets.length === 0 || isInstalling;
+      confirm.textContent = isInstalling
+        ? "Installing..."
+        : `Install Selected (${selectedTargets.length})`;
+    }
+  };
+
+  const createInstallTargetRow = (target) => {
+    const row = document.createElement("label");
+    row.className = "install-target-row";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.className = "install-target-checkbox";
+    checkbox.dataset.oneclickTargetCheckbox = "true";
+    checkbox.dataset.targetShortId = target.shortId;
+    checkbox.checked = true;
+
+    const copy = document.createElement("div");
+    copy.className = "install-target-copy";
+
+    const title = document.createElement("div");
+    title.className = "install-target-title";
+    title.textContent = `${target.title} (${target.shortId})`;
+
+    const meta = document.createElement("div");
+    meta.className = "install-target-meta";
+    meta.append(
+      createChip(target.isRoot ? "Root target" : "Playable leaf"),
+      createChip(target.shortId)
+    );
+
+    copy.append(title, meta);
+    row.append(checkbox, copy);
+    return row;
+  };
+
+  const renderInstallModal = (draft) => {
+    const { body, summary, title } = getInstallModalElements();
+    if (!body || !summary || !title) {
+      return;
+    }
+
+    title.textContent = `Install ${draft.packageName}`;
+    summary.textContent =
+      `Choose which scenario targets to update for ${draft.scenarioLabel}. ` +
+      "Each target starts checked by default.";
+
+    body.innerHTML = "";
+
+    if (draft.targets.length === 0) {
+      body.append(createEmptyPreviewState("No scenario targets are available for this install."));
+      syncInstallModalSelection();
+      return;
+    }
+
+    const list = document.createElement("div");
+    list.className = "install-target-list";
+
+    for (const target of draft.targets) {
+      list.append(createInstallTargetRow(target));
+    }
+
+    body.append(list);
+    syncInstallModalSelection();
+  };
+
+  const openInstallModal = (draft) => {
+    currentInstallDraft = draft;
+    renderInstallModal(draft);
+
+    const { modal } = getInstallModalElements();
+    setModalVisibility(modal, true);
+    updateActionButtons();
+  };
+
+  const closeInstallModal = () => {
+    currentInstallDraft = null;
+
+    const { modal } = getInstallModalElements();
+    setModalVisibility(modal, false);
+    updateActionButtons();
   };
 
   const getMatchingRestorePoint = (packageId) => {
@@ -530,7 +702,8 @@ if (!globalThis[BRIDGE_FLAG]) {
       latestStatus?.installState?.status === "loading" ||
       latestStatus?.installState?.status === "rolling_back";
     const isPreviewing = currentAction?.type === "preview";
-    const shouldDisableActions = isBusy || isPreviewing;
+    const isInstallModalOpen = !!currentInstallDraft;
+    const shouldDisableActions = isBusy || isPreviewing || isInstallModalOpen;
 
     if (installExtensionButton) {
       installExtensionButton.hidden = true;
@@ -570,6 +743,8 @@ if (!globalThis[BRIDGE_FLAG]) {
 
       button.textContent = "Rollback Latest";
     }
+
+    syncInstallModalSelection();
   };
 
   const refreshExtensionState = async () => {
@@ -631,42 +806,72 @@ if (!globalThis[BRIDGE_FLAG]) {
     const packageId = button.dataset.packageId;
     const packageName = button.dataset.packageName || packageId;
     const scenarioState = latestStatus?.scenarioState;
+    const targets = getScenarioTargets(scenarioState);
+
+    if (targets.length === 0) {
+      transientNotice = "No scenario targets are currently available for this install.";
+      updateStatusPanel();
+      updateActionButtons();
+      return;
+    }
+
     const scenarioLabel = formatScenarioLabel({
       rootTitle: scenarioState?.rootTitle,
       rootShortId: scenarioState?.rootShortId
     });
-    const targetSummary = describeTargetCount(
-      getScenarioTargetCount(scenarioState),
-      scenarioState?.leafCount
-    );
 
-    const confirmed = window.confirm(
-      `Install "${packageName}" to ${scenarioLabel}? This will update ${targetSummary}.`
-    );
+    openInstallModal({
+      packageId,
+      packageName,
+      scenarioLabel,
+      targets
+    });
 
-    if (!confirmed) {
+    transientNotice = `Choose where ${packageName} should be installed under ${scenarioLabel}.`;
+    updateStatusPanel();
+  };
+
+  const confirmInstallFromModal = async () => {
+    if (!currentInstallDraft) {
       return;
     }
 
+    const draft = currentInstallDraft;
+    const selectedTargets = getSelectedInstallTargets();
+    if (selectedTargets.length === 0) {
+      syncInstallModalSelection();
+      return;
+    }
+
+    const selectedTargetIds = selectedTargets.map((target) => target.shortId);
+    const targetSummary = describeTargetCount(
+      selectedTargets.length,
+      countLeafTargets(selectedTargets)
+    );
+
+    closeInstallModal();
     currentAction = {
       type: "install",
-      packageId
+      packageId: draft.packageId
     };
-    transientNotice = `Installing ${packageName} to ${scenarioLabel}...`;
+    transientNotice = `Installing ${draft.packageName} to ${targetSummary} under ${draft.scenarioLabel}...`;
     updateStatusPanel();
     updateActionButtons();
 
     try {
       const response = await chrome.runtime.sendMessage({
         type: MESSAGE_TYPES.INSTALL_PACKAGE,
-        packageId
+        packageId: draft.packageId,
+        targetShortIds: selectedTargetIds
       });
 
       if (!response?.ok) {
         throw new Error(response?.error || "Install failed.");
       }
 
-      transientNotice = `Install complete. ${packageName} applied to ${describeTargetCount(response.installState?.appliedCount || 0)}.`;
+      transientNotice =
+        `Install complete. ${draft.packageName} applied to ` +
+        `${describeTargetCount(response.installState?.appliedCount || 0)}.`;
     } catch (error) {
       transientNotice = error.message;
     } finally {
@@ -733,9 +938,22 @@ if (!globalThis[BRIDGE_FLAG]) {
   };
 
   document.addEventListener("click", (event) => {
-    const closeTarget = event.target.closest(SELECTORS.previewModalClose);
-    if (closeTarget) {
+    const previewCloseTarget = event.target.closest(SELECTORS.previewModalClose);
+    if (previewCloseTarget) {
       closePreviewModal();
+      return;
+    }
+
+    const installCloseTarget = event.target.closest(SELECTORS.installModalClose);
+    if (installCloseTarget) {
+      closeInstallModal();
+      return;
+    }
+
+    const installConfirmButton = event.target.closest(SELECTORS.installConfirm);
+    if (installConfirmButton) {
+      event.preventDefault();
+      confirmInstallFromModal();
       return;
     }
 
@@ -804,9 +1022,16 @@ if (!globalThis[BRIDGE_FLAG]) {
     rollbackPackageFromPage(rollbackButton);
   });
 
+
+  document.addEventListener("change", (event) => {
+    if (event.target.closest(SELECTORS.installTargetCheckbox)) {
+      syncInstallModalSelection();
+    }
+  });
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       closePreviewModal();
+      closeInstallModal();
     }
   });
   window.addEventListener("focus", refreshExtensionState);

@@ -349,3 +349,27 @@ Background startup/install retries still respect nextAttemptAt, but the explicit
 
 Reason:
 The retry schedule should protect normal runtime traffic, while an explicit flush action is only useful if it can drain the queue immediately after a forced failure.
+
+### Replace browser confirm with an in-page install selection modal
+
+Decision:
+The catalog page now confirms installs through its own modal instead of using the browser's `window.confirm` prompt.
+
+Reason:
+The browser dialog could only show a flat summary string. The catalog needs a richer confirmation surface so users can review the target scope and control where the package will be applied.
+
+### Default install selection to all discovered targets while allowing per-target opt-out
+
+Decision:
+When the install modal opens, the root scenario and every playable leaf are preselected, but the user can uncheck any target before confirming the install.
+
+Reason:
+The default path should still match the safest whole-scenario install behavior, while advanced users need a way to keep different scripts on different leaves without editing the package itself.
+
+### Scope install writes, restore points, and summaries to the selected targets
+
+Decision:
+Install execution, restore-point capture, and install-summary leaf counts now operate on the exact target list selected in the install modal.
+
+Reason:
+Once install scope becomes user-selectable, the backup and reporting paths must stay aligned with the actual write set or rollback and status text become misleading.
