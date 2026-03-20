@@ -726,7 +726,7 @@ if (!globalThis[BRIDGE_FLAG]) {
         continue;
       }
 
-      button.textContent = canInstall ? "One-Click Install" : "Open AI Dungeon Edit Page";
+      button.textContent = canInstall ? "Install" : "Open AI Dungeon Edit Page";
     }
 
     for (const button of rollbackButtons) {

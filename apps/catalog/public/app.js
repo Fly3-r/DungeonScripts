@@ -112,7 +112,7 @@ const renderPackages = (packages) => {
     installButton.dataset.oneclickInstall = "true";
     installButton.dataset.packageId = pkg.id;
     installButton.dataset.packageName = pkg.name;
-    installButton.textContent = "Use Extension To Install";
+    installButton.textContent = "Install";
     installButton.disabled = true;
 
     const rollbackButton = document.createElement("button");

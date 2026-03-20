@@ -341,3 +341,11 @@ The regression harness now verifies install and rollback state through GraphQL s
 
 Reason:
 The product now supports per-target install selection, so root-only verification is no longer enough. Snapshot-based full-target checks give reliable branch coverage without depending on brittle editor-side leaf navigation automation.
+
+### Keep the install-button wording change scoped to catalog UI copy
+
+Decision:
+The request to rename `One-Click Install` to `Install` is implemented only in the catalog card button labels and logged without changing install behavior.
+
+Reason:
+This is a presentation-only change. Keeping it scoped avoids unnecessary churn in the install flow or automated coverage.

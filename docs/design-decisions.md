@@ -373,3 +373,11 @@ Install execution, restore-point capture, and install-summary leaf counts now op
 
 Reason:
 Once install scope becomes user-selectable, the backup and reporting paths must stay aligned with the actual write set or rollback and status text become misleading.
+
+### Shorten the primary catalog install action to Install
+
+Decision:
+The main package action on the catalog cards should be labeled `Install` instead of `One-Click Install`.
+
+Reason:
+The surrounding page already makes the one-click behavior clear. The shorter label is easier to scan and keeps the primary action button cleaner.
