@@ -366,3 +366,11 @@ The `DungeonScripts` rename is applied to documentation, schema metadata, packag
 
 Reason:
 The request is about portability and branding consistency, not a functional refactor. Keeping the change scoped avoids unnecessary risk in the tested install flow.
+
+### Keep the production-domain switch scoped to extension configuration
+
+Decision:
+The default-origin change is implemented through extension constants, built-in origin handling, host permissions, and popup placeholder text without changing the catalog server runtime.
+
+Reason:
+The user plans to front the catalog with a reverse proxy, so only the extension-side origin defaults need to change right now.

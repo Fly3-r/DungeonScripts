@@ -399,3 +399,11 @@ DungeonScripts will support rollback of the latest restore point only and will n
 
 Reason:
 The current rollback behavior already covers the main safety requirement without adding history-management UI and storage complexity that the project does not need.
+
+### Default the extension catalog origin to the production DungeonScripts domain
+
+Decision:
+The extension now defaults its catalog origin to `https://dungeonscripts.com` while keeping localhost origins built in for fast manual development switching.
+
+Reason:
+Production should be the out-of-the-box destination for normal users, but local development still needs to remain one field change away in the popup.

@@ -15,6 +15,7 @@
     "https://api.aidungeon.com/*",
     "https://api-beta.aidungeon.com/*",
     "https://api-alpha.aidungeon.com/*",
+    "https://dungeonscripts.com/*",
     "http://127.0.0.1:3000/*",
     "http://localhost:3000/*"
   ],
@@ -56,4 +57,6 @@
     "default_popup": "src/popup/popup.html"
   }
 }
+
+
 

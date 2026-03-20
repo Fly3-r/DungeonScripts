@@ -1,4 +1,4 @@
-export const DEFAULT_CATALOG_ORIGIN = "http://127.0.0.1:3000";
+export const DEFAULT_CATALOG_ORIGIN = "https://dungeonscripts.com";
 
 export const MESSAGE_TYPES = {
   EDITOR_CONTEXT: "EDITOR_CONTEXT",

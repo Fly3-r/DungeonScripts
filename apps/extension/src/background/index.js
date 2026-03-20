@@ -33,6 +33,7 @@ const BUSY_INSTALL_STATES = new Set(["loading", "rolling_back"]);
 const CATALOG_SITE_BRIDGE_ID = "catalog-site-bridge";
 const BUILTIN_CATALOG_ORIGINS = new Set([
   DEFAULT_CATALOG_ORIGIN,
+  "http://127.0.0.1:3000",
   "http://localhost:3000"
 ]);
 
@@ -706,5 +707,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   sendResponse({ ok: false, error: "Unknown message type." });
   return false;
 });
+
+
 
 
