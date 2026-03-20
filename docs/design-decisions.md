@@ -190,10 +190,10 @@ The updated dark catalog styling benefits from a cleaner, more modern sans-serif
 
 ## 2026-03-20
 
-### Use a public submission page with private host-local review
+### Use a public submission page with private host-local review (Superseded 2026-03-20)
 
 Decision:
-The upload workflow uses a public `/submit` page for intake, while approval and moderation are handled only through local CLI tools on the catalog host. There is no public `/admin` page in the MVP.
+The first upload workflow used a public `/submit` page for intake while approval and moderation were handled only through local CLI tools on the catalog host. This was later replaced by the protected in-app `/admin` review page.
 
 Reason:
 This keeps the public product surface small, avoids in-app authentication work, and still supports a structured review process before anything is published.
@@ -221,3 +221,28 @@ Submission descriptions are stored as long-form Markdown-capable text, with the 
 
 Reason:
 Uploaders need enough space to include setup notes and links, but the catalog homepage should stay compact and scannable.
+
+### Replace the host-local CLI review flow with an in-app admin page
+
+Decision:
+Submission review now happens from a protected `/admin` page served by the catalog app itself, not from separate Windows and Linux CLI tools.
+
+Reason:
+The review workflow is part of the catalog product surface now. Keeping it inside the web app makes approval easier to operate and aligns better with the Docker-hosted deployment model.
+
+### Use shared admin credentials for the review page
+
+Decision:
+The catalog admin page is protected with shared admin credentials supplied through `CATALOG_ADMIN_USERNAME` and `CATALOG_ADMIN_PASSWORD`.
+
+Reason:
+This adds a practical approval gate without introducing a full user-account system. It keeps the approval workflow tied to the catalog service while staying small enough for the MVP.
+
+### Persist submission and package data through Docker bind mounts
+
+Decision:
+The Docker runtime must mount `apps/catalog/data/packages`, `apps/catalog/data/submissions`, and `apps/catalog/data/runtime` into the container.
+
+Reason:
+The admin page now publishes packages and updates the submission queue from inside the container. Those writes need to persist on the host across container restarts.
+

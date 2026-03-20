@@ -8,7 +8,7 @@ This repo now follows the MVP split described in [INSTALLER_MVP_SPEC.md](/C:/git
 - `packages/contracts` holds shared manifest and telemetry shapes
 - `docs/design-decisions.md` records product and architecture decisions
 - `docs/agent-decisions.md` records workflow and agent execution decisions
-- `docs/upload-review-mvp.md` records the submission and manual review workflow
+- `docs/upload-review-mvp.md` records the submission and review workflow
 
 ## Layout
 
@@ -32,34 +32,15 @@ docs/
    npm run catalog:compose:up
    ```
 
-   To stop it later:
-
-   ```powershell
-   npm run catalog:compose:down
-   ```
-
-   If you want to run the catalog directly without Docker, you can still use:
-
-   ```powershell
-   npm run catalog:dev
-   ```
-
 2. Open Chrome and load [apps/extension](/C:/github/AID-OneClick/apps/extension) as an unpacked extension.
 
 3. Open an AI Dungeon scenario edit page.
 
-4. Open the extension popup and confirm:
-- the editor URL is detected
-- the auth token status is active
-- scenario access resolves successfully
-- the leaf count matches the current scenario tree
-- the catalog origin points at your catalog site
+4. Use the catalog homepage at `/` to browse packages and install them through the extension.
 
-5. Open the catalog homepage at `/` and confirm the extension bridge shows the current scenario root before installing.
+5. Use `/submit` to queue new package submissions.
 
-6. Click `One-Click Install` from the catalog page or `Install To Targets` from the popup.
-
-7. If needed, click `Rollback Latest` in the popup or from the matching catalog card to restore the most recent pre-install snapshot.
+6. Use `/admin` to review queued submissions with the catalog admin credentials.
 
 ## Current State
 
@@ -75,9 +56,9 @@ This scaffold includes:
 - browsable catalog homepage on `/` with thumbnail cards, fallback placeholder artwork, and install counters
 - versioned JSON API under `/api/v1/*`
 - public `/submit` page for package uploads into a private review queue
+- protected `/admin` review page inside the catalog service
+- server-side approval, rejection, and publish flow tied into the catalog Docker runtime
 - file-backed submission records with private uploader Discord usernames
-- local-only Windows and Linux review CLI tooling with no public admin page
-- catalog-page extension bridge that shows the current scenario root and can trigger installs
 - repo-root Docker Compose stack for the external catalog/API
 - sample package manifest and thumbnail asset
 - shared JSON schemas for package, submission, and telemetry payloads
@@ -95,26 +76,23 @@ What is not implemented yet:
 ## Submission Review
 
 - Public uploads are accepted from `/submit` and stored under [apps/catalog/data/submissions](/C:/github/AID-OneClick/apps/catalog/data/submissions).
-- There is intentionally no public `/admin` page in the MVP.
-- Review is handled locally on the host with:
-  - [review-submissions.ps1](/C:/github/AID-OneClick/scripts/review-submissions.ps1) on Windows
-  - [review-submissions.sh](/C:/github/AID-OneClick/scripts/review-submissions.sh) on Linux
-  - [review-submissions.mjs](/C:/github/AID-OneClick/scripts/review-submissions.mjs) as the shared implementation
+- Review now happens from the protected [admin-review.html](/C:/github/AID-OneClick/apps/catalog/public/admin-review.html) page served at `/admin`.
+- Admin access is controlled by `CATALOG_ADMIN_USERNAME` and `CATALOG_ADMIN_PASSWORD` in the catalog environment.
 - Approved submissions are published into [apps/catalog/data/packages](/C:/github/AID-OneClick/apps/catalog/data/packages).
-- The private submission workflow is defined in [upload-review-mvp.md](/C:/github/AID-OneClick/docs/upload-review-mvp.md).
+- The submission workflow is defined in [upload-review-mvp.md](/C:/github/AID-OneClick/docs/upload-review-mvp.md).
 
 ## Automation Testing
 
 - End-to-end install and rollback regression coverage now lives in [docs/testing.md](/C:/github/AID-OneClick/docs/testing.md).
 - Run it with `npm run test:e2e:install`.
 - The harness expects Chrome remote debugging on `127.0.0.1:9222`, plus open AI Dungeon and catalog tabs.
-- The current harness verifies the active root scenario end to end and records discovered leaf targets for future branch-level coverage.
 
 ## Catalog Runtime
 
 - The containerized catalog service is defined in [docker-compose.yml](/C:/github/AID-OneClick/docker-compose.yml).
 - The human-facing catalog is served from `/`.
 - The public submission page is served from `/submit`.
+- The protected review page is served from `/admin`.
 - The machine-facing API is served from `/api/v1/*`.
 - Runtime telemetry files are persisted under [apps/catalog/data/runtime](/C:/github/AID-OneClick/apps/catalog/data/runtime).
 - Catalog package manifests remain in [apps/catalog/data/packages](/C:/github/AID-OneClick/apps/catalog/data/packages).

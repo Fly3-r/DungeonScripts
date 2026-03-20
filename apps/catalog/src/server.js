@@ -1,6 +1,6 @@
-﻿import { randomUUID } from "node:crypto";
+﻿import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
 import { createServer } from "node:http";
-import { appendFile, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { appendFile, mkdir, readFile, readdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -16,6 +16,7 @@ const submissionStateDirs = {
   rejected: path.join(submissionsRootDir, "rejected"),
   needs_changes: path.join(submissionsRootDir, "needs_changes")
 };
+const submissionStates = Object.keys(submissionStateDirs);
 const runtimeDir = path.resolve(
   appRoot,
   process.env.TELEMETRY_STORAGE_DIR || "./data/runtime"
@@ -26,6 +27,9 @@ const host = process.env.HOST || "127.0.0.1";
 const port = Number(process.env.PORT || 3000);
 const publicBaseUrl = process.env.PUBLIC_BASE_URL || `http://${host}:${port}`;
 const defaultMinInstallerVersion = process.env.DEFAULT_MIN_INSTALLER_VERSION || "0.1.0";
+const adminUsername = process.env.CATALOG_ADMIN_USERNAME || "admin";
+const adminPassword = process.env.CATALOG_ADMIN_PASSWORD || "";
+const adminConfigured = typeof adminPassword === "string" && adminPassword.trim().length > 0;
 const allowedEventKeys = [
   "event",
   "installId",
@@ -52,11 +56,12 @@ const CONTENT_TYPES = {
   ".webp": "image/webp"
 };
 
-const json = (res, statusCode, payload) => {
+const json = (res, statusCode, payload, headers = {}) => {
   const body = JSON.stringify(payload, null, 2);
   res.writeHead(statusCode, {
     "Content-Type": "application/json; charset=utf-8",
-    "Content-Length": Buffer.byteLength(body, "utf8")
+    "Content-Length": Buffer.byteLength(body, "utf8"),
+    ...headers
   });
   res.end(body);
 };
@@ -83,6 +88,83 @@ const parseJsonBody = async (req, maxBytes = 10_000) => {
 
   const raw = Buffer.concat(chunks).toString("utf8");
   return raw ? JSON.parse(raw) : {};
+};
+
+const timingSafeStringEquals = (left, right) => {
+  const leftHash = createHash("sha256").update(left, "utf8").digest();
+  const rightHash = createHash("sha256").update(right, "utf8").digest();
+  return timingSafeEqual(leftHash, rightHash);
+};
+
+const getAdminAuthState = (req) => {
+  if (!adminConfigured) {
+    return {
+      configured: false,
+      authenticated: false,
+      username: adminUsername
+    };
+  }
+
+  const header = req.headers.authorization;
+  if (!header || !header.startsWith("Basic ")) {
+    return {
+      configured: true,
+      authenticated: false,
+      username: adminUsername
+    };
+  }
+
+  let decoded = "";
+  try {
+    decoded = Buffer.from(header.slice(6), "base64").toString("utf8");
+  } catch {
+    return {
+      configured: true,
+      authenticated: false,
+      username: adminUsername
+    };
+  }
+
+  const separatorIndex = decoded.indexOf(":");
+  if (separatorIndex < 0) {
+    return {
+      configured: true,
+      authenticated: false,
+      username: adminUsername
+    };
+  }
+
+  const providedUsername = decoded.slice(0, separatorIndex);
+  const providedPassword = decoded.slice(separatorIndex + 1);
+  return {
+    configured: true,
+    authenticated:
+      timingSafeStringEquals(providedUsername, adminUsername) &&
+      timingSafeStringEquals(providedPassword, adminPassword),
+    username: adminUsername
+  };
+};
+
+const requireAdminAuth = (req, res) => {
+  const state = getAdminAuthState(req);
+  if (!state.configured) {
+    json(res, 503, {
+      ok: false,
+      error: "Admin review is not configured.",
+      configured: false
+    });
+    return false;
+  }
+
+  if (!state.authenticated) {
+    res.writeHead(401, {
+      "WWW-Authenticate": 'Basic realm="AID One-Click Admin"'
+    });
+    res.end();
+    return false;
+  }
+
+  return true;
 };
 
 const ensureRuntimeDir = async () => {
@@ -208,6 +290,63 @@ const loadInstallCounts = async () => {
     return new Map();
   }
 };
+const loadSubmissionsInState = async (state) => {
+  const dir = submissionStateDirs[state];
+  const entries = await readdir(dir, { withFileTypes: true });
+  const files = entries
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
+    .map((entry) => path.join(dir, entry.name));
+
+  const submissions = [];
+  for (const file of files) {
+    const raw = await readFile(file, "utf8");
+    submissions.push(JSON.parse(raw));
+  }
+
+  submissions.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return submissions;
+};
+
+const loadSubmissionCounts = async () => {
+  const counts = {};
+
+  for (const state of submissionStates) {
+    counts[state] = (await loadSubmissionsInState(state)).length;
+  }
+
+  return counts;
+};
+
+const findSubmissionRecord = async (submissionId) => {
+  for (const state of submissionStates) {
+    const filePath = path.join(submissionStateDirs[state], `${submissionId}.json`);
+
+    try {
+      const raw = await readFile(filePath, "utf8");
+      return {
+        state,
+        filePath,
+        submission: JSON.parse(raw)
+      };
+    } catch {
+      // Continue searching.
+    }
+  }
+
+  return null;
+};
+
+const resolveSubmissionStates = (filter) => {
+  if (!filter || filter === "all") {
+    return submissionStates;
+  }
+
+  if (!submissionStateDirs[filter]) {
+    throw new Error(`Unknown submission state: ${filter}`);
+  }
+
+  return [filter];
+};
 
 const buildPackageSummary = (entry, installCounts) => ({
   id: entry.id,
@@ -219,6 +358,114 @@ const buildPackageSummary = (entry, installCounts) => ({
   thumbnailUrl: getPublicAssetUrl(entry.thumbnailUrl),
   installCount: installCounts.get(entry.id) || 0
 });
+
+const normalizeSubmissionForAdmin = (entry, state) => ({
+  ...entry,
+  status: state,
+  package: {
+    ...entry.package,
+    author: isNonEmptyString(entry.package.author) ? entry.package.author.trim() : "Unknown",
+    authorProfileUrl: getSafeUrl(entry.package.authorProfileUrl),
+    thumbnailUrl: entry.package.thumbnailUrl || DEFAULT_THUMBNAIL_PATH,
+    thumbnailPreviewUrl: getPublicAssetUrl(entry.package.thumbnailUrl),
+    descriptionPreview: buildDescriptionPreview(entry.package.description)
+  }
+});
+
+const buildSubmissionSummary = (entry, state) => {
+  const normalized = normalizeSubmissionForAdmin(entry, state);
+  return {
+    submissionId: normalized.submissionId,
+    status: normalized.status,
+    createdAt: normalized.createdAt,
+    updatedAt: normalized.updatedAt,
+    package: {
+      id: normalized.package.id,
+      name: normalized.package.name,
+      version: normalized.package.version,
+      author: normalized.package.author,
+      authorProfileUrl: normalized.package.authorProfileUrl,
+      thumbnailPreviewUrl: normalized.package.thumbnailPreviewUrl,
+      descriptionPreview: normalized.package.descriptionPreview
+    },
+    contact: {
+      discordUsername: normalized.contact.discordUsername
+    },
+    review: normalized.review,
+    publishedManifestFile: normalized.publishedManifestFile || null,
+    publishedHash: normalized.publishedHash || null
+  };
+};
+
+const buildManifestFromSubmission = (submission) => {
+  const manifest = {
+    id: submission.package.id,
+    name: submission.package.name,
+    version: submission.package.version,
+    description: submission.package.description,
+    author: submission.package.author,
+    authorProfileUrl: submission.package.authorProfileUrl,
+    ...(submission.package.thumbnailUrl ? { thumbnailUrl: submission.package.thumbnailUrl } : {}),
+    minInstallerVersion: submission.package.minInstallerVersion || defaultMinInstallerVersion,
+    sharedLibrary: submission.package.sharedLibrary,
+    onInput: submission.package.onInput,
+    onModelContext: submission.package.onModelContext,
+    onOutput: submission.package.onOutput
+  };
+
+  const hash = createHash("sha256").update(JSON.stringify(manifest), "utf8").digest("hex");
+  return {
+    ...manifest,
+    hash: `sha256:${hash}`
+  };
+};
+
+const requireTrimmedString = (payload, fieldName, maxLength) => {
+  if (typeof payload[fieldName] !== "string") {
+    throw new Error(`Field \"${fieldName}\" must be a string.`);
+  }
+
+  const value = payload[fieldName].trim();
+  if (!value) {
+    throw new Error(`Field \"${fieldName}\" is required.`);
+  }
+
+  if (value.length > maxLength) {
+    throw new Error(`Field \"${fieldName}\" exceeds the maximum allowed length.`);
+  }
+
+  return value;
+};
+
+const getOptionalTrimmedString = (payload, fieldName, maxLength) => {
+  if (payload[fieldName] == null) {
+    return "";
+  }
+
+  if (typeof payload[fieldName] !== "string") {
+    throw new Error(`Field \"${fieldName}\" must be a string.`);
+  }
+
+  const value = payload[fieldName].trim();
+  if (value.length > maxLength) {
+    throw new Error(`Field \"${fieldName}\" exceeds the maximum allowed length.`);
+  }
+
+  return value;
+};
+
+const requireScriptField = (payload, fieldName, maxLength) => {
+  if (typeof payload[fieldName] !== "string") {
+    throw new Error(`Field \"${fieldName}\" must be a string.`);
+  }
+
+  const value = normalizeMultilineText(payload[fieldName]);
+  if (value.length > maxLength) {
+    throw new Error(`Field \"${fieldName}\" exceeds the maximum allowed length.`);
+  }
+
+  return value;
+};
 
 const validateInstallSuccessEvent = (payload) => {
   const keys = Object.keys(payload).sort();
@@ -308,37 +555,6 @@ const validateThumbnailUrl = (value) => {
 
   return url;
 };
-
-const requireTrimmedString = (payload, fieldName, maxLength) => {
-  if (typeof payload[fieldName] !== "string") {
-    throw new Error(`Field \"${fieldName}\" must be a string.`);
-  }
-
-  const value = payload[fieldName].trim();
-  if (!value) {
-    throw new Error(`Field \"${fieldName}\" is required.`);
-  }
-
-  if (value.length > maxLength) {
-    throw new Error(`Field \"${fieldName}\" exceeds the maximum allowed length.`);
-  }
-
-  return value;
-};
-
-const requireScriptField = (payload, fieldName, maxLength) => {
-  if (typeof payload[fieldName] !== "string") {
-    throw new Error(`Field \"${fieldName}\" must be a string.`);
-  }
-
-  const value = normalizeMultilineText(payload[fieldName]);
-  if (value.length > maxLength) {
-    throw new Error(`Field \"${fieldName}\" exceeds the maximum allowed length.`);
-  }
-
-  return value;
-};
-
 const validateSubmissionPayload = (payload) => {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     throw new Error("Submission payload must be an object.");
@@ -354,7 +570,9 @@ const validateSubmissionPayload = (payload) => {
     throw new Error("Version must look like semantic versioning, for example 1.2.3.");
   }
 
-  const authorProfileUrl = validateAidProfileUrl(requireTrimmedString(payload, "authorProfileUrl", 200));
+  const authorProfileUrl = validateAidProfileUrl(
+    requireTrimmedString(payload, "authorProfileUrl", 200)
+  );
   const author = deriveAuthorFromProfileUrl(authorProfileUrl);
   const description = requireTrimmedString(payload, "description", 24000);
   const discordUsername = requireTrimmedString(payload, "discordUsername", 80);
@@ -378,6 +596,30 @@ const validateSubmissionPayload = (payload) => {
     contact: {
       discordUsername
     }
+  };
+};
+
+const validateAdminReviewPayload = (payload) => {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw new Error("Review payload must be an object.");
+  }
+
+  const action = requireTrimmedString(payload, "action", 40);
+  if (!["approve", "reject", "needs_changes"].includes(action)) {
+    throw new Error("Review action must be approve, reject, or needs_changes.");
+  }
+
+  const reviewer = getOptionalTrimmedString(payload, "reviewer", 120) || adminUsername;
+  const notes = getOptionalTrimmedString(payload, "notes", 16000);
+
+  if ((action === "reject" || action === "needs_changes") && !notes) {
+    throw new Error("Review notes are required when rejecting a submission or requesting changes.");
+  }
+
+  return {
+    action,
+    reviewer,
+    notes
   };
 };
 
@@ -405,6 +647,31 @@ const persistSubmissionRecord = async (record) => {
   await writeFile(filePath, `${JSON.stringify(record, null, 2)}\n`, "utf8");
 };
 
+const persistSubmissionRecordInState = async (current, nextStatus, options = {}) => {
+  const reviewedAt = new Date().toISOString();
+  const updated = {
+    ...current.submission,
+    status: nextStatus,
+    updatedAt: reviewedAt,
+    review: {
+      reviewer: options.reviewer || adminUsername,
+      reviewedAt,
+      notes: options.notes || ""
+    },
+    ...(options.publishedManifestFile ? { publishedManifestFile: options.publishedManifestFile } : {}),
+    ...(options.publishedHash ? { publishedHash: options.publishedHash } : {})
+  };
+
+  const nextFilePath = path.join(submissionStateDirs[nextStatus], `${updated.submissionId}.json`);
+  await writeFile(nextFilePath, `${JSON.stringify(updated, null, 2)}\n`, "utf8");
+
+  if (current.filePath !== nextFilePath) {
+    await unlink(current.filePath);
+  }
+
+  return updated;
+};
+
 const persistInstallSuccessEvent = async (event) => {
   await ensureRuntimeDir();
 
@@ -417,6 +684,40 @@ const persistInstallSuccessEvent = async (event) => {
   await storeDedupeIds(installIds);
   await appendFile(telemetryLogFile, `${JSON.stringify(event)}\n`, "utf8");
   return { deduped: false };
+};
+
+const applySubmissionReview = async (submissionId, review) => {
+  const current = await findSubmissionRecord(submissionId);
+  if (!current) {
+    throw new Error(`Submission not found: ${submissionId}`);
+  }
+
+  if (current.state !== "pending") {
+    throw new Error(`Only pending submissions can be reviewed. Current state: ${current.state}`);
+  }
+
+  if (review.action === "approve") {
+    const manifest = buildManifestFromSubmission(current.submission);
+    const manifestPath = path.join(packagesDir, `${manifest.id}.json`);
+    await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+
+    const updated = await persistSubmissionRecordInState(current, "approved", {
+      reviewer: review.reviewer,
+      notes: review.notes,
+      publishedManifestFile: path.relative(appRoot, manifestPath).replace(/\\/g, "/"),
+      publishedHash: manifest.hash
+    });
+
+    return normalizeSubmissionForAdmin(updated, "approved");
+  }
+
+  const nextStatus = review.action === "needs_changes" ? "needs_changes" : "rejected";
+  const updated = await persistSubmissionRecordInState(current, nextStatus, {
+    reviewer: review.reviewer,
+    notes: review.notes
+  });
+
+  return normalizeSubmissionForAdmin(updated, nextStatus);
 };
 
 const servePublicAsset = async (res, pathname) => {
@@ -448,6 +749,90 @@ const server = createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/health") {
       json(res, 200, { ok: true });
       return;
+    }
+
+    if (req.method === "GET" && url.pathname === `${API_BASE_PATH}/admin/status`) {
+      const state = getAdminAuthState(req);
+      json(res, 200, {
+        ok: true,
+        configured: state.configured,
+        authenticated: state.authenticated,
+        username: state.username
+      });
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === `${API_BASE_PATH}/admin/submissions`) {
+      if (!requireAdminAuth(req, res)) {
+        return;
+      }
+
+      const statusFilter = url.searchParams.get("status") || "pending";
+      const counts = await loadSubmissionCounts();
+      const submissions = [];
+
+      for (const state of resolveSubmissionStates(statusFilter)) {
+        const records = await loadSubmissionsInState(state);
+        submissions.push(...records.map((record) => buildSubmissionSummary(record, state)));
+      }
+
+      submissions.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      json(res, 200, {
+        ok: true,
+        counts,
+        statusFilter,
+        submissions
+      });
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname.startsWith(`${API_BASE_PATH}/admin/submissions/`)) {
+      if (!requireAdminAuth(req, res)) {
+        return;
+      }
+
+      const segments = url.pathname
+        .replace(`${API_BASE_PATH}/admin/submissions/`, "")
+        .split("/")
+        .filter(Boolean);
+
+      if (segments.length === 1) {
+        const submissionId = decodeURIComponent(segments[0]);
+        const current = await findSubmissionRecord(submissionId);
+        if (!current) {
+          notFound(res);
+          return;
+        }
+
+        json(res, 200, {
+          ok: true,
+          submission: normalizeSubmissionForAdmin(current.submission, current.state)
+        });
+        return;
+      }
+    }
+
+    if (req.method === "POST" && url.pathname.startsWith(`${API_BASE_PATH}/admin/submissions/`)) {
+      if (!requireAdminAuth(req, res)) {
+        return;
+      }
+
+      const segments = url.pathname
+        .replace(`${API_BASE_PATH}/admin/submissions/`, "")
+        .split("/")
+        .filter(Boolean);
+
+      if (segments.length === 2 && segments[1] === "review") {
+        const submissionId = decodeURIComponent(segments[0]);
+        const review = validateAdminReviewPayload(await parseJsonBody(req, 100_000));
+        const updated = await applySubmissionReview(submissionId, review);
+
+        json(res, 200, {
+          ok: true,
+          submission: updated
+        });
+        return;
+      }
     }
 
     if (
@@ -512,7 +897,7 @@ const server = createServer(async (req, res) => {
       req.method === "POST" &&
       (url.pathname === `${API_BASE_PATH}/submissions` || url.pathname === "/api/submissions")
     ) {
-      const payload = await parseJsonBody(req, 1500000);
+      const payload = await parseJsonBody(req, 1_500_000);
       const normalized = validateSubmissionPayload(payload);
       const record = createSubmissionRecord(normalized);
       await persistSubmissionRecord(record);
@@ -535,6 +920,15 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === "GET" && (url.pathname === "/admin" || url.pathname === "/admin/")) {
+      if (adminConfigured && !requireAdminAuth(req, res)) {
+        return;
+      }
+
+      await servePublicAsset(res, "/admin-review.html");
+      return;
+    }
+
     if (req.method === "GET") {
       await servePublicAsset(res, url.pathname);
       return;
@@ -552,4 +946,3 @@ const server = createServer(async (req, res) => {
 server.listen(port, host, () => {
   console.log(`[catalog] listening on ${publicBaseUrl}`);
 });
-

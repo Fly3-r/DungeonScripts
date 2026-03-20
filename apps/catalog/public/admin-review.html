@@ -1,0 +1,176 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Submission Review | AID One-Click</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero panel panel-hero">
+        <p class="eyebrow">Admin Review</p>
+        <h1>Review Submitted Packages</h1>
+        <p class="lede">
+          Approve, reject, or request changes for package submissions directly inside the catalog
+          service. Access is protected with the catalog admin credentials.
+        </p>
+        <div class="hero-actions">
+          <button type="button" class="action-button secondary" id="review-refresh">Refresh Queue</button>
+          <a class="action-button secondary" href="/">Back To Catalog</a>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header panel-header-stack">
+          <div>
+            <p class="eyebrow">Queue Overview</p>
+            <h2>Submission Status</h2>
+          </div>
+          <div class="admin-toolbar">
+            <label class="field field-inline">
+              <span>Filter</span>
+              <select id="review-status-filter">
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="needs_changes">Needs Changes</option>
+                <option value="rejected">Rejected</option>
+                <option value="all">All</option>
+              </select>
+            </label>
+            <label class="field field-inline">
+              <span>Reviewer Label</span>
+              <input type="text" id="reviewer-name" autocomplete="off" placeholder="Flyer or admin">
+            </label>
+          </div>
+        </div>
+        <div id="admin-counts" class="info-grid">
+          <div>
+            <dt>Pending</dt>
+            <dd>0</dd>
+          </div>
+          <div>
+            <dt>Approved</dt>
+            <dd>0</dd>
+          </div>
+          <div>
+            <dt>Needs Changes</dt>
+            <dd>0</dd>
+          </div>
+          <div>
+            <dt>Rejected</dt>
+            <dd>0</dd>
+          </div>
+        </div>
+        <div id="admin-status" class="status-banner" hidden></div>
+      </section>
+
+      <section class="admin-layout">
+        <section class="panel admin-sidebar">
+          <div class="panel-header panel-header-stack">
+            <div>
+              <p class="eyebrow">Submissions</p>
+              <h2>Queue</h2>
+            </div>
+            <p class="muted">Discord usernames are visible here for reviewer follow-up only.</p>
+          </div>
+          <div id="admin-submission-list" class="submission-list">
+            <p class="muted">Loading submissions...</p>
+          </div>
+        </section>
+
+        <section class="panel admin-detail">
+          <div id="submission-empty-state" class="empty-state">
+            Select a submission to inspect its package metadata, scripts, and review notes.
+          </div>
+
+          <div id="submission-detail" hidden>
+            <div class="panel-header panel-header-stack">
+              <div>
+                <p class="eyebrow">Submission Detail</p>
+                <h2 id="detail-package-name">Package</h2>
+              </div>
+              <span id="detail-status-chip" class="status-chip pending">Pending</span>
+            </div>
+
+            <dl class="bridge-grid admin-meta-grid">
+              <div>
+                <dt>Submission ID</dt>
+                <dd id="detail-submission-id">-</dd>
+              </div>
+              <div>
+                <dt>Package ID</dt>
+                <dd id="detail-package-id">-</dd>
+              </div>
+              <div>
+                <dt>Version</dt>
+                <dd id="detail-version">-</dd>
+              </div>
+              <div>
+                <dt>Author</dt>
+                <dd><a id="detail-author-link" class="package-author" href="#" target="_blank" rel="noreferrer noopener">-</a></dd>
+              </div>
+              <div>
+                <dt>Discord Username</dt>
+                <dd id="detail-discord">-</dd>
+              </div>
+              <div>
+                <dt>Created At</dt>
+                <dd id="detail-created-at">-</dd>
+              </div>
+              <div>
+                <dt>Updated At</dt>
+                <dd id="detail-updated-at">-</dd>
+              </div>
+              <div>
+                <dt>Published Manifest</dt>
+                <dd id="detail-published-manifest">Not published</dd>
+              </div>
+              <div>
+                <dt>Published Hash</dt>
+                <dd id="detail-published-hash">-</dd>
+              </div>
+            </dl>
+
+            <label class="field field-block">
+              <span>Description</span>
+              <textarea id="detail-description" class="description-box" rows="8" readonly></textarea>
+            </label>
+
+            <div class="script-grid">
+              <label class="field field-block">
+                <span>Library.js</span>
+                <textarea id="detail-shared-library" class="code-box" rows="14" readonly spellcheck="false"></textarea>
+              </label>
+              <label class="field field-block">
+                <span>Input.js</span>
+                <textarea id="detail-on-input" class="code-box" rows="14" readonly spellcheck="false"></textarea>
+              </label>
+              <label class="field field-block">
+                <span>Context.js</span>
+                <textarea id="detail-on-model-context" class="code-box" rows="14" readonly spellcheck="false"></textarea>
+              </label>
+              <label class="field field-block">
+                <span>Output.js</span>
+                <textarea id="detail-on-output" class="code-box" rows="14" readonly spellcheck="false"></textarea>
+              </label>
+            </div>
+
+            <label class="field field-block">
+              <span>Review Notes</span>
+              <textarea id="review-notes" class="description-box" rows="6" placeholder="Required for reject and needs changes."></textarea>
+            </label>
+
+            <div class="admin-actions">
+              <button type="button" class="action-button" data-review-action="approve">Approve</button>
+              <button type="button" class="action-button warning" data-review-action="needs_changes">Needs Changes</button>
+              <button type="button" class="action-button danger" data-review-action="reject">Reject</button>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script type="module" src="/admin-review.js"></script>
+  </body>
+</html>

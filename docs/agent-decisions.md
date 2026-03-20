@@ -198,10 +198,10 @@ This request is presentation-only and does not require any structural or extensi
 
 ## 2026-03-20
 
-### Centralize review behavior in one Node CLI and wrap it per host OS
+### Centralize review behavior in one Node CLI and wrap it per host OS (Superseded 2026-03-20)
 
 Decision:
-The private review workflow is implemented once in `scripts/review-submissions.mjs`, with thin wrappers for Windows PowerShell and Linux Bash.
+The first private review workflow was implemented once in `scripts/review-submissions.mjs`, with thin wrappers for Windows PowerShell and Linux Bash. This was later removed when the protected web admin page landed.
 
 Reason:
 This keeps the approval logic consistent across host operating systems while still giving the project the separate Windows and Linux entrypoints the user asked for.
@@ -209,7 +209,7 @@ This keeps the approval logic consistent across host operating systems while sti
 ### Keep submission intake and review output file-backed
 
 Decision:
-The server writes raw submissions into `apps/catalog/data/submissions/<state>`, and the review CLI publishes approved packages directly into `apps/catalog/data/packages`.
+The server writes raw submissions into `apps/catalog/data/submissions/<state>`, and the active review flow publishes approved packages directly into `apps/catalog/data/packages`.
 
 Reason:
 A file-backed workflow matches the current no-database MVP, keeps review private, and makes it easy to inspect or back up submissions on the host.
@@ -220,7 +220,7 @@ Decision:
 The submission record carries the uploader Discord username under `contact`, and no extra HTTP endpoints are added for reviewer-only data.
 
 Reason:
-The host-local CLI can read private submission records directly. Keeping private contact inside the queued record avoids introducing a second review-only service boundary.
+The submission record still carries the uploader Discord username under `contact`, and the protected admin review page can display it without exposing any public reviewer-only endpoint. Keeping private contact inside the queued record avoids introducing a second service boundary.
 
 ### Ignore private submission queue files in Git
 
@@ -229,3 +229,20 @@ Runtime submission JSON files under `apps/catalog/data/submissions` should be ig
 
 Reason:
 Submission records contain private contact data. They should stay local to the host review workflow rather than being easy to commit by accident.
+
+### Move review and publish logic into the catalog server
+
+Decision:
+The server now owns submission review, state transitions, and package publication through protected admin routes under `/api/v1/admin/*`.
+
+Reason:
+The admin webpage should be a thin client over one authoritative review path. Keeping the write logic in the server avoids duplicating approval behavior between UI code and separate tooling.
+
+### Remove the CLI review scripts after the admin page landed
+
+Decision:
+The Windows and Linux review CLI wrappers were removed once the protected admin page and admin API were in place.
+
+Reason:
+Keeping both workflows would create two competing approval paths for the same queue. The repo should expose one review mechanism at a time.
+

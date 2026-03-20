@@ -1,4 +1,4 @@
-name: aid-oneclick
+﻿name: aid-oneclick
 
 services:
   catalog:
@@ -12,6 +12,10 @@ services:
       PORT: 3000
       PUBLIC_BASE_URL: "${PUBLIC_BASE_URL:-http://127.0.0.1:3000}"
       TELEMETRY_STORAGE_DIR: /app/data/runtime
+      CATALOG_ADMIN_USERNAME: "${CATALOG_ADMIN_USERNAME:-admin}"
+      CATALOG_ADMIN_PASSWORD: "${CATALOG_ADMIN_PASSWORD:-}"
     volumes:
       - ./apps/catalog/data/runtime:/app/data/runtime
+      - ./apps/catalog/data/packages:/app/data/packages
+      - ./apps/catalog/data/submissions:/app/data/submissions
     restart: unless-stopped
