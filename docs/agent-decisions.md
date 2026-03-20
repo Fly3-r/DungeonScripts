@@ -293,3 +293,11 @@ The install-extension link is now hidden unconditionally by the catalog bridge o
 
 Reason:
 The user wanted the CTA gone whenever the extension is detected. The bridge itself is the strongest signal of that, regardless of whether auth or scenario sync is currently ready.
+
+### Fix the visible hidden-button bug in CSS instead of changing bridge logic again
+
+Decision:
+The install CTA visibility issue is fixed by enforcing the HTML hidden attribute in CSS, not by adding more JavaScript state checks.
+
+Reason:
+The bridge was already setting hidden = true; the real bug was that .action-button { display: inline-flex; } overrode the browser's default hidden styling.

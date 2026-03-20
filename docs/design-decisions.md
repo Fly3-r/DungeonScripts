@@ -309,3 +309,11 @@ The catalog page now shows the Install Extension link by default, and the extens
 
 Reason:
 The button should remain visible only when the extension is truly absent. Tying it to runtime status made it reappear even when the extension was detected but waiting on AI Dungeon state.
+
+### Force the HTML hidden attribute to win over styled buttons
+
+Decision:
+The catalog stylesheet now includes a global [hidden] { display: none !important; } rule.
+
+Reason:
+Styled buttons use explicit display values, which override the browser's default hidden behavior unless the page stylesheet restores it explicitly.
