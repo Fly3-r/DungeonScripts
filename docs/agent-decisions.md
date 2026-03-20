@@ -269,3 +269,11 @@ The new Preview action is rendered by the catalog page, but the extension bridge
 
 Reason:
 Keeping preview in the bridge reuses the existing extension permission boundary and avoids leaking AI Dungeon state-fetch logic into the public website runtime.
+
+### Fix the catalog length failure by widening the builder limit instead of reshaping the package
+
+Decision:
+The Inner Self startup failure is resolved by raising the catalog source-script length ceiling and keeping the package layout unchanged.
+
+Reason:
+The package was already valid for the repo-driven model. The failure came from an overly conservative builder limit, so changing the validation policy is the narrowest fix.

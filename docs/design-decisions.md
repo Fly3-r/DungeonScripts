@@ -285,3 +285,11 @@ Preview requests fetch the current script state through the extension, compare i
 
 Reason:
 Preview should be safe to run repeatedly and should not create backup noise or change scenario state before the user confirms installation.
+
+### Let repo-driven package sources accommodate large real-world script libraries
+
+Decision:
+The catalog builder now allows much larger source script files by default and reads the limit from MAX_SOURCE_SCRIPT_LENGTH, defaulting to 1,000,000 characters per script file.
+
+Reason:
+Real AI Dungeon packages such as Inner Self exceed the earlier 200,000-character cap. The repo-driven model should accept legitimate large script libraries instead of rejecting them at catalog startup.

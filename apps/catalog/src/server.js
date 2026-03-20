@@ -1,4 +1,4 @@
-﻿import { createHash } from "node:crypto";
+import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import { access, appendFile, mkdir, readFile, readdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -19,7 +19,12 @@ const dedupeFile = path.join(runtimeDir, "install-success.ids.json");
 const host = process.env.HOST || "127.0.0.1";
 const port = Number(process.env.PORT || 3000);
 const publicBaseUrl = process.env.PUBLIC_BASE_URL || `http://${host}:${port}`;
+const parsePositiveInteger = (value, fallback) => {
+  const parsed = Number.parseInt(String(value ?? ""), 10);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+};
 const defaultMinInstallerVersion = process.env.DEFAULT_MIN_INSTALLER_VERSION || "0.1.0";
+const maxSourceScriptLength = parsePositiveInteger(process.env.MAX_SOURCE_SCRIPT_LENGTH, 1_000_000);
 const allowedEventKeys = [
   "event",
   "installId",
@@ -145,7 +150,7 @@ const requireTrimmedString = (payload, fieldName, maxLength) => {
   }
 
   if (value.length > maxLength) {
-    throw new Error(`Field "${fieldName}" exceeds the maximum allowed length.`);
+    throw new Error(`Field "${fieldName}" exceeds the maximum allowed length of ${maxLength} characters.`);
   }
 
   return value;
@@ -162,7 +167,7 @@ const getOptionalTrimmedString = (payload, fieldName, maxLength) => {
 
   const value = payload[fieldName].trim();
   if (value.length > maxLength) {
-    throw new Error(`Field "${fieldName}" exceeds the maximum allowed length.`);
+    throw new Error(`Field "${fieldName}" exceeds the maximum allowed length of ${maxLength} characters.`);
   }
 
   return value;
@@ -175,7 +180,7 @@ const requireScriptContent = (value, fieldName, maxLength) => {
 
   const normalized = normalizeMultilineText(value);
   if (normalized.length > maxLength) {
-    throw new Error(`Field "${fieldName}" exceeds the maximum allowed length.`);
+    throw new Error(`Field "${fieldName}" exceeds the maximum allowed length of ${maxLength} characters.`);
   }
 
   return normalized;
@@ -304,15 +309,15 @@ const buildManifestFromSource = async (packageId) => {
   const sharedLibrary = await readRequiredSourceText(
     packageId,
     SOURCE_FILE_NAMES.sharedLibrary,
-    200000
+    maxSourceScriptLength
   );
-  const onInput = await readRequiredSourceText(packageId, SOURCE_FILE_NAMES.onInput, 200000);
+  const onInput = await readRequiredSourceText(packageId, SOURCE_FILE_NAMES.onInput, maxSourceScriptLength);
   const onModelContext = await readRequiredSourceText(
     packageId,
     SOURCE_FILE_NAMES.onModelContext,
-    200000
+    maxSourceScriptLength
   );
-  const onOutput = await readRequiredSourceText(packageId, SOURCE_FILE_NAMES.onOutput, 200000);
+  const onOutput = await readRequiredSourceText(packageId, SOURCE_FILE_NAMES.onOutput, maxSourceScriptLength);
   const hasThumbnail = await fileExists(
     getPackageSourceFilePath(packageId, SOURCE_FILE_NAMES.thumbnail)
   );
