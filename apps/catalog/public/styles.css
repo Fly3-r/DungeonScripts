@@ -694,6 +694,13 @@ body.preview-modal-open {
   color: var(--muted);
 }
 
+.site-footer-links {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
 .site-footer-inner p {
   margin: 0;
 }
@@ -733,6 +740,7 @@ body.preview-modal-open {
   .panel-actions,
   .package-actions,
   .site-footer-inner,
+  .site-footer-links,
   .form-actions {
     display: flex;
     flex-direction: column;
@@ -772,3 +780,4 @@ body.preview-modal-open {
     width: 100%;
   }
 }
+

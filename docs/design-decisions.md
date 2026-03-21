@@ -407,3 +407,11 @@ The extension now defaults its catalog origin to `https://dungeonscripts.com` wh
 
 Reason:
 Production should be the out-of-the-box destination for normal users, but local development still needs to remain one field change away in the popup.
+
+### Publish the privacy policy from the catalog site under /docs/privacy-policy.md
+
+Decision:
+The public site footer should link to `/docs/privacy-policy.md`, with the catalog server exposing the repository privacy-policy document at that exact public path.
+
+Reason:
+The privacy policy needs to be reachable from the live website, not only from the repository tree, and the footer is the right place for that legal disclosure link.

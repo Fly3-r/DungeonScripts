@@ -374,3 +374,11 @@ The default-origin change is implemented through extension constants, built-in o
 
 Reason:
 The user plans to front the catalog with a reverse proxy, so only the extension-side origin defaults need to change right now.
+
+### Keep the privacy-policy implementation scoped to one public doc route and footer link
+
+Decision:
+The privacy-policy work adds a single public markdown route and a footer link instead of introducing a broader docs site or markdown renderer.
+
+Reason:
+The request only needs one publicly reachable policy document. A narrow route keeps the server change small and avoids extra documentation infrastructure.

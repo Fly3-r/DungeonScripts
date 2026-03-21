@@ -10,6 +10,7 @@ const appRoot = path.resolve(__dirname, "..");
 const packageSourcesDir = path.join(appRoot, "data", "scripts");
 const packagesDir = path.join(appRoot, "data", "packages");
 const publicDir = path.join(appRoot, "public");
+const privacyPolicyDocPath = path.resolve(appRoot, "..", "..", "docs", "privacy-policy.md");
 const runtimeDir = path.resolve(
   appRoot,
   process.env.TELEMETRY_STORAGE_DIR || "./data/runtime"
@@ -52,6 +53,7 @@ const CONTENT_TYPES = {
   ".jpeg": "image/jpeg",
   ".jpg": "image/jpeg",
   ".js": "text/javascript; charset=utf-8",
+  ".md": "text/markdown; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".png": "image/png",
   ".svg": "image/svg+xml; charset=utf-8",
@@ -517,6 +519,20 @@ const servePublicAsset = async (res, pathname) => {
   }
 };
 
+const serveAbsoluteFile = async (res, filePath) => {
+  try {
+    const body = await readFile(filePath);
+    const extname = path.extname(filePath).toLowerCase();
+    res.writeHead(200, {
+      "Content-Type": CONTENT_TYPES[extname] || "application/octet-stream",
+      "Content-Length": body.byteLength
+    });
+    res.end(body);
+  } catch {
+    notFound(res);
+  }
+};
+
 const servePackageThumbnail = async (res, packageId) => {
   if (!PACKAGE_ID_PATTERN.test(packageId)) {
     notFound(res);
@@ -615,6 +631,11 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === "GET" && url.pathname === "/docs/privacy-policy.md") {
+      await serveAbsoluteFile(res, privacyPolicyDocPath);
+      return;
+    }
+
     if (req.method === "GET" && url.pathname === "/") {
       await servePublicAsset(res, "/index.html");
       return;
@@ -646,5 +667,6 @@ start().catch((error) => {
   console.error("[catalog] failed to start", error);
   process.exit(1);
 });
+
 
 
