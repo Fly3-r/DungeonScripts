@@ -423,3 +423,11 @@ The privacy policy should separate data the extension processes locally in the b
 
 Reason:
 That wording is more accurate for a privacy-focused extension and makes it clear that AI Dungeon auth and scenario contents are used locally for functionality rather than collected as service analytics.
+
+### Enforce canonical package source filename casing
+
+Decision:
+Package source folders should use the documented canonical filenames such as Library.js, Input.js, Context.js, Output.js, and Thumbnail.png.
+
+Reason:
+Linux hosts are case-sensitive, so relying on lowercase variants works on Windows by accident but breaks the catalog builder in production.

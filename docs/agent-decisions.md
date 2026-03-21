@@ -390,3 +390,11 @@ The privacy policy now distinguishes between local browser-side processing for A
 
 Reason:
 The earlier wording blurred local extension behavior with data collection by the DungeonScripts service. The revised wording is closer to the actual data flow.
+
+### Normalize existing package filenames to the canonical case
+
+Decision:
+The existing lowercase source files in auto-cards, inner-self, and localized-languages are renamed to the documented filename casing so the same repo works on Windows and Linux.
+
+Reason:
+Ubuntu failed to start the catalog because the builder correctly looked for Library.js while the repo contained library.js in several packages.
