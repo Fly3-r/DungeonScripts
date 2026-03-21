@@ -439,3 +439,11 @@ DungeonScripts should only support https://dungeonscripts.com, http://127.0.0.1:
 
 Reason:
 The product no longer needs arbitrary external catalog origins, and removing that capability avoids confusing Chrome permission prompts while tightening the extension's access model.
+
+### Keep internal catalog asset URLs relative by default
+
+Decision:
+The catalog API should return relative URLs for internal assets such as package thumbnails instead of expanding them against PUBLIC_BASE_URL.
+
+Reason:
+If PUBLIC_BASE_URL is left on a loopback default in production, absolute localhost asset URLs can leak into live responses and trigger browser loopback-access prompts on the public site.

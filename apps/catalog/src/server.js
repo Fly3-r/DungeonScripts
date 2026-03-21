@@ -121,6 +121,10 @@ const getPublicAssetUrl = (value, fallback = DEFAULT_THUMBNAIL_PATH) => {
   try {
     return new URL(candidate).toString();
   } catch {
+    if (candidate.startsWith("/")) {
+      return candidate;
+    }
+
     return new URL(candidate, publicBaseUrl).toString();
   }
 };
@@ -667,6 +671,7 @@ start().catch((error) => {
   console.error("[catalog] failed to start", error);
   process.exit(1);
 });
+
 
 
 

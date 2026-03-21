@@ -406,3 +406,11 @@ The extension manifest no longer declares broad optional host permissions, and t
 
 Reason:
 The user reproduced a Chrome prompt even after reloading the extension. Since only the production domain and two local dev origins are intended to work, the safest fix is to remove the optional-origin permission path entirely.
+
+### Fix the loopback prompt by removing localhost asset URLs from live package responses
+
+Decision:
+The catalog server now leaves internal asset paths relative and documents PUBLIC_BASE_URL as a production setting, rather than forcing internal asset URLs through the configured base URL.
+
+Reason:
+The public site was still able to surface a browser prompt because a production server with a default PUBLIC_BASE_URL could embed 127.0.0.1 thumbnail URLs in package API responses.
