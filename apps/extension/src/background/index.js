@@ -1,6 +1,7 @@
 import {
   DEFAULT_CATALOG_ORIGIN,
-  MESSAGE_TYPES
+  MESSAGE_TYPES,
+  SUPPORTED_CATALOG_ORIGINS
 } from "../shared/constants.js";
 import {
   addRestorePoint,
@@ -31,18 +32,22 @@ import { flushTelemetryQueue, getTelemetryStatus, recordInstallSuccess } from ".
 
 const BUSY_INSTALL_STATES = new Set(["loading", "rolling_back"]);
 const CATALOG_SITE_BRIDGE_ID = "catalog-site-bridge";
-const BUILTIN_CATALOG_ORIGINS = new Set([
-  DEFAULT_CATALOG_ORIGIN,
-  "http://127.0.0.1:3000",
-  "http://localhost:3000"
-]);
+const BUILTIN_CATALOG_ORIGINS = new Set(SUPPORTED_CATALOG_ORIGINS);
 
 const parseCatalogOrigin = (value) => {
   const parsed = new URL(value);
   if (!["http:", "https:"].includes(parsed.protocol)) {
     throw new Error("Catalog origin must use http or https.");
   }
-  return parsed.origin;
+
+  const origin = parsed.origin;
+  if (!BUILTIN_CATALOG_ORIGINS.has(origin)) {
+    throw new Error(
+      `Only these catalog origins are supported: ${SUPPORTED_CATALOG_ORIGINS.join(", ")}.`
+    );
+  }
+
+  return origin;
 };
 
 const compareVersions = (left, right) => {
@@ -138,28 +143,8 @@ const requireInstallContext = ({ authState, scenarioState, targetShortIds = null
 
 const buildOriginPattern = (catalogOrigin) => `${catalogOrigin}/*`;
 
-const ensureCatalogOriginPermission = async (catalogOrigin, allowPrompt = false) => {
-  if (BUILTIN_CATALOG_ORIGINS.has(catalogOrigin)) {
-    return true;
-  }
-
-  const origins = [buildOriginPattern(catalogOrigin)];
-  const hasAccess = await chrome.permissions.contains({ origins });
-
-  if (hasAccess) {
-    return true;
-  }
-
-  if (!allowPrompt) {
-    return false;
-  }
-
-  try {
-    return await chrome.permissions.request({ origins });
-  } catch {
-    return false;
-  }
-};
+const ensureCatalogOriginPermission = async (catalogOrigin) =>
+  BUILTIN_CATALOG_ORIGINS.has(catalogOrigin);
 
 const injectBridgeIntoOpenTabs = async (catalogOrigin) => {
   const tabs = await chrome.tabs.query({ url: [buildOriginPattern(catalogOrigin)] });
@@ -180,8 +165,8 @@ const injectBridgeIntoOpenTabs = async (catalogOrigin) => {
   }
 };
 
-const syncCatalogSiteBridge = async (catalogOrigin, { allowPrompt = false } = {}) => {
-  const hasPermission = await ensureCatalogOriginPermission(catalogOrigin, allowPrompt);
+const syncCatalogSiteBridge = async (catalogOrigin) => {
+  const hasPermission = await ensureCatalogOriginPermission(catalogOrigin);
   if (!hasPermission) {
     return false;
   }
@@ -561,9 +546,9 @@ const rollbackLatestInstall = async () => {
   }
 };
 
-const initCatalogBridge = async (catalogOrigin, { allowPrompt = false } = {}) => {
+const initCatalogBridge = async (catalogOrigin) => {
   try {
-    return await syncCatalogSiteBridge(catalogOrigin, { allowPrompt });
+    return await syncCatalogSiteBridge(catalogOrigin);
   } catch (error) {
     console.warn("[catalog-bridge] failed to sync content script", error);
     return false;
@@ -683,9 +668,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     Promise.resolve()
       .then(() => parseCatalogOrigin(message.catalogOrigin))
       .then(async (catalogOrigin) => {
-        const bridgeReady = await initCatalogBridge(catalogOrigin, { allowPrompt: true });
+        const bridgeReady = await initCatalogBridge(catalogOrigin);
         if (!bridgeReady) {
-          throw new Error(`Permission to access ${catalogOrigin} was not granted.`);
+          throw new Error(`Catalog origin ${catalogOrigin} is not supported.`);
         }
 
         await saveSettings({ catalogOrigin });
@@ -707,6 +692,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   sendResponse({ ok: false, error: "Unknown message type." });
   return false;
 });
+
+
+
 
 
 

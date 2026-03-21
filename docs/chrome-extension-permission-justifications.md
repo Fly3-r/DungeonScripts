@@ -18,11 +18,11 @@ The `storage` permission is used to save extension settings, the selected catalo
 
 ## Tabs Justification
 
-The `tabs` permission is used to query and open relevant tabs for the configured catalog site and AI Dungeon editor flow. This allows the extension to detect already-open catalog tabs, open the catalog from the popup, and keep the one-click install bridge connected to the correct site.
+The `tabs` permission is used to query and open relevant tabs for the supported DungeonScripts catalog origins and AI Dungeon editor flow. This allows the extension to detect already-open catalog tabs, open the catalog from the popup, and keep the install bridge connected to the correct site.
 
 ## Scripting Justification
 
-The `scripting` permission is used to register, unregister, and inject the catalog bridge content script into the configured catalog origin, including tabs that are already open. This is required so the catalog website can communicate with the extension for preview, install, and rollback actions.
+The `scripting` permission is used to register, unregister, and inject the catalog bridge content script into the supported DungeonScripts catalog origins, including tabs that are already open. This is required so the catalog website can communicate with the extension for preview, install, and rollback actions.
 
 ## Host Permission Justification
 
@@ -32,7 +32,7 @@ Host permissions are also required for `https://dungeonscripts.com/*` so the ext
 
 Local development origins such as `http://127.0.0.1:3000/*` and `http://localhost:3000/*` are included so the same extension build can be tested against a local development catalog before release.
 
-Optional host permissions are only used if the user explicitly changes the catalog origin to a different site in extension settings.
+The extension is intentionally limited to the supported catalog origins `https://dungeonscripts.com`, `http://127.0.0.1:3000`, and `http://localhost:3000`. It does not request optional access to arbitrary websites.
 
 ## Remote Code Statement
 
@@ -41,3 +41,4 @@ DungeonScripts does not use remote code in the extension runtime.
 All JavaScript shipped by the extension is packaged with the extension itself. The extension does not load remote `<script>` files, remote modules, remote Wasm, or execute downloaded code through `eval()` or `new Function()`.
 
 The extension does fetch remote package metadata and script text from the configured catalog, but that material is treated as data and is not executed by the extension. It is sent to AI Dungeon as scenario script content through AI Dungeon's API.
+

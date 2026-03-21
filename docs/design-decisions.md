@@ -431,3 +431,11 @@ Package source folders should use the documented canonical filenames such as Lib
 
 Reason:
 Linux hosts are case-sensitive, so relying on lowercase variants works on Windows by accident but breaks the catalog builder in production.
+
+### Limit the extension to the supported catalog origins only
+
+Decision:
+DungeonScripts should only support https://dungeonscripts.com, http://127.0.0.1:3000, and http://localhost:3000 as catalog origins and should not request optional host permissions for arbitrary sites.
+
+Reason:
+The product no longer needs arbitrary external catalog origins, and removing that capability avoids confusing Chrome permission prompts while tightening the extension's access model.

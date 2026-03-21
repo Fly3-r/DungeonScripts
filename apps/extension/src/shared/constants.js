@@ -1,5 +1,11 @@
 export const DEFAULT_CATALOG_ORIGIN = "https://dungeonscripts.com";
 
+export const SUPPORTED_CATALOG_ORIGINS = [
+  DEFAULT_CATALOG_ORIGIN,
+  "http://127.0.0.1:3000",
+  "http://localhost:3000"
+];
+
 export const MESSAGE_TYPES = {
   EDITOR_CONTEXT: "EDITOR_CONTEXT",
   AUTH_TOKEN_UPDATE: "AUTH_TOKEN_UPDATE",

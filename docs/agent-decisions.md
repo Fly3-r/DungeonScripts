@@ -398,3 +398,11 @@ The existing lowercase source files in auto-cards, inner-self, and localized-lan
 
 Reason:
 Ubuntu failed to start the catalog because the builder correctly looked for Library.js while the repo contained library.js in several packages.
+
+### Remove the optional host-permission flow for arbitrary catalog sites
+
+Decision:
+The extension manifest no longer declares broad optional host permissions, and the runtime now rejects unsupported catalog origins instead of calling chrome.permissions.request.
+
+Reason:
+The user reproduced a Chrome prompt even after reloading the extension. Since only the production domain and two local dev origins are intended to work, the safest fix is to remove the optional-origin permission path entirely.

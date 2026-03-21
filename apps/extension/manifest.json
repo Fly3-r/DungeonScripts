@@ -1,62 +1,55 @@
 {
-  "manifest_version": 3,
-  "name": "DungeonScripts",
-  "version": "0.1.0",
-  "description": "One-click script installs for the AI Dungeon scenario root and playable leaves.",
-  "permissions": [
-    "storage",
-    "tabs",
-    "scripting"
-  ],
-  "host_permissions": [
-    "https://play.aidungeon.com/*",
-    "https://beta.aidungeon.com/*",
-    "https://alpha.aidungeon.com/*",
-    "https://api.aidungeon.com/*",
-    "https://api-beta.aidungeon.com/*",
-    "https://api-alpha.aidungeon.com/*",
-    "https://dungeonscripts.com/*",
-    "http://127.0.0.1:3000/*",
-    "http://localhost:3000/*"
-  ],
-  "optional_host_permissions": [
-    "http://*/*",
-    "https://*/*"
-  ],
-  "background": {
-    "service_worker": "src/background/index.js",
-    "type": "module"
-  },
-  "content_scripts": [
-    {
-      "matches": [
-        "https://play.aidungeon.com/*",
-        "https://beta.aidungeon.com/*",
-        "https://alpha.aidungeon.com/*"
-      ],
-      "js": [
-        "src/content/index.js"
-      ],
-      "run_at": "document_idle"
-    }
-  ],
-  "web_accessible_resources": [
-    {
-      "resources": [
-        "src/content/inject.js"
-      ],
-      "matches": [
-        "https://play.aidungeon.com/*",
-        "https://beta.aidungeon.com/*",
-        "https://alpha.aidungeon.com/*"
-      ]
-    }
-  ],
-  "action": {
-    "default_title": "DungeonScripts",
-    "default_popup": "src/popup/popup.html"
-  }
+    "manifest_version":  3,
+    "name":  "DungeonScripts",
+    "version":  "0.1.0",
+    "description":  "One-click script installs for the AI Dungeon scenario root and playable leaves.",
+    "permissions":  [
+                        "storage",
+                        "tabs",
+                        "scripting"
+                    ],
+    "host_permissions":  [
+                             "https://play.aidungeon.com/*",
+                             "https://beta.aidungeon.com/*",
+                             "https://alpha.aidungeon.com/*",
+                             "https://api.aidungeon.com/*",
+                             "https://api-beta.aidungeon.com/*",
+                             "https://api-alpha.aidungeon.com/*",
+                             "https://dungeonscripts.com/*",
+                             "http://127.0.0.1:3000/*",
+                             "http://localhost:3000/*"
+                         ],
+    "background":  {
+                       "service_worker":  "src/background/index.js",
+                       "type":  "module"
+                   },
+    "content_scripts":  [
+                            {
+                                "matches":  [
+                                                "https://play.aidungeon.com/*",
+                                                "https://beta.aidungeon.com/*",
+                                                "https://alpha.aidungeon.com/*"
+                                            ],
+                                "js":  [
+                                           "src/content/index.js"
+                                       ],
+                                "run_at":  "document_idle"
+                            }
+                        ],
+    "web_accessible_resources":  [
+                                     {
+                                         "resources":  [
+                                                           "src/content/inject.js"
+                                                       ],
+                                         "matches":  [
+                                                         "https://play.aidungeon.com/*",
+                                                         "https://beta.aidungeon.com/*",
+                                                         "https://alpha.aidungeon.com/*"
+                                                     ]
+                                     }
+                                 ],
+    "action":  {
+                   "default_title":  "DungeonScripts",
+                   "default_popup":  "src/popup/popup.html"
+               }
 }
-
-
-

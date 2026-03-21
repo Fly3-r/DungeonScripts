@@ -1,4 +1,4 @@
-import { DEFAULT_CATALOG_ORIGIN } from "./constants.js";
+import { DEFAULT_CATALOG_ORIGIN, SUPPORTED_CATALOG_ORIGINS } from "./constants.js";
 
 const STORAGE_KEYS = {
   editorContext: "editorContext",
@@ -30,6 +30,9 @@ const trimTelemetryQueue = (queue) => {
 const normalizeTelemetryTestMode = (value) =>
   VALID_TELEMETRY_TEST_MODES.has(value) ? value : DEFAULT_TELEMETRY_TEST_MODE;
 
+const normalizeCatalogOrigin = (value) =>
+  SUPPORTED_CATALOG_ORIGINS.includes(value) ? value : DEFAULT_CATALOG_ORIGIN;
+
 export const loadEditorContext = async () => {
   const result = await chrome.storage.local.get(STORAGE_KEYS.editorContext);
   return result[STORAGE_KEYS.editorContext] || null;
@@ -43,18 +46,24 @@ export const saveEditorContext = async (editorContext) => {
 
 export const loadSettings = async () => {
   const result = await chrome.storage.local.get(STORAGE_KEYS.settings);
+  const stored = result[STORAGE_KEYS.settings] || {};
   return {
-    catalogOrigin: DEFAULT_CATALOG_ORIGIN,
-    ...(result[STORAGE_KEYS.settings] || {})
+    ...stored,
+    catalogOrigin: normalizeCatalogOrigin(stored.catalogOrigin)
   };
 };
 
 export const saveSettings = async (settings) => {
   const current = await loadSettings();
+  const next = {
+    ...current,
+    ...settings
+  };
+
   await chrome.storage.local.set({
     [STORAGE_KEYS.settings]: {
-      ...current,
-      ...settings
+      ...next,
+      catalogOrigin: normalizeCatalogOrigin(next.catalogOrigin)
     }
   });
 };
