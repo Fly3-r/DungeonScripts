@@ -382,3 +382,11 @@ The privacy-policy work adds a single public markdown route and a footer link in
 
 Reason:
 The request only needs one publicly reachable policy document. A narrow route keeps the server change small and avoids extra documentation infrastructure.
+
+### Clarify the privacy policy around local-only extension processing
+
+Decision:
+The privacy policy now distinguishes between local browser-side processing for AI Dungeon operations and the single anonymous telemetry event sent to the catalog service.
+
+Reason:
+The earlier wording blurred local extension behavior with data collection by the DungeonScripts service. The revised wording is closer to the actual data flow.

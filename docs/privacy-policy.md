@@ -14,9 +14,9 @@ DungeonScripts is intentionally privacy-focused:
 - it does not use advertising or cross-site tracking inside the extension
 - it sends only minimal anonymous install-success telemetry to the DungeonScripts catalog service
 
-## Information Handled by the Extension
+## Information Processed Locally by the Extension
 
-The extension may access or store the following information as part of its core functionality:
+Most extension activity happens locally in the user's browser so DungeonScripts can interact with the AI Dungeon editor. This local processing is used only to make preview, install, and rollback work.
 
 ### 1. AI Dungeon authentication and session state
 
@@ -46,7 +46,11 @@ Scenario script content and restore points are stored locally in the extension s
 
 The extension stores settings such as the selected catalog origin and install state in browser extension storage.
 
-### 4. Anonymous install-success telemetry
+## Information Sent to DungeonScripts
+
+DungeonScripts only intends to send one category of data from the extension to the configured catalog service:
+
+### Anonymous install-success telemetry
 
 After a successful install, the extension sends one minimal anonymous telemetry event to the configured catalog origin. That event currently contains:
 - event type
@@ -63,6 +67,8 @@ The telemetry event is not intended to include:
 - AI Dungeon authentication token
 - scenario text or script contents
 - payment information
+
+Other extension activity, such as reading AI Dungeon authentication state, scenario titles, scenario identifiers, or scenario script contents, is intended to remain local to the browser except where needed to interact directly with AI Dungeon itself.
 
 ## Information Handled by the DungeonScripts Website
 
@@ -123,3 +129,6 @@ Those services may have their own privacy policies and terms.
 For questions about this Privacy Policy or the DungeonScripts project, use the project repository:
 
 https://github.com/Fly3-r/DungeonScripts
+
+
+

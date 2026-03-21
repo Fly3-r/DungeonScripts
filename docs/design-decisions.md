@@ -415,3 +415,11 @@ The public site footer should link to `/docs/privacy-policy.md`, with the catalo
 
 Reason:
 The privacy policy needs to be reachable from the live website, not only from the repository tree, and the footer is the right place for that legal disclosure link.
+
+### Distinguish local extension processing from transmitted telemetry in the privacy policy
+
+Decision:
+The privacy policy should separate data the extension processes locally in the browser from the only data intentionally sent to DungeonScripts infrastructure: the anonymous install-success event.
+
+Reason:
+That wording is more accurate for a privacy-focused extension and makes it clear that AI Dungeon auth and scenario contents are used locally for functionality rather than collected as service analytics.
