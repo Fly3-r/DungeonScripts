@@ -1,93 +1,47 @@
 # DungeonScripts
 
-Scaffold for the DungeonScripts catalog and Chrome extension.
+DungeonScripts is a project focused on easy and safe installation of AI Dungeon scripts into scenarios, including support for multi-choice scenario trees with selectable root and leaf installs.
 
-This repo now follows the MVP split described in [INSTALLER_MVP_SPEC.md](INSTALLER_MVP_SPEC.md):
-- `apps/extension` is the Chrome extension client
-- `apps/catalog` is the external catalog/API service
-- `packages/contracts` holds shared manifest and telemetry shapes
-- `docs/design-decisions.md` records product and architecture decisions
-- `docs/agent-decisions.md` records workflow and agent execution decisions
-- `docs/repo-package-model.md` records the repo-driven package source layout
+## Install the Extension
 
-## Layout
+There are currently two installation paths:
+- Chrome Web Store release: currently submitted and pending review
+- Manual installation: download the packaged extension ZIP and load it unpacked in Chrome
 
-```text
-apps/
-  catalog/       External website/API, Docker Compose-friendly
-  extension/     Chrome extension loaded as unpacked
-packages/
-  contracts/     Shared JSON schema and examples
-docs/
-  design-decisions.md
-  agent-decisions.md
-  repo-package-model.md
-```
+### Manual Installation
 
-## Quick Start
+Download the extension ZIP from:
+- https://github.com/Fly3-r/DungeonScripts/blob/main/apps/extension-0.1.0.zip
 
-1. Start the external catalog/API with Docker Compose:
+Then install it in Chrome:
+1. Download the extension ZIP file.
+2. Extract the ZIP folder somewhere you'll remember.
+3. Open Google Chrome and go to `chrome://extensions`.
+4. Turn on Developer mode using the top-right toggle.
+5. Click `Load unpacked`.
+6. Select the extracted extension folder.
 
-   ```powershell
-   npm run catalog:compose:up
-   ```
+## Getting Started
 
-2. Open Chrome and load [apps/extension](apps/extension) as an unpacked extension.
+1. Go to `https://play.aidungeon.com` and log in.
+2. Be mindful of possible bugs. For extra safety, optionally duplicate your scenario first.
+3. Edit any scenario. The URL should end with `/edit`.
+4. Go to `https://dungeonscripts.com`.
+5. Verify the extension bridge status on the page.
+6. Use `Install` to apply the selected script.
+7. Optionally use `Preview` first to inspect the script changes before installing.
 
-3. Open an AI Dungeon scenario edit page.
+## Troubleshooting
 
-4. Use the catalog homepage at `/` to browse packages and install them through the extension.
+- After installing or reinstalling the extension, it may be necessary to reload the AI Dungeon scenario edit page.
 
-5. Add or update package sources under [apps/catalog/data/scripts](apps/catalog/data/scripts), then restart the catalog to regenerate package manifests.
+## For Script Makers
 
-## Current State
+- Package sources follow the repo-driven model documented in [repo-package-model.md](docs/repo-package-model.md).
+- Submit a pull request with your script package files.
+- If you need help preparing a package, reach out to `fly3_r` on Discord.
 
-This scaffold includes:
-- root workspace configuration
-- minimal unpacked-extension shell
-- AI Dungeon editor detection and auth token extraction plumbing
-- authenticated AI Dungeon scenario reads and leaf discovery
-- restore-point capture before script mutations
-- catalog package fetch and install execution across selectable root and leaf targets
-- rollback of the latest restore point from the popup and matching catalog card
-- durable anonymous install-success telemetry queueing with retry in the extension
-- browsable catalog homepage on `/` with thumbnail cards, fallback placeholder artwork, and install counters
-- in-page install target-selection modal on the catalog with default-checked root and leaf targets
-- in-page preview diff modal before overwrite across the full install target set
-- versioned JSON API under `/api/v1/*`
-- repo-driven package sources under `apps/catalog/data/scripts/<package-id>`
-- startup generation of public package manifests into `apps/catalog/data/packages`
-- sample package source files and shared JSON schemas for package metadata, package manifests, and telemetry payloads
-- a repeatable Chrome DevTools Protocol regression script for install selection, telemetry retry, and full-target install/rollback verification
+## More Information
 
-## Package Source Model
-
-- Package source-of-truth now lives under [apps/catalog/data/scripts](apps/catalog/data/scripts).
-- Each package directory contains `metadata.json`, `Library.js`, `Input.js`, `Context.js`, `Output.js`, and an optional `Thumbnail.png`.
-- The catalog rebuilds [apps/catalog/data/packages](apps/catalog/data/packages) from those source folders when the service starts.
-- The source layout is defined in [repo-package-model.md](docs/repo-package-model.md).
-
-## Automation Testing
-
-- End-to-end install and rollback regression coverage now lives in [docs/testing.md](docs/testing.md).
-- Run it with `npm run test:e2e:install`.
-- The harness expects Chrome remote debugging on `127.0.0.1:9222`, plus open AI Dungeon and catalog tabs.
-
-## Catalog Runtime
-
-- The containerized catalog service is defined in [docker-compose.yml](docker-compose.yml).
-- The human-facing catalog is served from `/`.
-- The machine-facing API is served from `/api/v1/*`.
-- Runtime telemetry files are persisted under [apps/catalog/data/runtime](apps/catalog/data/runtime).
-- Repo-authored package source files live under [apps/catalog/data/scripts](apps/catalog/data/scripts).
-- Generated package manifests are written under [apps/catalog/data/packages](apps/catalog/data/packages).
-- Additional catalog runtime notes live in [apps/catalog/README.md](apps/catalog/README.md).
-
-## Decision Logs
-
-- Design and product decisions live in [docs/design-decisions.md](docs/design-decisions.md).
-- Agent and workflow decisions live in [docs/agent-decisions.md](docs/agent-decisions.md).
-
-
-
-
+- Additional project information is available in [overview.md](docs/overview.md).
+- More technical and project documentation lives throughout the [docs](docs) directory.

@@ -414,3 +414,11 @@ The catalog server now leaves internal asset paths relative and documents PUBLIC
 
 Reason:
 The public site was still able to surface a browser prompt because a production server with a default PUBLIC_BASE_URL could embed 127.0.0.1 thumbnail URLs in package API responses.
+
+### Split the README into a landing page and a preserved technical overview
+
+Decision:
+The existing root README content is moved into docs/overview.md, and the new root README is rewritten around overview, installation, getting started, troubleshooting, and script-maker guidance.
+
+Reason:
+The request was a documentation restructure rather than a content deletion. Preserving the previous material under docs/overview.md keeps technical context available without overloading the main landing page.

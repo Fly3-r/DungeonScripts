@@ -447,3 +447,11 @@ The catalog API should return relative URLs for internal assets such as package 
 
 Reason:
 If PUBLIC_BASE_URL is left on a loopback default in production, absolute localhost asset URLs can leak into live responses and trigger browser loopback-access prompts on the public site.
+
+### Use the root README as the primary onboarding page
+
+Decision:
+The root README should be a concise project overview and onboarding guide, while the previous detailed scaffold summary moves into docs/overview.md.
+
+Reason:
+New users need a clearer entry point focused on what DungeonScripts is, how to install it, how to get started, and where script makers should look next.
