@@ -1,6 +1,6 @@
 (async () => {
   try {
-    const FIREBASE_WAIT_MS = 15000;
+    const FIREBASE_WAIT_MS = 6000;
     const FIREBASE_POLL_MS = 500;
 
     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));

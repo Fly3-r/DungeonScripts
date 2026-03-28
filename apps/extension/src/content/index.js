@@ -22,15 +22,17 @@
   };
 
   const TOKEN_REFRESH_MS = 7 * 60 * 1000;
+  const TOKEN_RETRY_MS = 15000;
   const URL_POLL_MS = 1000;
   const FIREBASE_INIT_DELAY_MS = 3000;
-  const TOKEN_TIMEOUT_MS = 10000;
+  const TOKEN_TIMEOUT_MS = 15000;
 
   let lastUrl = "";
   let isExtractingToken = false;
   let runtimeActive = true;
   let editorIntervalId = null;
   let tokenIntervalId = null;
+  let tokenRetryTimeoutId = null;
 
   const isContextInvalidatedError = (error) =>
     String(error?.message || error || "").includes("Extension context invalidated");
@@ -76,6 +78,11 @@
     if (tokenIntervalId) {
       clearInterval(tokenIntervalId);
       tokenIntervalId = null;
+    }
+
+    if (tokenRetryTimeoutId) {
+      clearTimeout(tokenRetryTimeoutId);
+      tokenRetryTimeoutId = null;
     }
 
     window.removeEventListener("focus", syncVisibleState);
@@ -179,6 +186,26 @@
       }, TOKEN_TIMEOUT_MS);
     });
 
+  const clearTokenRetry = () => {
+    if (!tokenRetryTimeoutId) {
+      return;
+    }
+
+    clearTimeout(tokenRetryTimeoutId);
+    tokenRetryTimeoutId = null;
+  };
+
+  const scheduleTokenRetry = () => {
+    if (!runtimeActive || tokenRetryTimeoutId) {
+      return;
+    }
+
+    tokenRetryTimeoutId = window.setTimeout(() => {
+      tokenRetryTimeoutId = null;
+      void syncToken();
+    }, TOKEN_RETRY_MS);
+  };
+
   const syncToken = async () => {
     if (!runtimeActive || isExtractingToken) {
       return;
@@ -188,6 +215,7 @@
 
     try {
       const token = await extractToken();
+      clearTokenRetry();
       await sendRuntimeMessage({
         type: MESSAGE_TYPES.AUTH_TOKEN_UPDATE,
         payload: {
@@ -208,6 +236,7 @@
           error: error.message
         }
       });
+      scheduleTokenRetry();
     } finally {
       isExtractingToken = false;
     }
