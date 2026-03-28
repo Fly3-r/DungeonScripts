@@ -1,4 +1,4 @@
-import { rename, rm } from "node:fs/promises";
+import { readdir, rename, rm } from "node:fs/promises";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -18,17 +18,24 @@ const RM_OPTIONS = {
 };
 
 const escapePowerShellString = (value) => String(value).replace(/'/g, "''");
+const FIREFOX_ARTIFACT_RE = /^firefox-.+(?:\.xpi|\.zip)?$/u;
+
+const removeLegacyFirefoxArtifacts = async () => {
+  const entries = await readdir(appsDir, { withFileTypes: true });
+  const removals = entries
+    .filter((entry) => FIREFOX_ARTIFACT_RE.test(entry.name))
+    .map((entry) => rm(path.join(appsDir, entry.name), RM_OPTIONS));
+
+  await Promise.all(removals);
+};
 
 const { manifest, targetDir } = await buildExtensionTarget("firefox");
 const version = manifest.version;
-const legacyReleaseDir = path.join(appsDir, `firefox-${version}`);
 const archiveBasePath = path.join(appsDir, `firefox-${version}`);
 const zipPath = `${archiveBasePath}.zip`;
 const xpiPath = `${archiveBasePath}.xpi`;
 
-await rm(legacyReleaseDir, RM_OPTIONS);
-await rm(zipPath, RM_OPTIONS);
-await rm(xpiPath, RM_OPTIONS);
+await removeLegacyFirefoxArtifacts();
 
 execFileSync(
   powershellExecutable,
