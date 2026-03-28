@@ -305,9 +305,9 @@ const getStatusPayload = async () => {
   };
 };
 
-const getCatalogPackagesPayload = async () => {
-  const settings = await loadSettings();
-  const packages = await fetchCatalogPackages(settings.catalogOrigin);
+const getCatalogPackagesPayload = async (catalogOriginOverride = null) => {
+  const catalogOrigin = await resolveCatalogOrigin(catalogOriginOverride);
+  const packages = await fetchCatalogPackages(catalogOrigin);
   return { packages };
 };
 
@@ -631,7 +631,7 @@ extensionApi.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message?.type === MESSAGE_TYPES.GET_PACKAGES) {
-    getCatalogPackagesPayload()
+    getCatalogPackagesPayload(message.catalogOrigin)
       .then((payload) => sendResponse({ ok: true, ...payload }))
       .catch((error) => sendResponse({ ok: false, error: error.message }));
     return true;

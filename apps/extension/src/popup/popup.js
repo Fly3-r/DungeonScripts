@@ -55,6 +55,17 @@ const setNotice = (message) => {
   elements.notice.textContent = message;
 };
 
+const setPackageMeta = (message) => {
+  elements.packageMeta.textContent = message;
+};
+
+const syncCatalogOriginInput = (catalogOrigin) => {
+  elements.catalogOriginDisplay.textContent = catalogOrigin;
+  if (document.activeElement !== elements.catalogOriginInput) {
+    elements.catalogOriginInput.value = catalogOrigin;
+  }
+};
+
 const formatTimestamp = (value) => {
   if (!value) {
     return "Never";
@@ -227,7 +238,7 @@ const renderPackageOptions = () => {
     option.textContent = "No packages available";
     elements.packageSelect.append(option);
     state.selectedPackageId = "";
-    renderPackageMeta();
+    syncSelectedPackageMeta();
     return;
   }
 
@@ -241,19 +252,31 @@ const renderPackageOptions = () => {
   const matchingPackage = state.packages.find((pkg) => pkg.id === previousSelection);
   state.selectedPackageId = matchingPackage ? matchingPackage.id : state.packages[0].id;
   elements.packageSelect.value = state.selectedPackageId;
-  renderPackageMeta();
+  syncSelectedPackageMeta();
 };
 
 const renderPackageMeta = () => {
   const selectedPackage = state.packages.find((pkg) => pkg.id === elements.packageSelect.value);
 
   if (!selectedPackage) {
-    elements.packageMeta.textContent = "No package selected.";
+    setPackageMeta("No package selected.");
     return;
   }
 
   const description = selectedPackage.description || "No package description available.";
   elements.packageMeta.textContent = `${selectedPackage.author} · ${selectedPackage.version} · ${description}`;
+};
+
+const syncSelectedPackageMeta = () => {
+  const selectedPackage = state.packages.find((pkg) => pkg.id === elements.packageSelect.value);
+
+  if (!selectedPackage) {
+    setPackageMeta("No package selected.");
+    return;
+  }
+
+  const description = selectedPackage.description || "No package description available.";
+  setPackageMeta(`${selectedPackage.author} · ${selectedPackage.version} · ${description}`);
 };
 
 const updateActionAvailability = (response, hasSiteAccess) => {
@@ -306,8 +329,7 @@ const loadStatus = async () => {
 
   const catalogOrigin = settings?.catalogOrigin || DEFAULT_CATALOG_ORIGIN;
 
-  elements.catalogOriginDisplay.textContent = catalogOrigin;
-  elements.catalogOriginInput.value = catalogOrigin;
+  syncCatalogOriginInput(catalogOrigin);
   elements.authState.textContent = authState?.hasToken ? "Active" : "Missing";
   elements.authUpdatedAt.textContent = formatTimestamp(authState?.updatedAt);
   elements.scenarioAccess.textContent = describeScenarioAccess(scenarioState);
@@ -333,41 +355,49 @@ const loadStatus = async () => {
   return response;
 };
 
-const loadPackages = async () => {
+const loadPackages = async (catalogOriginOverride = null) => {
   const hasSiteAccess = await hasRequiredSiteAccess();
   updateSiteAccessUi(hasSiteAccess);
 
   if (!hasSiteAccess) {
     state.packages = [];
     renderPackageOptions();
-    setNotice("Grant site access first so Firefox can reach AI Dungeon and the catalog.");
-    return null;
+    const message = "Grant site access first so Firefox can reach AI Dungeon and the catalog.";
+    setPackageMeta(message);
+    setNotice(message);
+    return { ok: false, error: message };
   }
 
   const response = await extensionApi.runtime.sendMessage({
-    type: MESSAGE_TYPES.GET_PACKAGES
+    type: MESSAGE_TYPES.GET_PACKAGES,
+    catalogOrigin: catalogOriginOverride
   });
 
   if (!response?.ok) {
     state.packages = [];
     renderPackageOptions();
-    setNotice(response?.error || "Failed to load packages.");
-    return null;
+    const message = response?.error || "Failed to load packages.";
+    setPackageMeta(message);
+    setNotice(message);
+    return { ok: false, error: message };
   }
 
   state.packages = Array.isArray(response.packages) ? response.packages : [];
   renderPackageOptions();
 
   if (state.packages.length === 0) {
-    setNotice("No packages found at the current catalog origin.");
+    const message = "No packages found at the current catalog origin.";
+    setPackageMeta(message);
+    setNotice(message);
+    return { ok: true, packageCount: 0 };
   }
 
-  return response;
+  return { ok: true, packageCount: state.packages.length };
 };
 
 elements.packageSelect.addEventListener("change", () => {
   state.selectedPackageId = elements.packageSelect.value;
-  renderPackageMeta();
+  syncSelectedPackageMeta();
 });
 
 elements.grantSiteAccess.addEventListener("click", async () => {
@@ -408,8 +438,12 @@ elements.saveOrigin.addEventListener("click", async () => {
   }
 
   await loadStatus();
-  await loadPackages();
-  setNotice("Catalog origin saved.");
+  const packagesResult = await loadPackages(catalogOrigin);
+  if (!packagesResult?.ok) {
+    return;
+  }
+
+  setNotice(`Catalog origin saved. ${packagesResult.packageCount} package(s) available.`);
 });
 
 elements.openCatalog.addEventListener("click", async () => {
@@ -426,10 +460,10 @@ elements.openCatalog.addEventListener("click", async () => {
 });
 
 elements.refreshPackages.addEventListener("click", async () => {
-  await loadPackages();
+  const packagesResult = await loadPackages(elements.catalogOriginDisplay.textContent || null);
   const status = await loadStatus();
-  if (status) {
-    setNotice(`Catalog refreshed. ${state.packages.length} package(s) available.`);
+  if (status && packagesResult?.ok) {
+    setNotice(`Catalog refreshed. ${packagesResult.packageCount} package(s) available.`);
   }
 });
 
