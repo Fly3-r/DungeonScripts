@@ -1,7 +1,8 @@
 import {
   DEFAULT_CATALOG_ORIGIN,
   MESSAGE_TYPES,
-  SUPPORTED_CATALOG_ORIGINS
+  SUPPORTED_CATALOG_ORIGINS,
+  toOriginMatchPattern
 } from "../shared/constants.js";
 import { extensionApi } from "../shared/webextension-api.js";
 import {
@@ -142,7 +143,7 @@ const requireInstallContext = ({ authState, scenarioState, targetShortIds = null
   return installTargets;
 };
 
-const buildOriginPattern = (catalogOrigin) => `${catalogOrigin}/*`;
+const buildOriginPattern = (catalogOrigin) => toOriginMatchPattern(catalogOrigin);
 const BUILTIN_CATALOG_PATTERNS = SUPPORTED_CATALOG_ORIGINS.map(buildOriginPattern);
 
 const ensureCatalogOriginPermission = async (catalogOrigin) =>

@@ -16,8 +16,8 @@
     "https://api-beta.aidungeon.com/*",
     "https://api-alpha.aidungeon.com/*",
     "https://dungeonscripts.com/*",
-    "http://127.0.0.1:3000/*",
-    "http://localhost:3000/*"
+    "http://127.0.0.1/*",
+    "http://localhost/*"
   ],
   "host_permissions": [
     "https://play.aidungeon.com/*",
@@ -27,8 +27,8 @@
     "https://api-beta.aidungeon.com/*",
     "https://api-alpha.aidungeon.com/*",
     "https://dungeonscripts.com/*",
-    "http://127.0.0.1:3000/*",
-    "http://localhost:3000/*"
+    "http://127.0.0.1/*",
+    "http://localhost/*"
   ],
   "background": {
     "page": "src/background/background.html"

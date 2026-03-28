@@ -18,7 +18,10 @@ export const SUPPORTED_AID_API_ORIGINS = [
   "https://api-alpha.aidungeon.com"
 ];
 
-export const toOriginMatchPattern = (origin) => `${origin}/*`;
+export const toOriginMatchPattern = (origin) => {
+  const parsed = new URL(origin);
+  return `${parsed.protocol}//${parsed.hostname}/*`;
+};
 
 export const REQUIRED_HOST_PATTERNS = [
   ...SUPPORTED_AID_PAGE_ORIGINS.map(toOriginMatchPattern),
