@@ -44,6 +44,17 @@
         "src/content/index.js"
       ],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://dungeonscripts.com/*",
+        "http://127.0.0.1/*",
+        "http://localhost/*"
+      ],
+      "js": [
+        "src/catalog/index.js"
+      ],
+      "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [

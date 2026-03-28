@@ -437,6 +437,7 @@ elements.saveOrigin.addEventListener("click", async () => {
     return;
   }
 
+  await refreshConnectedTabs();
   await loadStatus();
   const packagesResult = await loadPackages(catalogOrigin);
   if (!packagesResult?.ok) {
