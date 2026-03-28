@@ -6,6 +6,7 @@ npm-debug.log*
 
 apps/catalog/data/runtime/
 apps/catalog/data/packages/*.json
+apps/extension/dist/
 
 .DS_Store
 Thumbs.db

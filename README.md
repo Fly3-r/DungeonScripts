@@ -6,9 +6,10 @@ DungeonScripts is a project focused on easy and safe installation of AI Dungeon 
 
 There are currently two installation paths:
 - Chrome Web Store release: currently submitted and pending review
-- Manual installation: download the packaged extension ZIP and load it unpacked in Chrome
+- Manual Chrome installation: download the packaged extension ZIP and load it unpacked in Chrome
+- Manual Firefox desktop installation: build the Firefox package folder and load it temporarily in Firefox
 
-### Manual Installation
+### Manual Chrome Installation
 
 Download the extension ZIP from:
 - https://github.com/Fly3-r/DungeonScripts/blob/main/apps/extension-0.1.0.zip
@@ -20,6 +21,22 @@ Then install it in Chrome:
 4. Turn on Developer mode using the top-right toggle.
 5. Click `Load unpacked`.
 6. Select the extracted extension folder.
+
+### Manual Firefox Desktop Installation
+
+From the repo root:
+
+```powershell
+npm run extension:build:firefox
+npm run extension:sync:firefox
+```
+
+Then install it in Firefox desktop:
+1. Open Firefox and go to `about:debugging#/runtime/this-firefox`.
+2. Click `Load Temporary Add-on...`.
+3. Select `apps/firefox-0.1.0/manifest.json` or the latest matching `apps/firefox-<version>/manifest.json`.
+
+More Firefox notes live in [firefox-extension.md](docs/firefox-extension.md).
 
 ## Getting Started
 
@@ -34,6 +51,8 @@ Then install it in Chrome:
 ## Troubleshooting
 
 - After installing or reinstalling the extension, it may be necessary to reload the AI Dungeon scenario edit page.
+- The current automated regression harness is still Chrome-based. Firefox desktop is supported through the shared runtime plus the Firefox-specific build manifest.
+- Run `npm run hooks:install` once in a local clone to enable the pre-commit hook that refreshes `apps/firefox-<version>` whenever extension files are committed.
 
 ## For Script Makers
 
@@ -44,4 +63,5 @@ Then install it in Chrome:
 ## More Information
 
 - Additional project information is available in [overview.md](docs/overview.md).
+- Firefox desktop build notes live in [firefox-extension.md](docs/firefox-extension.md).
 - More technical and project documentation lives throughout the [docs](docs) directory.

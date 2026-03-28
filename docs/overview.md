@@ -1,9 +1,9 @@
 # DungeonScripts Overview
 
-Scaffold for the DungeonScripts catalog and Chrome extension.
+Scaffold for the DungeonScripts catalog and browser extension.
 
 This repo now follows the MVP split described in [INSTALLER_MVP_SPEC.md](../INSTALLER_MVP_SPEC.md):
-- `apps/extension` is the Chrome extension client
+- `apps/extension` is the browser extension client
 - `apps/catalog` is the external catalog/API service
 - `packages/contracts` holds shared manifest and telemetry shapes
 - `docs/design-decisions.md` records product and architecture decisions
@@ -15,7 +15,7 @@ This repo now follows the MVP split described in [INSTALLER_MVP_SPEC.md](../INST
 ```text
 apps/
   catalog/       External website/API, Docker Compose-friendly
-  extension/     Chrome extension loaded as unpacked
+  extension/     Browser extension source plus Chrome/Firefox build targets
 packages/
   contracts/     Shared JSON schema and examples
 docs/
@@ -32,7 +32,7 @@ docs/
    npm run catalog:compose:up
    ```
 
-2. Open Chrome and load [apps/extension](../apps/extension) as an unpacked extension.
+2. Load [apps/extension](../apps/extension) in Chrome, or run `npm run extension:build:firefox` and load the generated Firefox build from `apps/extension/dist/firefox`.
 
 3. Open an AI Dungeon scenario edit page.
 
@@ -59,6 +59,7 @@ This scaffold includes:
 - startup generation of public package manifests into `apps/catalog/data/packages`
 - sample package source files and shared JSON schemas for package metadata, package manifests, and telemetry payloads
 - a repeatable Chrome DevTools Protocol regression script for install selection, telemetry retry, and full-target install/rollback verification
+- a Firefox desktop build target that reuses the same extension runtime with a Firefox-specific manifest
 
 ## Package Source Model
 

@@ -1,0 +1,2 @@
+#!/bin/sh
+node ./apps/extension/scripts/sync-firefox-release.mjs --if-staged-extension-change --stage || exit $?

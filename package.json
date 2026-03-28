@@ -16,7 +16,11 @@
     "catalog:compose:down": "docker compose down",
     "catalog:compose:logs": "docker compose logs -f catalog",
     "catalog:docker:build": "docker compose build catalog",
-    "extension:hint": "echo Load ./apps/extension as an unpacked Chrome extension.",
+    "extension:hint": "echo Load ./apps/extension in Chrome or run npm run extension:build:firefox for the Firefox desktop build.",
+    "extension:build:chrome": "node ./apps/extension/scripts/build-dist.mjs chrome",
+    "extension:build:firefox": "node ./apps/extension/scripts/build-dist.mjs firefox",
+    "extension:sync:firefox": "node ./apps/extension/scripts/sync-firefox-release.mjs",
+    "hooks:install": "git config core.hooksPath .githooks",
     "test:e2e:install": "powershell.exe -ExecutionPolicy Bypass -File .\\scripts\\test-install-regression.ps1"
   }
 }

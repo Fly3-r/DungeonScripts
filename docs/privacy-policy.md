@@ -2,7 +2,7 @@
 
 Last updated: 2026-03-21
 
-This Privacy Policy describes how DungeonScripts handles information in the Chrome extension and the DungeonScripts catalog website.
+This Privacy Policy describes how DungeonScripts handles information in the browser extension and the DungeonScripts catalog website.
 
 ## Summary
 

@@ -1,6 +1,6 @@
 # Catalog Service
 
-This app is the external website and API used by the Chrome extension.
+This app is the external website and API used by the DungeonScripts browser extension.
 
 ## Runtime Split
 
