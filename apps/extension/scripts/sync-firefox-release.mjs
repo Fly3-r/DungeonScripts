@@ -1,4 +1,4 @@
-import { readdir, rename, rm } from "node:fs/promises";
+import { copyFile, readdir, rm } from "node:fs/promises";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -53,6 +53,6 @@ execFileSync(
   }
 );
 
-await rename(zipPath, xpiPath);
+await copyFile(zipPath, xpiPath);
 
-console.log(`Synced Firefox release to ${xpiPath}`);
+console.log(`Synced Firefox release to ${zipPath} and ${xpiPath}`);

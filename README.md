@@ -34,7 +34,9 @@ npm run extension:sync:firefox
 Then install it in Firefox desktop:
 1. Open Firefox and go to `about:debugging#/runtime/this-firefox`.
 2. Click `Load Temporary Add-on...`.
-3. Select `apps/firefox-0.1.0.xpi` or the latest matching `apps/firefox-<version>.xpi`.
+3. Select `apps/firefox-0.1.0.zip` or the latest matching `apps/firefox-<version>.zip`.
+
+The sync step also creates `apps/firefox-<version>.xpi` for later signing/distribution workflows.
 
 More Firefox notes live in [firefox-extension.md](docs/firefox-extension.md).
 
@@ -52,7 +54,7 @@ More Firefox notes live in [firefox-extension.md](docs/firefox-extension.md).
 
 - After installing or reinstalling the extension, it may be necessary to reload the AI Dungeon scenario edit page.
 - The current automated regression harness is still Chrome-based. Firefox desktop is supported through the shared runtime plus the Firefox-specific build manifest.
-- Run `npm run hooks:install` once in a local clone to enable the pre-commit hook that refreshes `apps/firefox-<version>.xpi` before each local commit.
+- Run `npm run hooks:install` once in a local clone to enable the pre-commit hook that refreshes both `apps/firefox-<version>.zip` and `apps/firefox-<version>.xpi` before each local commit.
 
 ## For Script Makers
 
