@@ -61,25 +61,34 @@
         </dl>
       </section>
 
+      <section class="panel search-panel">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Search</p>
+            <h2>Find Packages</h2>
+          </div>
+        </div>
+        <div class="catalog-search">
+          <label class="catalog-search-label" for="package-search">Search</label>
+          <input
+            id="package-search"
+            class="catalog-search-input"
+            type="search"
+            placeholder="Search names and descriptions..."
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <p id="package-search-summary" class="muted catalog-search-summary">
+            Search by package name or description.
+          </p>
+        </div>
+      </section>
+
       <section class="panel">
-        <div class="panel-header panel-header-stack">
+        <div class="panel-header">
           <div>
             <p class="eyebrow">Catalog</p>
             <h2>Available Packages</h2>
-          </div>
-          <div class="catalog-search">
-            <label class="catalog-search-label" for="package-search">Search</label>
-            <input
-              id="package-search"
-              class="catalog-search-input"
-              type="search"
-              placeholder="Search names and descriptions..."
-              autocomplete="off"
-              spellcheck="false"
-            >
-            <p id="package-search-summary" class="muted catalog-search-summary">
-              Search by package name or description.
-            </p>
           </div>
         </div>
         <div id="package-list" class="package-list">
@@ -193,4 +202,3 @@
     <script type="module" src="/app.js"></script>
   </body>
 </html>
-

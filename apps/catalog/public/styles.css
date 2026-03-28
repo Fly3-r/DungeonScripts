@@ -137,8 +137,12 @@ a {
   align-items: end;
 }
 
+.search-panel .panel-header {
+  margin-bottom: 14px;
+}
+
 .catalog-search {
-  width: min(360px, 100%);
+  width: 100%;
 }
 
 .catalog-search-label {
@@ -173,7 +177,6 @@ a {
 
 .catalog-search-summary {
   margin: 8px 0 0;
-  text-align: right;
 }
 
 .panel-actions {
@@ -772,10 +775,6 @@ body.preview-modal-open {
   .catalog-search {
     width: 100%;
     margin-top: 14px;
-  }
-
-  .catalog-search-summary {
-    text-align: left;
   }
 
   .package-card,
