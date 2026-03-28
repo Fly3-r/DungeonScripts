@@ -1,13 +1,34 @@
 (async () => {
   try {
+    const FIREBASE_WAIT_MS = 15000;
+    const FIREBASE_POLL_MS = 500;
+
+    const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    const waitForFreshFirebaseToken = async () => {
+      const deadline = Date.now() + FIREBASE_WAIT_MS;
+
+      while (Date.now() < deadline) {
+        if (typeof firebase !== "undefined" && firebase.auth) {
+          try {
+            const user = firebase.auth().currentUser;
+            if (user) {
+              return await user.getIdToken(true);
+            }
+          } catch {
+            // Keep polling until Firebase settles or the timeout expires.
+          }
+        }
+
+        await delay(FIREBASE_POLL_MS);
+      }
+
+      return null;
+    };
+
     let token = null;
 
-    if (typeof firebase !== "undefined" && firebase.auth) {
-      const user = firebase.auth().currentUser;
-      if (user) {
-        token = await user.getIdToken(true);
-      }
-    }
+    token = await waitForFreshFirebaseToken();
 
     if (!token) {
       try {

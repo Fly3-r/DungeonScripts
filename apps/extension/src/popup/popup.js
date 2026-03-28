@@ -1,4 +1,5 @@
 import {
+  DEFAULT_CATALOG_ORIGIN,
   MESSAGE_TYPES,
   REQUIRED_HOST_PATTERNS,
   SUPPORTED_AID_PAGE_ORIGINS,
@@ -24,6 +25,7 @@ const elements = {
   editorState: document.getElementById("editor-state"),
   rootShortId: document.getElementById("root-short-id"),
   scenarioAccess: document.getElementById("scenario-access"),
+  scenarioError: document.getElementById("scenario-error"),
   scenarioTitle: document.getElementById("scenario-title"),
   leafCount: document.getElementById("leaf-count"),
   scenarioUpdatedAt: document.getElementById("scenario-updated-at"),
@@ -302,11 +304,14 @@ const loadStatus = async () => {
     settings
   } = response;
 
-  elements.catalogOriginDisplay.textContent = settings.catalogOrigin;
-  elements.catalogOriginInput.value = settings.catalogOrigin;
+  const catalogOrigin = settings?.catalogOrigin || DEFAULT_CATALOG_ORIGIN;
+
+  elements.catalogOriginDisplay.textContent = catalogOrigin;
+  elements.catalogOriginInput.value = catalogOrigin;
   elements.authState.textContent = authState?.hasToken ? "Active" : "Missing";
   elements.authUpdatedAt.textContent = formatTimestamp(authState?.updatedAt);
   elements.scenarioAccess.textContent = describeScenarioAccess(scenarioState);
+  elements.scenarioError.textContent = scenarioState?.error || "None";
   elements.scenarioTitle.textContent = scenarioState?.rootTitle || "Unknown";
   elements.leafCount.textContent = Number.isInteger(scenarioState?.leafCount)
     ? String(scenarioState.leafCount)
