@@ -1,4 +1,7 @@
 import {
+  extensionApi
+} from "../shared/webextension-api.js";
+import {
   enqueueTelemetryQueueEntry,
   loadTelemetryQueue,
   loadTelemetryTestMode,
@@ -14,6 +17,11 @@ const TELEMETRY_TEST_MODE = {
   failNext: "fail_next",
   failAlways: "fail_always"
 };
+
+const isFirefoxBuild = () =>
+  !!extensionApi.runtime.getManifest()?.browser_specific_settings?.gecko;
+
+const isTelemetryEnabled = () => !isFirefoxBuild();
 
 const normalizeErrorMessage = (error) =>
   String(error?.message || error || "Unknown telemetry delivery error.").slice(0, MAX_LAST_ERROR_LENGTH);
@@ -100,6 +108,7 @@ export const getTelemetryStatus = async () => {
   const [queue, testMode] = await Promise.all([loadTelemetryQueue(), loadTelemetryTestMode()]);
 
   return {
+    enabled: isTelemetryEnabled(),
     testMode,
     pendingCount: queue.length,
     entries: queue.map(buildPublicQueueEntry)
@@ -107,6 +116,15 @@ export const getTelemetryStatus = async () => {
 };
 
 export const flushTelemetryQueue = async (catalogOrigin, { force = false } = {}) => {
+  if (!isTelemetryEnabled()) {
+    return {
+      sentCount: 0,
+      pendingCount: 0,
+      deliveryFailed: false,
+      testMode: await loadTelemetryTestMode()
+    };
+  }
+
   const queue = await loadTelemetryQueue();
   if (queue.length === 0) {
     return {
@@ -165,6 +183,15 @@ export const flushTelemetryQueue = async (catalogOrigin, { force = false } = {})
 };
 
 export const recordInstallSuccess = async (catalogOrigin, event) => {
+  if (!isTelemetryEnabled()) {
+    return {
+      sentCount: 0,
+      pendingCount: 0,
+      deliveryFailed: false,
+      testMode: await loadTelemetryTestMode()
+    };
+  }
+
   await enqueueTelemetryQueueEntry(buildQueueEntry(event));
   return flushTelemetryQueue(catalogOrigin);
 };

@@ -212,7 +212,7 @@ const renderFilteredPackages = () => {
   const filteredPackages = filterPackages(allPackages, rawQuery);
 
   if (!normalizeSearchText(rawQuery)) {
-    setSearchSummary(`Showing ${allPackages.length} package(s). Search by package name or description.`);
+    setSearchSummary("Search by package name or description.");
     renderPackages(allPackages);
     return;
   }
