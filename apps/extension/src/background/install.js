@@ -105,6 +105,24 @@ export const resolveInstallTargets = (scenarioState, targetShortIds = null) => {
   return allTargets.filter((target) => selectedTargetIds.has(target.shortId));
 };
 
+export const resolveRestoreTargets = (restorePoint, targetShortIds = null) => {
+  const allTargets = getRestoreTargets(restorePoint);
+
+  if (!Array.isArray(targetShortIds)) {
+    return allTargets;
+  }
+
+  const selectedTargetIds = new Set(
+    targetShortIds.filter((targetShortId) => typeof targetShortId === "string" && targetShortId)
+  );
+
+  if (selectedTargetIds.size === 0) {
+    return [];
+  }
+
+  return allTargets.filter((target) => selectedTargetIds.has(target.shortId));
+};
+
 export const createInstallPreview = async ({ token, origin, scenarioState, pkg, targets }) => {
   const snapshots = await loadTargetSnapshots({ token, origin, scenarioState, targets });
 
@@ -183,12 +201,12 @@ export const installPackageToTargets = async ({ token, origin, targets, pkg }) =
   return { appliedCount };
 };
 
-export const restoreFromPoint = async ({ token, restorePoint }) => {
+export const restoreFromPoint = async ({ token, restorePoint, targets = null }) => {
   const url = getAidGraphqlUrl(restorePoint.origin);
-  const targets = getRestoreTargets(restorePoint);
+  const restoreTargets = Array.isArray(targets) ? targets : getRestoreTargets(restorePoint);
   let restoredCount = 0;
 
-  for (const target of targets) {
+  for (const target of restoreTargets) {
     const enableResult = await updateScenario(url, token, {
       shortId: target.shortId,
       scriptsEnabled: true

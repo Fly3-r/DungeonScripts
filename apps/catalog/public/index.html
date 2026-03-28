@@ -125,6 +125,38 @@
         </div>
       </section>
 
+      <section class="preview-modal install-modal" data-oneclick-rollback-modal hidden aria-hidden="true">
+        <div class="preview-modal-backdrop" data-oneclick-rollback-close></div>
+        <div class="preview-modal-dialog install-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="rollback-modal-title">
+          <div class="preview-modal-header">
+            <div>
+              <p class="eyebrow">Rollback Selection</p>
+              <h2 id="rollback-modal-title">Rollback Package</h2>
+            </div>
+            <button type="button" class="action-button secondary" data-oneclick-rollback-close>
+              Cancel
+            </button>
+          </div>
+          <p id="rollback-modal-summary" class="muted preview-modal-summary">
+            Choose which scenario targets to restore.
+          </p>
+          <div class="install-modal-toolbar">
+            <p id="rollback-modal-selection-summary" class="install-selection-summary muted">
+              Loading rollback targets...
+            </p>
+          </div>
+          <div id="rollback-modal-body" class="preview-modal-body install-modal-body"></div>
+          <div class="install-modal-footer">
+            <button type="button" class="action-button secondary" data-oneclick-rollback-close>
+              Cancel
+            </button>
+            <button type="button" class="action-button danger" data-oneclick-rollback-confirm>
+              Rollback Selected
+            </button>
+          </div>
+        </div>
+      </section>
+
             <footer class="site-footer">
         <div class="site-footer-inner">
           <div class="site-footer-links">
@@ -148,6 +180,5 @@
     <script type="module" src="/app.js"></script>
   </body>
 </html>
-
 
 

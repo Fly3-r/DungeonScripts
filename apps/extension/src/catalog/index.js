@@ -30,7 +30,15 @@ const SELECTORS = {
   installSelectionSummary: "#install-modal-selection-summary",
   installBody: "#install-modal-body",
   installConfirm: "[data-oneclick-install-confirm]",
-  installTargetCheckbox: "[data-oneclick-target-checkbox]"
+  installTargetCheckbox: "[data-oneclick-target-checkbox]",
+  rollbackModal: "[data-oneclick-rollback-modal]",
+  rollbackModalClose: "[data-oneclick-rollback-close]",
+  rollbackTitle: "#rollback-modal-title",
+  rollbackSummary: "#rollback-modal-summary",
+  rollbackSelectionSummary: "#rollback-modal-selection-summary",
+  rollbackBody: "#rollback-modal-body",
+  rollbackConfirm: "[data-oneclick-rollback-confirm]",
+  rollbackTargetCheckbox: "[data-oneclick-rollback-target-checkbox]"
 };
 
 const SCRIPT_FIELDS = [
@@ -50,6 +58,7 @@ if (!globalThis[BRIDGE_FLAG]) {
   let transientNotice = "Checking extension status...";
   let currentAction = null;
   let currentInstallDraft = null;
+  let currentRollbackDraft = null;
 
   const getPageCatalogOrigin = () => window.location.origin;
 
@@ -93,6 +102,15 @@ if (!globalThis[BRIDGE_FLAG]) {
     confirm: document.querySelector(SELECTORS.installConfirm)
   });
 
+  const getRollbackModalElements = () => ({
+    modal: document.querySelector(SELECTORS.rollbackModal),
+    title: document.querySelector(SELECTORS.rollbackTitle),
+    summary: document.querySelector(SELECTORS.rollbackSummary),
+    selectionSummary: document.querySelector(SELECTORS.rollbackSelectionSummary),
+    body: document.querySelector(SELECTORS.rollbackBody),
+    confirm: document.querySelector(SELECTORS.rollbackConfirm)
+  });
+
   const getScenarioTargets = (scenarioState) => {
     const targets = [];
     const seen = new Set();
@@ -112,6 +130,26 @@ if (!globalThis[BRIDGE_FLAG]) {
     addTarget(scenarioState?.rootShortId, scenarioState?.rootTitle, true);
     for (const leaf of scenarioState?.leaves || []) {
       addTarget(leaf.shortId, leaf.title, false);
+    }
+
+    return targets;
+  };
+
+  const getRestorePointTargets = (restorePoint) => {
+    const targets = [];
+    const seen = new Set();
+
+    for (const target of restorePoint?.targets || []) {
+      if (!target?.shortId || seen.has(target.shortId)) {
+        continue;
+      }
+
+      seen.add(target.shortId);
+      targets.push({
+        shortId: target.shortId,
+        title: target.title || "Untitled",
+        isRoot: !!target.isRoot
+      });
     }
 
     return targets;
@@ -458,8 +496,11 @@ if (!globalThis[BRIDGE_FLAG]) {
   const syncModalBodyLock = () => {
     const previewModal = document.querySelector(SELECTORS.previewModal);
     const installModal = document.querySelector(SELECTORS.installModal);
+    const rollbackModal = document.querySelector(SELECTORS.rollbackModal);
     const hasOpenModal =
-      (previewModal && !previewModal.hidden) || (installModal && !installModal.hidden);
+      (previewModal && !previewModal.hidden) ||
+      (installModal && !installModal.hidden) ||
+      (rollbackModal && !rollbackModal.hidden);
 
     document.body.classList.toggle("preview-modal-open", !!hasOpenModal);
   };
@@ -529,6 +570,25 @@ if (!globalThis[BRIDGE_FLAG]) {
     return currentInstallDraft.targets.filter((target) => selectedTargetIds.has(target.shortId));
   };
 
+  const getSelectedRollbackTargets = () => {
+    if (!currentRollbackDraft) {
+      return [];
+    }
+
+    const { body } = getRollbackModalElements();
+    if (!body) {
+      return [];
+    }
+
+    const selectedTargetIds = new Set(
+      Array.from(body.querySelectorAll(SELECTORS.rollbackTargetCheckbox))
+        .filter((checkbox) => checkbox.checked)
+        .map((checkbox) => checkbox.dataset.targetShortId)
+    );
+
+    return currentRollbackDraft.targets.filter((target) => selectedTargetIds.has(target.shortId));
+  };
+
   const syncInstallModalSelection = () => {
     const { selectionSummary, confirm } = getInstallModalElements();
     const selectedTargets = getSelectedInstallTargets();
@@ -554,14 +614,39 @@ if (!globalThis[BRIDGE_FLAG]) {
     }
   };
 
-  const createInstallTargetRow = (target) => {
+  const syncRollbackModalSelection = () => {
+    const { selectionSummary, confirm } = getRollbackModalElements();
+    const selectedTargets = getSelectedRollbackTargets();
+    const selectedLeafCount = countLeafTargets(selectedTargets);
+    const isRollingBack = currentAction?.type === "rollback";
+
+    if (selectionSummary) {
+      if (selectedTargets.length === 0) {
+        selectionSummary.textContent =
+          "Select at least one root or playable leaf before rolling back.";
+      } else {
+        selectionSummary.textContent =
+          `Selected ${describeTargetCount(selectedTargets.length, selectedLeafCount)}. ` +
+          "Each target starts checked so you can keep any branch changes you want to preserve.";
+      }
+    }
+
+    if (confirm) {
+      confirm.disabled = selectedTargets.length === 0 || isRollingBack;
+      confirm.textContent = isRollingBack
+        ? "Rolling Back..."
+        : `Rollback Selected (${selectedTargets.length})`;
+    }
+  };
+
+  const createTargetSelectionRow = (target, checkboxDatasetKey) => {
     const row = document.createElement("label");
     row.className = "install-target-row";
 
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.className = "install-target-checkbox";
-    checkbox.dataset.oneclickTargetCheckbox = "true";
+    checkbox.dataset[checkboxDatasetKey] = "true";
     checkbox.dataset.targetShortId = target.shortId;
     checkbox.checked = true;
 
@@ -583,6 +668,11 @@ if (!globalThis[BRIDGE_FLAG]) {
     row.append(checkbox, copy);
     return row;
   };
+
+  const createInstallTargetRow = (target) => createTargetSelectionRow(target, "oneclickTargetCheckbox");
+
+  const createRollbackTargetRow = (target) =>
+    createTargetSelectionRow(target, "oneclickRollbackTargetCheckbox");
 
   const renderInstallModal = (draft) => {
     const { body, summary, title } = getInstallModalElements();
@@ -627,6 +717,53 @@ if (!globalThis[BRIDGE_FLAG]) {
     currentInstallDraft = null;
 
     const { modal } = getInstallModalElements();
+    setModalVisibility(modal, false);
+    updateActionButtons();
+  };
+
+  const renderRollbackModal = (draft) => {
+    const { body, summary, title } = getRollbackModalElements();
+    if (!body || !summary || !title) {
+      return;
+    }
+
+    title.textContent = `Rollback ${draft.packageName}`;
+    summary.textContent =
+      `Choose which scenario targets to restore for ${draft.scenarioLabel}. ` +
+      "Each target starts checked by default.";
+
+    body.innerHTML = "";
+
+    if (draft.targets.length === 0) {
+      body.append(createEmptyPreviewState("No restore targets are available for this rollback."));
+      syncRollbackModalSelection();
+      return;
+    }
+
+    const list = document.createElement("div");
+    list.className = "install-target-list";
+
+    for (const target of draft.targets) {
+      list.append(createRollbackTargetRow(target));
+    }
+
+    body.append(list);
+    syncRollbackModalSelection();
+  };
+
+  const openRollbackModal = (draft) => {
+    currentRollbackDraft = draft;
+    renderRollbackModal(draft);
+
+    const { modal } = getRollbackModalElements();
+    setModalVisibility(modal, true);
+    updateActionButtons();
+  };
+
+  const closeRollbackModal = () => {
+    currentRollbackDraft = null;
+
+    const { modal } = getRollbackModalElements();
     setModalVisibility(modal, false);
     updateActionButtons();
   };
@@ -702,7 +839,9 @@ if (!globalThis[BRIDGE_FLAG]) {
       latestStatus?.installState?.status === "rolling_back";
     const isPreviewing = currentAction?.type === "preview";
     const isInstallModalOpen = !!currentInstallDraft;
-    const shouldDisableActions = isBusy || isPreviewing || isInstallModalOpen;
+    const isRollbackModalOpen = !!currentRollbackDraft;
+    const shouldDisableActions =
+      isBusy || isPreviewing || isInstallModalOpen || isRollbackModalOpen;
 
     if (installExtensionButton) {
       installExtensionButton.hidden = true;
@@ -744,6 +883,7 @@ if (!globalThis[BRIDGE_FLAG]) {
     }
 
     syncInstallModalSelection();
+    syncRollbackModalSelection();
   };
 
   const refreshExtensionState = async () => {
@@ -882,6 +1022,55 @@ if (!globalThis[BRIDGE_FLAG]) {
     }
   };
 
+  const confirmRollbackFromModal = async () => {
+    if (!currentRollbackDraft) {
+      return;
+    }
+
+    const draft = currentRollbackDraft;
+    const selectedTargets = getSelectedRollbackTargets();
+    if (selectedTargets.length === 0) {
+      syncRollbackModalSelection();
+      return;
+    }
+
+    const selectedTargetIds = selectedTargets.map((target) => target.shortId);
+    const targetSummary = describeTargetCount(
+      selectedTargets.length,
+      countLeafTargets(selectedTargets)
+    );
+
+    closeRollbackModal();
+    currentAction = {
+      type: "rollback",
+      packageId: draft.packageId
+    };
+    transientNotice =
+      `Rolling back ${draft.packageLabel} on ${targetSummary} under ${draft.scenarioLabel}...`;
+    updateStatusPanel();
+    updateActionButtons();
+
+    try {
+      const response = await extensionApi.runtime.sendMessage({
+        type: MESSAGE_TYPES.ROLLBACK_LATEST,
+        targetShortIds: selectedTargetIds
+      });
+
+      if (!response?.ok) {
+        throw new Error(response?.error || "Rollback failed.");
+      }
+
+      transientNotice =
+        `Rollback complete. Restored ${describeTargetCount(response.installState?.appliedCount || 0)} ` +
+        `for ${draft.packageLabel}.`;
+    } catch (error) {
+      transientNotice = error.message;
+    } finally {
+      currentAction = null;
+      await refreshExtensionState();
+    }
+  };
+
   const rollbackPackageFromPage = async (button) => {
     const restorePoint = getMatchingRestorePoint(button.dataset.packageId);
     if (!restorePoint) {
@@ -905,38 +1094,27 @@ if (!globalThis[BRIDGE_FLAG]) {
       restorePoint.leafCount
     );
 
-    const confirmed = window.confirm(
-      `Rollback ${packageLabel} on ${scenarioLabel}? This will restore ${targetSummary} to their saved pre-install state.`
-    );
-
-    if (!confirmed) {
+    const targets = getRestorePointTargets(restorePoint);
+    if (targets.length === 0) {
+      transientNotice = "No restore targets are available for this rollback.";
+      updateStatusPanel();
+      updateActionButtons();
       return;
     }
 
-    currentAction = {
-      type: "rollback",
-      packageId: restorePoint.packageId
-    };
-    transientNotice = `Rolling back ${packageLabel} on ${scenarioLabel}...`;
+    openRollbackModal({
+      packageId: restorePoint.packageId,
+      packageLabel,
+      packageName: restorePoint.packageName || button.dataset.packageName || restorePoint.packageId,
+      scenarioLabel,
+      targetSummary,
+      targets
+    });
+
+    transientNotice =
+      `Choose which scenario targets to restore for ${packageLabel} on ${scenarioLabel}. ` +
+      `Latest restore point covers ${targetSummary}.`;
     updateStatusPanel();
-    updateActionButtons();
-
-    try {
-      const response = await extensionApi.runtime.sendMessage({
-        type: MESSAGE_TYPES.ROLLBACK_LATEST
-      });
-
-      if (!response?.ok) {
-        throw new Error(response?.error || "Rollback failed.");
-      }
-
-      transientNotice = `Rollback complete. Restored ${describeTargetCount(response.installState?.appliedCount || 0)} for ${packageLabel}.`;
-    } catch (error) {
-      transientNotice = error.message;
-    } finally {
-      currentAction = null;
-      await refreshExtensionState();
-    }
   };
 
   document.addEventListener("click", (event) => {
@@ -952,10 +1130,23 @@ if (!globalThis[BRIDGE_FLAG]) {
       return;
     }
 
+    const rollbackCloseTarget = event.target.closest(SELECTORS.rollbackModalClose);
+    if (rollbackCloseTarget) {
+      closeRollbackModal();
+      return;
+    }
+
     const installConfirmButton = event.target.closest(SELECTORS.installConfirm);
     if (installConfirmButton) {
       event.preventDefault();
       confirmInstallFromModal();
+      return;
+    }
+
+    const rollbackConfirmButton = event.target.closest(SELECTORS.rollbackConfirm);
+    if (rollbackConfirmButton) {
+      event.preventDefault();
+      confirmRollbackFromModal();
       return;
     }
 
@@ -1028,12 +1219,18 @@ if (!globalThis[BRIDGE_FLAG]) {
   document.addEventListener("change", (event) => {
     if (event.target.closest(SELECTORS.installTargetCheckbox)) {
       syncInstallModalSelection();
+      return;
+    }
+
+    if (event.target.closest(SELECTORS.rollbackTargetCheckbox)) {
+      syncRollbackModalSelection();
     }
   });
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       closePreviewModal();
       closeInstallModal();
+      closeRollbackModal();
     }
   });
   window.addEventListener("focus", refreshExtensionState);

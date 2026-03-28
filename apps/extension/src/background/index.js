@@ -28,6 +28,7 @@ import {
   createRestorePoint,
   installPackageToTargets,
   resolveInstallTargets,
+  resolveRestoreTargets,
   restoreFromPoint
 } from "./install.js";
 import { flushTelemetryQueue, getTelemetryStatus, recordInstallSuccess } from "./telemetry.js";
@@ -114,7 +115,14 @@ const toPublicRestorePoint = (restorePoint) => {
     packageName: restorePoint.packageName,
     packageVersion: restorePoint.packageVersion,
     leafCount: restorePoint.leafCount,
-    targetCount: restorePoint.targetCount ?? restorePoint.leafCount
+    targetCount: restorePoint.targetCount ?? restorePoint.leafCount,
+    targets: Array.isArray(restorePoint.targets)
+      ? restorePoint.targets.map((target) => ({
+          shortId: target.shortId,
+          title: target.title || "Untitled",
+          isRoot: target.shortId === restorePoint.rootShortId
+        }))
+      : []
   };
 };
 
@@ -494,7 +502,7 @@ const installSelectedPackage = async (
   }
 };
 
-const rollbackLatestInstall = async () => {
+const rollbackLatestInstall = async (targetShortIds = null) => {
   const [authState, installState, latestRestorePoint] = await Promise.all([
     loadAuthState(),
     loadInstallState(),
@@ -513,6 +521,11 @@ const rollbackLatestInstall = async () => {
     throw new Error("No restore point is available yet.");
   }
 
+  const restoreTargets = resolveRestoreTargets(latestRestorePoint, targetShortIds);
+  if (restoreTargets.length === 0) {
+    throw new Error("Select at least one scenario target before rolling back.");
+  }
+
   await saveInstallState(
     buildInstallState({
       status: "rolling_back",
@@ -528,7 +541,8 @@ const rollbackLatestInstall = async () => {
   try {
     const result = await restoreFromPoint({
       token: authState.token,
-      restorePoint: latestRestorePoint
+      restorePoint: latestRestorePoint,
+      targets: restoreTargets
     });
 
     const nextInstallState = buildInstallState({
@@ -676,7 +690,7 @@ extensionApi.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message?.type === MESSAGE_TYPES.ROLLBACK_LATEST) {
-    rollbackLatestInstall()
+    rollbackLatestInstall(message.targetShortIds)
       .then((payload) => sendResponse({ ok: true, ...payload }))
       .catch((error) => sendResponse({ ok: false, error: error.message }));
     return true;
