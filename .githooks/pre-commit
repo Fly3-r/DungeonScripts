@@ -1,2 +1,9 @@
-#!/bin/sh
-node ./apps/extension/scripts/sync-firefox-release.mjs --if-staged-extension-change --stage || exit $?
+#!C:/Progra~1/nodejs/node.exe
+import { spawnSync } from "node:child_process";
+
+const result = spawnSync(process.execPath, ["./apps/extension/scripts/sync-firefox-release.mjs"], {
+  cwd: process.cwd(),
+  stdio: "inherit"
+});
+
+process.exit(result.status ?? 1);

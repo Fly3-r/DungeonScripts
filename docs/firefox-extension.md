@@ -49,4 +49,4 @@ Run this once in your local clone to enable the tracked pre-commit hook:
 npm run hooks:install
 ```
 
-After that, commits with staged `apps/extension/*` changes will automatically refresh and stage the matching `apps/firefox-<version>` release folder before the commit completes.
+After that, each local commit will automatically refresh the matching `apps/firefox-<version>` release folder before the commit completes.

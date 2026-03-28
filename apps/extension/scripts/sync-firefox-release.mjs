@@ -7,6 +7,7 @@ import { buildExtensionTarget } from "./build-dist.mjs";
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..", "..", "..");
 const appsDir = path.join(repoRoot, "apps");
+const gitExecutable = process.env.GIT_EXECUTABLE || "C:\\Program Files\\Git\\cmd\\git.exe";
 const RM_OPTIONS = {
   recursive: true,
   force: true,
@@ -19,7 +20,7 @@ const shouldCheckStagedChanges = args.has("--if-staged-extension-change");
 const shouldStageArtifact = args.has("--stage");
 
 const getStagedFiles = () => {
-  const output = execFileSync("git", ["diff", "--cached", "--name-only"], {
+  const output = execFileSync(gitExecutable, ["diff", "--cached", "--name-only"], {
     cwd: repoRoot,
     encoding: "utf8"
   });
@@ -52,7 +53,7 @@ await mkdir(releaseDir, { recursive: true });
 await cp(targetDir, releaseDir, { recursive: true });
 
 if (shouldStageArtifact) {
-  execFileSync("git", ["add", "--all", path.relative(repoRoot, releaseDir)], {
+  execFileSync(gitExecutable, ["add", "--all", path.relative(repoRoot, releaseDir)], {
     cwd: repoRoot,
     stdio: "inherit"
   });

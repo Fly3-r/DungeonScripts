@@ -52,7 +52,7 @@ More Firefox notes live in [firefox-extension.md](docs/firefox-extension.md).
 
 - After installing or reinstalling the extension, it may be necessary to reload the AI Dungeon scenario edit page.
 - The current automated regression harness is still Chrome-based. Firefox desktop is supported through the shared runtime plus the Firefox-specific build manifest.
-- Run `npm run hooks:install` once in a local clone to enable the pre-commit hook that refreshes `apps/firefox-<version>` whenever extension files are committed.
+- Run `npm run hooks:install` once in a local clone to enable the pre-commit hook that refreshes `apps/firefox-<version>` before each local commit.
 
 ## For Script Makers
 
