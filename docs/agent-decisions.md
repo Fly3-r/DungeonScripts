@@ -422,3 +422,45 @@ The existing root README content is moved into docs/overview.md, and the new roo
 
 Reason:
 The request was a documentation restructure rather than a content deletion. Preserving the previous material under docs/overview.md keeps technical context available without overloading the main landing page.
+
+## 2026-03-28
+
+### Keep Firefox support in the shared extension runtime instead of a second source tree
+
+Decision:
+Firefox support is implemented through shared extension code, a WebExtension API adapter, and target-specific manifests/build outputs rather than by creating a separate Firefox-only source tree.
+
+Reason:
+Chrome behavior is still the reference feature set. Sharing the runtime keeps the two desktop browsers aligned and leaves a cleaner path for a later Firefox Android target.
+
+### Treat the packaged Firefox ZIP as the primary local validation artifact
+
+Decision:
+Local Firefox testing should use `apps/firefox-<version>.zip` through `about:debugging`, while the matching `.xpi` remains the package intended for signing and later distribution.
+
+Reason:
+The ZIP-based temporary add-on path was the reliable local validation flow during Firefox bring-up, while the XPI format still matches the eventual AMO/distribution workflow.
+
+### Move catalog-bridge activation onto manifest-declared content scripts for supported origins
+
+Decision:
+The catalog bridge is now declared in the browser manifests for the supported catalog origins, with popup-origin changes refreshing matching tabs instead of relying only on ad hoc reinjection.
+
+Reason:
+The runtime-only injection path was too fragile when switching between the public catalog and local loopback origins. Manifest registration makes bridge attachment more predictable.
+
+### Keep Firefox packaging fixes isolated to the Firefox target assets
+
+Decision:
+Firefox-specific packaging fixes such as background bootstrapping, normalized archive paths, loopback-safe permission patterns, and AMO-facing manifest fields should be handled in the Firefox manifest/build path rather than by reshaping shared product behavior.
+
+Reason:
+Those issues were specific to how Firefox loads, validates, and reviews the package. Keeping them in the target-specific path avoids unnecessary churn in the shared extension logic.
+
+### Refresh the decision logs when product behavior or workflow materially changes
+
+Decision:
+Meaningful changes to supported targets, install/rollback UX, packaging/distribution behavior, or catalog-extension interaction should update `docs/agent-decisions.md` and/or `docs/design-decisions.md` as part of the same implementation pass.
+
+Reason:
+The recent Firefox and catalog work moved faster than the written project history. Treating decision-log updates as part of the finished change keeps the docs useful as operational memory.

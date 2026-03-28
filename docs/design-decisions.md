@@ -455,3 +455,61 @@ The root README should be a concise project overview and onboarding guide, while
 
 Reason:
 New users need a clearer entry point focused on what DungeonScripts is, how to install it, how to get started, and where script makers should look next.
+
+## 2026-03-28
+
+### Support Firefox desktop as a first-class extension target
+
+Decision:
+DungeonScripts should support Firefox desktop alongside Chrome while preserving the same core workflow: detect the active AI Dungeon scenario edit page, read the current scenario tree, preview package changes, install to selected targets, and roll back the latest restore point.
+
+Reason:
+The product value is the install workflow itself, not a Chrome-only implementation. Supporting Firefox desktop broadens reach without changing the intended feature contract.
+
+### Treat Firefox Android as a follow-on packaging and validation step, not a parallel rewrite
+
+Decision:
+Firefox Android remains future work and should build on the same shared runtime after the desktop Firefox path is validated, rather than introducing a separate mobile-focused code path now.
+
+Reason:
+Desktop Firefox removed the main browser-compatibility uncertainty. Keeping Android as a later packaging and UX validation step avoids opening a second unstable target during the current release cycle.
+
+### Require explicit Firefox site access for AI Dungeon and catalog origins
+
+Decision:
+On Firefox, the add-on should request the supported AI Dungeon and catalog origins through the popup so the user can explicitly grant the site access needed for scenario discovery, catalog loading, preview, install, and rollback.
+
+Reason:
+Firefox permission behavior is more user-visible during the add-on flow. Making site access explicit keeps the connection state understandable and avoids silently failing catalog or scenario reads.
+
+### Support both the production catalog and loopback development catalogs through one bridge contract
+
+Decision:
+The extension bridge should work against `https://dungeonscripts.com` by default and also support `http://127.0.0.1:3000` and `http://localhost:3000` for development, with Firefox-safe loopback permission patterns that do not encode the port in match rules.
+
+Reason:
+Normal users should land on the hosted catalog with no setup changes, while local catalog development needs to remain easy. Firefox's loopback pattern rules require the permission model to be slightly broader than the stored development origin.
+
+### Replace rollback confirm dialogs with the same modal-style target selection used for install
+
+Decision:
+Rollback from the catalog page should use an in-page modal with root and leaf checkboxes, mirroring the install confirmation style instead of relying on the browser's `confirm()` dialog.
+
+Reason:
+Rollback now has target scope that matters to the user. A modal can explain the scope clearly and keep the install and rollback experiences visually consistent.
+
+### Use a simple client-side catalog search in its own panel
+
+Decision:
+The catalog homepage should expose a local, no-server search panel above the package list, searching package `name` and `description` fields while prioritizing name matches and only showing the match summary once the user has entered a search term.
+
+Reason:
+The catalog is small enough for client-side filtering, and the previous helper text was a poor use of the header space. A dedicated search panel improves browseability without adding server complexity.
+
+### Disable telemetry in the Firefox build and declare no data collection
+
+Decision:
+The Firefox build should disable install telemetry and declare `data_collection_permissions` as `none` in the Firefox manifest.
+
+Reason:
+That keeps the Firefox package aligned with AMO review expectations and the current Firefox release posture without changing the Chrome-side telemetry design.
