@@ -67,7 +67,20 @@
             <p class="eyebrow">Catalog</p>
             <h2>Available Packages</h2>
           </div>
-          <p class="muted">Browse the list of available scripts below.</p>
+          <div class="catalog-search">
+            <label class="catalog-search-label" for="package-search">Search</label>
+            <input
+              id="package-search"
+              class="catalog-search-input"
+              type="search"
+              placeholder="Search names and descriptions..."
+              autocomplete="off"
+              spellcheck="false"
+            >
+            <p id="package-search-summary" class="muted catalog-search-summary">
+              Search by package name or description.
+            </p>
+          </div>
         </div>
         <div id="package-list" class="package-list">
           <p class="muted">Loading packages...</p>
@@ -180,5 +193,4 @@
     <script type="module" src="/app.js"></script>
   </body>
 </html>
-
 

@@ -1,5 +1,17 @@
 const FALLBACK_THUMBNAIL_URL = "/assets/thumbnail-placeholder.svg";
 const packageList = document.getElementById("package-list");
+const packageSearch = document.getElementById("package-search");
+const packageSearchSummary = document.getElementById("package-search-summary");
+
+let allPackages = [];
+
+const normalizeSearchText = (value) => String(value || "").trim().toLowerCase();
+
+const setSearchSummary = (message) => {
+  if (packageSearchSummary) {
+    packageSearchSummary.textContent = message;
+  }
+};
 
 const createStat = (label, value) => {
   const wrapper = document.createElement("div");
@@ -47,6 +59,64 @@ const createAuthorValue = (pkg) => {
   link.rel = "noreferrer noopener";
   link.textContent = pkg.author || pkg.authorProfileUrl;
   return link;
+};
+
+const getPackageSearchScore = (pkg, query) => {
+  if (!query) {
+    return 0;
+  }
+
+  const normalizedName = normalizeSearchText(pkg.name);
+  const normalizedDescription = normalizeSearchText(pkg.description);
+  const terms = query.split(/\s+/).filter(Boolean);
+  let score = 0;
+
+  if (normalizedName === query) {
+    score += 500;
+  } else if (normalizedName.startsWith(query)) {
+    score += 320;
+  } else if (normalizedName.includes(query)) {
+    score += 220;
+  }
+
+  if (normalizedDescription.includes(query)) {
+    score += 90;
+  }
+
+  for (const term of terms) {
+    if (normalizedName.includes(term)) {
+      score += 45;
+    }
+
+    if (normalizedDescription.includes(term)) {
+      score += 15;
+    }
+  }
+
+  return score;
+};
+
+const filterPackages = (packages, rawQuery) => {
+  const query = normalizeSearchText(rawQuery);
+  if (!query) {
+    return packages;
+  }
+
+  return packages
+    .map((pkg, index) => ({
+      pkg,
+      index,
+      score: getPackageSearchScore(pkg, query)
+    }))
+    .filter((entry) => entry.score > 0)
+    .sort((left, right) => {
+      if (right.score !== left.score) {
+        return right.score - left.score;
+      }
+
+      return left.index - right.index;
+    })
+    .map((entry) => entry.pkg);
 };
 
 const renderPackages = (packages) => {
@@ -137,6 +207,28 @@ const renderPackages = (packages) => {
   }
 };
 
+const renderFilteredPackages = () => {
+  const rawQuery = packageSearch?.value || "";
+  const filteredPackages = filterPackages(allPackages, rawQuery);
+
+  if (!normalizeSearchText(rawQuery)) {
+    setSearchSummary(`Showing ${allPackages.length} package(s). Search by package name or description.`);
+    renderPackages(allPackages);
+    return;
+  }
+
+  setSearchSummary(
+    `Showing ${filteredPackages.length} of ${allPackages.length} package(s) for "${rawQuery.trim()}".`
+  );
+
+  if (filteredPackages.length === 0) {
+    renderEmpty(`No packages match "${rawQuery.trim()}".`);
+    return;
+  }
+
+  renderPackages(filteredPackages);
+};
+
 const render = async () => {
   try {
     const response = await fetch("/api/v1/packages");
@@ -146,10 +238,16 @@ const render = async () => {
       throw new Error(data?.error || "Catalog response was invalid.");
     }
 
-    renderPackages(data.packages);
+    allPackages = Array.isArray(data.packages) ? data.packages : [];
+    renderFilteredPackages();
   } catch (error) {
     renderEmpty(`Failed to load packages: ${error.message}`);
+    setSearchSummary("Search is unavailable until the catalog packages finish loading.");
   }
 };
+
+packageSearch?.addEventListener("input", () => {
+  renderFilteredPackages();
+});
 
 render();
