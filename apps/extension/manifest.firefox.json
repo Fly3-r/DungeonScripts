@@ -8,6 +8,17 @@
     "tabs",
     "scripting"
   ],
+  "optional_permissions": [
+    "https://play.aidungeon.com/*",
+    "https://beta.aidungeon.com/*",
+    "https://alpha.aidungeon.com/*",
+    "https://api.aidungeon.com/*",
+    "https://api-beta.aidungeon.com/*",
+    "https://api-alpha.aidungeon.com/*",
+    "https://dungeonscripts.com/*",
+    "http://127.0.0.1:3000/*",
+    "http://localhost:3000/*"
+  ],
   "host_permissions": [
     "https://play.aidungeon.com/*",
     "https://beta.aidungeon.com/*",

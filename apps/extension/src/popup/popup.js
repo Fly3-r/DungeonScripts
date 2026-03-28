@@ -1,8 +1,16 @@
-﻿import { MESSAGE_TYPES } from "../shared/constants.js";
-
+import {
+  MESSAGE_TYPES,
+  REQUIRED_HOST_PATTERNS,
+  SUPPORTED_AID_PAGE_ORIGINS,
+  SUPPORTED_CATALOG_ORIGINS,
+  toOriginMatchPattern
+} from "../shared/constants.js";
 import { extensionApi } from "../shared/webextension-api.js";
 
 const STATUS_REFRESH_MS = 2000;
+const REQUIRED_SITE_ACCESS = {
+  origins: REQUIRED_HOST_PATTERNS
+};
 
 const state = {
   packages: [],
@@ -10,6 +18,7 @@ const state = {
 };
 
 const elements = {
+  siteAccessState: document.getElementById("site-access-state"),
   authState: document.getElementById("auth-state"),
   authUpdatedAt: document.getElementById("auth-updated-at"),
   editorState: document.getElementById("editor-state"),
@@ -25,12 +34,20 @@ const elements = {
   installState: document.getElementById("install-state"),
   latestRestorePoint: document.getElementById("latest-restore-point"),
   notice: document.getElementById("notice"),
+  grantSiteAccess: document.getElementById("grant-site-access"),
   saveOrigin: document.getElementById("save-origin"),
   openCatalog: document.getElementById("open-catalog"),
   refreshPackages: document.getElementById("refresh-packages"),
   installSelected: document.getElementById("install-selected"),
   rollbackLatest: document.getElementById("rollback-latest")
 };
+
+const canManageOptionalPermissions =
+  !!extensionApi.permissions?.contains && !!extensionApi.permissions?.request;
+
+const getAidTabPatterns = () => SUPPORTED_AID_PAGE_ORIGINS.map(toOriginMatchPattern);
+
+const getCatalogPatterns = () => SUPPORTED_CATALOG_ORIGINS.map(toOriginMatchPattern);
 
 const setNotice = (message) => {
   elements.notice.textContent = message;
@@ -121,7 +138,52 @@ const describeRestorePoint = (restorePoint) => {
   return `${packageLabel} ${restorePoint.packageVersion} on ${describeTargetCount(getRestoreTargetCount(restorePoint), restorePoint.leafCount)} at ${formatTimestamp(restorePoint.createdAt)}`;
 };
 
-const describeNotice = ({ authState, scenarioState, installState }) => {
+const describeSiteAccess = (hasSiteAccess) => {
+  if (hasSiteAccess) {
+    return "Granted";
+  }
+
+  if (!canManageOptionalPermissions) {
+    return "Unavailable";
+  }
+
+  return "Needs approval";
+};
+
+const updateSiteAccessUi = (hasSiteAccess) => {
+  elements.siteAccessState.textContent = describeSiteAccess(hasSiteAccess);
+  elements.grantSiteAccess.hidden = hasSiteAccess || !canManageOptionalPermissions;
+};
+
+const hasRequiredSiteAccess = async () => {
+  if (!canManageOptionalPermissions) {
+    return true;
+  }
+
+  return extensionApi.permissions.contains(REQUIRED_SITE_ACCESS);
+};
+
+const refreshConnectedTabs = async () => {
+  if (!extensionApi.tabs?.query || !extensionApi.tabs?.reload) {
+    return;
+  }
+
+  const tabs = await extensionApi.tabs.query({
+    url: [...getAidTabPatterns(), ...getCatalogPatterns()]
+  });
+
+  await Promise.all(
+    tabs
+      .filter((tab) => Number.isInteger(tab.id))
+      .map((tab) => extensionApi.tabs.reload(tab.id))
+  );
+};
+
+const describeNotice = ({ authState, scenarioState, installState, hasSiteAccess }) => {
+  if (!hasSiteAccess) {
+    return "Firefox still needs permission for AI Dungeon and the catalog origins.";
+  }
+
   switch (installState?.status) {
     case "loading":
       return `Installing ${installState.packageName || installState.packageId || "package"} to scenario targets...`;
@@ -192,24 +254,36 @@ const renderPackageMeta = () => {
   elements.packageMeta.textContent = `${selectedPackage.author} · ${selectedPackage.version} · ${description}`;
 };
 
-const updateActionAvailability = (response) => {
+const updateActionAvailability = (response, hasSiteAccess) => {
   const installState = response?.installState || { status: "idle" };
   const authState = response?.authState || { hasToken: false };
   const scenarioState = response?.scenarioState || { status: "idle", targetCount: 0, leafCount: 0 };
   const busy = installState.status === "loading" || installState.status === "rolling_back";
   const canInstall =
+    hasSiteAccess &&
     !busy &&
     authState.hasToken &&
     scenarioState.status === "ready" &&
     getScenarioTargetCount(scenarioState) > 0 &&
     !!elements.packageSelect.value;
 
-  elements.refreshPackages.disabled = busy;
+  elements.refreshPackages.disabled = busy || !hasSiteAccess;
   elements.installSelected.disabled = !canInstall;
-  elements.rollbackLatest.disabled = busy || !authState.hasToken || !response?.latestRestorePoint;
+  elements.rollbackLatest.disabled =
+    busy || !hasSiteAccess || !authState.hasToken || !response?.latestRestorePoint;
+};
+
+const reinitializeCatalogBridge = async (catalogOrigin) => {
+  await extensionApi.runtime.sendMessage({
+    type: MESSAGE_TYPES.SET_CATALOG_ORIGIN,
+    catalogOrigin
+  });
 };
 
 const loadStatus = async () => {
+  const hasSiteAccess = await hasRequiredSiteAccess();
+  updateSiteAccessUi(hasSiteAccess);
+
   const response = await extensionApi.runtime.sendMessage({
     type: MESSAGE_TYPES.GET_STATUS
   });
@@ -249,12 +323,22 @@ const loadStatus = async () => {
     elements.rootShortId.textContent = "None";
   }
 
-  updateActionAvailability(response);
-  setNotice(describeNotice({ authState, scenarioState, installState }));
+  updateActionAvailability(response, hasSiteAccess);
+  setNotice(describeNotice({ authState, scenarioState, installState, hasSiteAccess }));
   return response;
 };
 
 const loadPackages = async () => {
+  const hasSiteAccess = await hasRequiredSiteAccess();
+  updateSiteAccessUi(hasSiteAccess);
+
+  if (!hasSiteAccess) {
+    state.packages = [];
+    renderPackageOptions();
+    setNotice("Grant site access first so Firefox can reach AI Dungeon and the catalog.");
+    return null;
+  }
+
   const response = await extensionApi.runtime.sendMessage({
     type: MESSAGE_TYPES.GET_PACKAGES
   });
@@ -279,6 +363,31 @@ const loadPackages = async () => {
 elements.packageSelect.addEventListener("change", () => {
   state.selectedPackageId = elements.packageSelect.value;
   renderPackageMeta();
+});
+
+elements.grantSiteAccess.addEventListener("click", async () => {
+  if (!canManageOptionalPermissions) {
+    setNotice("This browser does not support runtime site permission requests here.");
+    return;
+  }
+
+  const granted = await extensionApi.permissions.request(REQUIRED_SITE_ACCESS);
+  if (!granted) {
+    updateSiteAccessUi(false);
+    setNotice("Site access was not granted.");
+    return;
+  }
+
+  const catalogOrigin =
+    elements.catalogOriginInput.value.trim() ||
+    elements.catalogOriginDisplay.textContent ||
+    SUPPORTED_CATALOG_ORIGINS[0];
+
+  updateSiteAccessUi(true);
+  await reinitializeCatalogBridge(catalogOrigin);
+  await refreshConnectedTabs();
+  await Promise.all([loadPackages(), loadStatus()]);
+  setNotice("Site access granted. Reloaded matching tabs so Firefox can attach the extension.");
 });
 
 elements.saveOrigin.addEventListener("click", async () => {
@@ -374,5 +483,3 @@ setInterval(() => {
     setNotice(error.message);
   });
 }, STATUS_REFRESH_MS);
-
-

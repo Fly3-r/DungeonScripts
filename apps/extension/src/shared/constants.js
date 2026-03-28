@@ -6,6 +6,26 @@ export const SUPPORTED_CATALOG_ORIGINS = [
   "http://localhost:3000"
 ];
 
+export const SUPPORTED_AID_PAGE_ORIGINS = [
+  "https://play.aidungeon.com",
+  "https://beta.aidungeon.com",
+  "https://alpha.aidungeon.com"
+];
+
+export const SUPPORTED_AID_API_ORIGINS = [
+  "https://api.aidungeon.com",
+  "https://api-beta.aidungeon.com",
+  "https://api-alpha.aidungeon.com"
+];
+
+export const toOriginMatchPattern = (origin) => `${origin}/*`;
+
+export const REQUIRED_HOST_PATTERNS = [
+  ...SUPPORTED_AID_PAGE_ORIGINS.map(toOriginMatchPattern),
+  ...SUPPORTED_AID_API_ORIGINS.map(toOriginMatchPattern),
+  ...SUPPORTED_CATALOG_ORIGINS.map(toOriginMatchPattern)
+];
+
 export const MESSAGE_TYPES = {
   EDITOR_CONTEXT: "EDITOR_CONTEXT",
   AUTH_TOKEN_UPDATE: "AUTH_TOKEN_UPDATE",
