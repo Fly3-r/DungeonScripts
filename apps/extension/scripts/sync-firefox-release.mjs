@@ -45,7 +45,25 @@ execFileSync(
     "-ExecutionPolicy",
     "Bypass",
     "-Command",
-    `Compress-Archive -Path (Join-Path '${escapePowerShellString(targetDir)}' '*') -DestinationPath '${escapePowerShellString(zipPath)}' -Force`
+    [
+      "Add-Type -AssemblyName System.IO.Compression",
+      "Add-Type -AssemblyName System.IO.Compression.FileSystem",
+      `$sourceDir = '${escapePowerShellString(targetDir)}'`,
+      `$destination = '${escapePowerShellString(zipPath)}'`,
+      "$stream = [System.IO.File]::Open($destination, [System.IO.FileMode]::CreateNew)",
+      "$files = Get-ChildItem -Path $sourceDir -Recurse -File",
+      "$archive = New-Object System.IO.Compression.ZipArchive($stream, [System.IO.Compression.ZipArchiveMode]::Create, $false)",
+      "try {",
+      "  foreach ($file in $files) {",
+      "    $relativePath = $file.FullName.Substring($sourceDir.Length + 1).Replace('\\', '/')",
+      "    [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, $file.FullName, $relativePath, [System.IO.Compression.CompressionLevel]::Optimal) | Out-Null",
+      "  }",
+      "}",
+      "finally {",
+      "  if ($archive) { $archive.Dispose() }",
+      "  if ($stream) { $stream.Dispose() }",
+      "}"
+    ].join("\n")
   ],
   {
     cwd: repoRoot,
