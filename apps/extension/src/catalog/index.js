@@ -51,6 +51,8 @@ if (!globalThis[BRIDGE_FLAG]) {
   let currentAction = null;
   let currentInstallDraft = null;
 
+  const getPageCatalogOrigin = () => window.location.origin;
+
   const getScenarioTargetCount = (scenarioState) => {
     if (Number.isInteger(scenarioState?.targetCount) && scenarioState.targetCount > 0) {
       return scenarioState.targetCount;
@@ -693,12 +695,8 @@ if (!globalThis[BRIDGE_FLAG]) {
       latestStatus?.ok &&
       latestStatus?.authState?.hasToken &&
       latestStatus?.scenarioState?.status === "ready" &&
-      getScenarioTargetCount(latestStatus?.scenarioState) > 0 &&
-      latestStatus?.settings?.catalogOrigin === window.location.origin;
-    const canRollback =
-      latestStatus?.ok &&
-      latestStatus?.authState?.hasToken &&
-      latestStatus?.settings?.catalogOrigin === window.location.origin;
+      getScenarioTargetCount(latestStatus?.scenarioState) > 0;
+    const canRollback = latestStatus?.ok && latestStatus?.authState?.hasToken;
     const isBusy =
       latestStatus?.installState?.status === "loading" ||
       latestStatus?.installState?.status === "rolling_back";
@@ -785,7 +783,8 @@ if (!globalThis[BRIDGE_FLAG]) {
     try {
       const response = await extensionApi.runtime.sendMessage({
         type: MESSAGE_TYPES.PREVIEW_PACKAGE,
-        packageId
+        packageId,
+        catalogOrigin: getPageCatalogOrigin()
       });
 
       if (!response?.ok) {
@@ -824,6 +823,7 @@ if (!globalThis[BRIDGE_FLAG]) {
     openInstallModal({
       packageId,
       packageName,
+      catalogOrigin: getPageCatalogOrigin(),
       scenarioLabel,
       targets
     });
@@ -863,7 +863,8 @@ if (!globalThis[BRIDGE_FLAG]) {
       const response = await extensionApi.runtime.sendMessage({
         type: MESSAGE_TYPES.INSTALL_PACKAGE,
         packageId: draft.packageId,
-        targetShortIds: selectedTargetIds
+        targetShortIds: selectedTargetIds,
+        catalogOrigin: draft.catalogOrigin
       });
 
       if (!response?.ok) {

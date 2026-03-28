@@ -143,12 +143,22 @@ const requireInstallContext = ({ authState, scenarioState, targetShortIds = null
 };
 
 const buildOriginPattern = (catalogOrigin) => `${catalogOrigin}/*`;
+const BUILTIN_CATALOG_PATTERNS = SUPPORTED_CATALOG_ORIGINS.map(buildOriginPattern);
 
 const ensureCatalogOriginPermission = async (catalogOrigin) =>
   BUILTIN_CATALOG_ORIGINS.has(catalogOrigin);
 
-const injectBridgeIntoOpenTabs = async (catalogOrigin) => {
-  const tabs = await extensionApi.tabs.query({ url: [buildOriginPattern(catalogOrigin)] });
+const resolveCatalogOrigin = async (catalogOriginOverride = null) => {
+  if (typeof catalogOriginOverride === "string" && catalogOriginOverride.trim().length > 0) {
+    return parseCatalogOrigin(catalogOriginOverride.trim());
+  }
+
+  const settings = await loadSettings();
+  return settings.catalogOrigin || DEFAULT_CATALOG_ORIGIN;
+};
+
+const injectBridgeIntoOpenTabs = async () => {
+  const tabs = await extensionApi.tabs.query({ url: BUILTIN_CATALOG_PATTERNS });
 
   for (const tab of tabs) {
     if (!tab.id) {
@@ -166,9 +176,11 @@ const injectBridgeIntoOpenTabs = async (catalogOrigin) => {
   }
 };
 
-const syncCatalogSiteBridge = async (catalogOrigin) => {
-  const hasPermission = await ensureCatalogOriginPermission(catalogOrigin);
-  if (!hasPermission) {
+const syncCatalogSiteBridge = async () => {
+  const hasAllSupportedOrigins = await Promise.all(
+    SUPPORTED_CATALOG_ORIGINS.map((catalogOrigin) => ensureCatalogOriginPermission(catalogOrigin))
+  );
+  if (hasAllSupportedOrigins.some((hasPermission) => !hasPermission)) {
     return false;
   }
 
@@ -181,14 +193,14 @@ const syncCatalogSiteBridge = async (catalogOrigin) => {
   await extensionApi.scripting.registerContentScripts([
     {
       id: CATALOG_SITE_BRIDGE_ID,
-      matches: [buildOriginPattern(catalogOrigin)],
+      matches: BUILTIN_CATALOG_PATTERNS,
       js: ["src/catalog/index.js"],
       persistAcrossSessions: true,
       runAt: "document_idle"
     }
   ]);
 
-  await injectBridgeIntoOpenTabs(catalogOrigin);
+  await injectBridgeIntoOpenTabs();
   return true;
 };
 
@@ -328,13 +340,12 @@ const flushTelemetryForCurrentSettings = async (options = {}) => {
 };
 
 
-const previewSelectedPackage = async (packageId, targetShortIds = null) => {
+const previewSelectedPackage = async (packageId, targetShortIds = null, catalogOriginOverride = null) => {
   if (typeof packageId !== "string" || packageId.trim().length === 0) {
     throw new Error("Select a package before previewing.");
   }
 
-  const [settings, authState, scenarioState, installState] = await Promise.all([
-    loadSettings(),
+  const [authState, scenarioState, installState] = await Promise.all([
     loadAuthState(),
     loadScenarioState(),
     loadInstallState()
@@ -345,7 +356,8 @@ const previewSelectedPackage = async (packageId, targetShortIds = null) => {
   }
 
   const installTargets = requireInstallContext({ authState, scenarioState, targetShortIds });
-  const pkg = await fetchCatalogPackage(settings.catalogOrigin, packageId.trim());
+  const catalogOrigin = await resolveCatalogOrigin(catalogOriginOverride);
+  const pkg = await fetchCatalogPackage(catalogOrigin, packageId.trim());
   const preview = await createInstallPreview({
     token: authState.token,
     origin: scenarioState.origin,
@@ -357,13 +369,16 @@ const previewSelectedPackage = async (packageId, targetShortIds = null) => {
   return { preview };
 };
 
-const installSelectedPackage = async (packageId, targetShortIds = null) => {
+const installSelectedPackage = async (
+  packageId,
+  targetShortIds = null,
+  catalogOriginOverride = null
+) => {
   if (typeof packageId !== "string" || packageId.trim().length === 0) {
     throw new Error("Select a package before installing.");
   }
 
-  const [settings, authState, scenarioState, installState] = await Promise.all([
-    loadSettings(),
+  const [authState, scenarioState, installState] = await Promise.all([
     loadAuthState(),
     loadScenarioState(),
     loadInstallState()
@@ -374,12 +389,13 @@ const installSelectedPackage = async (packageId, targetShortIds = null) => {
   }
 
   const installTargets = requireInstallContext({ authState, scenarioState, targetShortIds });
+  const catalogOrigin = await resolveCatalogOrigin(catalogOriginOverride);
 
   let pkg = null;
   let restorePoint = null;
 
   try {
-    pkg = await fetchCatalogPackage(settings.catalogOrigin, packageId.trim());
+    pkg = await fetchCatalogPackage(catalogOrigin, packageId.trim());
     assertInstallerVersion(pkg);
 
     await saveInstallState(
@@ -423,7 +439,7 @@ const installSelectedPackage = async (packageId, targetShortIds = null) => {
     await saveInstallState(nextInstallState);
 
     try {
-      const telemetryResult = await recordInstallSuccess(settings.catalogOrigin, {
+      const telemetryResult = await recordInstallSuccess(catalogOrigin, {
         event: "script_install_succeeded",
         installId: restorePoint.id,
         packageId: pkg.id,
@@ -547,9 +563,9 @@ const rollbackLatestInstall = async () => {
   }
 };
 
-const initCatalogBridge = async (catalogOrigin) => {
+const initCatalogBridge = async () => {
   try {
-    return await syncCatalogSiteBridge(catalogOrigin);
+    return await syncCatalogSiteBridge();
   } catch (error) {
     console.warn("[catalog-bridge] failed to sync content script", error);
     return false;
@@ -559,7 +575,7 @@ const initCatalogBridge = async (catalogOrigin) => {
 const bootstrapCatalogBridge = async () => {
   const settings = await loadSettings();
   const catalogOrigin = settings.catalogOrigin || DEFAULT_CATALOG_ORIGIN;
-  await initCatalogBridge(catalogOrigin);
+  await initCatalogBridge();
   await flushTelemetryForCatalogOrigin(catalogOrigin);
 };
 
@@ -567,14 +583,14 @@ extensionApi.runtime.onInstalled.addListener(async () => {
   const settings = await loadSettings();
   const catalogOrigin = settings.catalogOrigin || DEFAULT_CATALOG_ORIGIN;
   await saveSettings({ catalogOrigin });
-  await initCatalogBridge(catalogOrigin);
+  await initCatalogBridge();
   await flushTelemetryForCatalogOrigin(catalogOrigin);
 });
 
 extensionApi.runtime.onStartup.addListener(async () => {
   const settings = await loadSettings();
   const catalogOrigin = settings.catalogOrigin || DEFAULT_CATALOG_ORIGIN;
-  await initCatalogBridge(catalogOrigin);
+  await initCatalogBridge();
   await flushTelemetryForCatalogOrigin(catalogOrigin);
 });
 
@@ -646,13 +662,13 @@ extensionApi.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message?.type === MESSAGE_TYPES.PREVIEW_PACKAGE) {
-    previewSelectedPackage(message.packageId, message.targetShortIds)
+    previewSelectedPackage(message.packageId, message.targetShortIds, message.catalogOrigin)
       .then((payload) => sendResponse({ ok: true, ...payload }))
       .catch((error) => sendResponse({ ok: false, error: error.message }));
     return true;
   }
   if (message?.type === MESSAGE_TYPES.INSTALL_PACKAGE) {
-    installSelectedPackage(message.packageId, message.targetShortIds)
+    installSelectedPackage(message.packageId, message.targetShortIds, message.catalogOrigin)
       .then((payload) => sendResponse({ ok: true, ...payload }))
       .catch((error) => sendResponse({ ok: false, error: error.message }));
     return true;
@@ -669,7 +685,7 @@ extensionApi.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     Promise.resolve()
       .then(() => parseCatalogOrigin(message.catalogOrigin))
       .then(async (catalogOrigin) => {
-        const bridgeReady = await initCatalogBridge(catalogOrigin);
+        const bridgeReady = await initCatalogBridge();
         if (!bridgeReady) {
           throw new Error(`Catalog origin ${catalogOrigin} is not supported.`);
         }
