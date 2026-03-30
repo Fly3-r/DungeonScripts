@@ -16,10 +16,13 @@
     "catalog:compose:down": "docker compose down",
     "catalog:compose:logs": "docker compose logs -f catalog",
     "catalog:docker:build": "docker compose build catalog",
-    "extension:hint": "echo Load ./apps/extension in Chrome or run npm run extension:build:firefox for the Firefox desktop build.",
+    "extension:hint": "echo Load ./apps/extension in Chrome, run npm run extension:build:firefox for the Firefox desktop build, or npm run extension:run:firefox-android for the Android test flow.",
     "extension:build:chrome": "node ./apps/extension/scripts/build-dist.mjs chrome",
     "extension:build:firefox": "node ./apps/extension/scripts/build-dist.mjs firefox",
+    "extension:build:firefox-android": "node ./apps/extension/scripts/build-dist.mjs firefox-android",
     "extension:sync:firefox": "node ./apps/extension/scripts/sync-firefox-release.mjs",
+    "extension:lint:firefox-android": "node ./apps/extension/scripts/lint-firefox-android.mjs",
+    "extension:run:firefox-android": "node ./apps/extension/scripts/run-firefox-android.mjs",
     "hooks:install": "git config core.hooksPath .githooks",
     "test:e2e:install": "powershell.exe -ExecutionPolicy Bypass -File .\\scripts\\test-install-regression.ps1"
   }

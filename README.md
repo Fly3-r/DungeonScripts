@@ -8,6 +8,7 @@ There are currently two installation paths:
 - Chrome Web Store release: currently submitted and pending review
 - Manual Chrome installation: download the packaged extension ZIP and load it unpacked in Chrome
 - Manual Firefox desktop installation: build the Firefox package folder and load it temporarily in Firefox
+- Manual Firefox Android testing: build the Android target and load it temporarily through `web-ext`
 
 ### Manual Chrome Installation
 
@@ -39,6 +40,7 @@ Then install it in Firefox desktop:
 The sync step also creates `apps/firefox-<version>.xpi` for later signing/distribution workflows.
 
 More Firefox notes live in [firefox-extension.md](docs/firefox-extension.md).
+Firefox Android notes live in [firefox-android-extension.md](docs/firefox-android-extension.md).
 
 ## Getting Started
 

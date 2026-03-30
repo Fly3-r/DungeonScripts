@@ -513,3 +513,21 @@ The Firefox build should disable install telemetry and declare `data_collection_
 
 Reason:
 That keeps the Firefox package aligned with AMO review expectations and the current Firefox release posture without changing the Chrome-side telemetry design.
+
+## 2026-03-31
+
+### Add a dedicated Firefox Android manifest target with explicit Android version gating
+
+Decision:
+DungeonScripts now uses a separate `firefox-android` manifest target for mobile testing, with explicit `browser_specific_settings.gecko_android.strict_min_version` support and Android-focused linting.
+
+Reason:
+Firefox for Android has a distinct compatibility surface from desktop Firefox. A dedicated target lets the project encode Android availability and validation rules without destabilizing the desktop Firefox package.
+
+### Keep the Android extension on the shared runtime and validate it through temporary web-ext loading
+
+Decision:
+The Firefox Android path should continue using the shared extension runtime and temporary `web-ext run -t firefox-android` loading during development rather than introducing an Android-only codebase or packaging flow.
+
+Reason:
+Recent emulator testing already proved the shared runtime can complete the real install flow on mobile. The remaining work is better framed as target-specific validation and UX hardening than as a rewrite.

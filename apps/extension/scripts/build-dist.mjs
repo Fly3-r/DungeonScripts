@@ -14,7 +14,8 @@ const RM_OPTIONS = {
 
 export const targets = {
   chrome: "manifest.json",
-  firefox: "manifest.firefox.json"
+  firefox: "manifest.firefox.json",
+  "firefox-android": "manifest.firefox-android.json"
 };
 
 export const loadTargetManifest = async (target) => {

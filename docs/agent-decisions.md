@@ -464,3 +464,21 @@ Meaningful changes to supported targets, install/rollback UX, packaging/distribu
 
 Reason:
 The recent Firefox and catalog work moved faster than the written project history. Treating decision-log updates as part of the finished change keeps the docs useful as operational memory.
+
+## 2026-03-31
+
+### Give Firefox Android its own build and run entrypoints
+
+Decision:
+Firefox Android now has a dedicated manifest target plus explicit build, lint, and run scripts instead of continuing as an undocumented reuse of the desktop Firefox target.
+
+Reason:
+The Android path is now far enough along to deserve a first-class development workflow. Dedicated entrypoints make testing more repeatable and reduce guesswork around the correct source directory and tooling flags.
+
+### Wrap web-ext calls in Node scripts instead of relying on shell-specific one-liners
+
+Decision:
+The Android lint and run flows are implemented through Node wrapper scripts that build the target, apply defaults, and then invoke `web-ext`.
+
+Reason:
+The earlier manual commands were workable but brittle, especially on Windows PowerShell where `npx.ps1` policy issues and device/APK arguments were getting in the way. Node wrappers keep the workflow consistent across contributors.

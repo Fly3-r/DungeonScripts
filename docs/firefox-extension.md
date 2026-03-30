@@ -34,16 +34,11 @@ The Firefox build keeps the same core behavior as Chrome:
 - install to selected targets
 - roll back the latest restore point
 
-## Android Follow-Up
+## Firefox Android
 
-The repo is now structured so we can add a Firefox for Android target next without rewriting the extension runtime again.
+Firefox Android now has its own development target and workflow.
 
-Before we enable that build, we should first validate the Firefox desktop path end-to-end and then verify the remaining mobile-specific pieces:
-- Firefox for Android distribution through Mozilla's add-on flow
-- popup and tab UX on Android
-- any Firefox Android API gaps that affect the current install flow
-
-That keeps the Android work as a packaging and validation step instead of a full extension rewrite.
+See [firefox-android-extension.md](firefox-android-extension.md) for emulator setup, linting, temporary loading with `web-ext`, and remote debugging notes.
 
 ## Commit Automation
 
