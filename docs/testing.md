@@ -2,6 +2,8 @@
 
 This project now includes a repeatable Chrome DevTools Protocol regression harness for the live install, install-target selection, telemetry retry, and rollback flow.
 
+The current harness is Chrome-based. Firefox desktop and Firefox Android still rely on their target-specific build, packaging, lint, and temporary-load validation on top of the shared runtime.
+
 ## Current Coverage
 
 The script [scripts/test-install-regression.ps1](../scripts/test-install-regression.ps1) validates:

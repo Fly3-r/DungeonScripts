@@ -530,3 +530,11 @@ The catalog Docker Compose file should use environment-variable-driven bind moun
 
 Reason:
 The install counters live in the catalog runtime files and need to survive container replacement in production. Parameterized bind mounts keep that persistence straightforward without forcing one host-path layout onto both development and production environments.
+
+### Keep the root README focused on end-user install and usage flow
+
+Decision:
+The root `README.md` should stay user-facing: store-first installation links, getting-started steps, basic troubleshooting, and manual install instructions belong there, while contributor testing, hook setup, and deployment notes should live in focused docs pages instead.
+
+Reason:
+The README is the public front door for the project. Mixing contributor-only workflow notes into that page makes the main install path harder to scan and less useful to normal users.
