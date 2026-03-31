@@ -44,7 +44,7 @@
       "minLength": 1,
       "format": "uri"
     },
-    "discordURL": {
+    "discordUrl": {
       "type": "string",
       "minLength": 1,
       "format": "uri"

@@ -291,7 +291,7 @@ const normalizePackageManifest = (entry) => ({
   ...entry,
   author: isNonEmptyString(entry.author) ? entry.author.trim() : "Unknown",
   authorProfileUrl: getSafeUrl(entry.authorProfileUrl),
-  discordURL: getSafeUrl(entry.discordURL),
+  discordUrl: getSafeUrl(entry.discordUrl),
   thumbnailUrl: getPublicAssetUrl(entry.thumbnailUrl)
 });
 
@@ -302,7 +302,7 @@ const buildPackageSummary = (entry, installCounts) => ({
   description: buildDescriptionPreview(entry.description),
   author: entry.author,
   authorProfileUrl: entry.authorProfileUrl,
-  discordURL: getSafeUrl(entry.discordURL),
+  discordUrl: getSafeUrl(entry.discordUrl),
   thumbnailUrl: getPublicAssetUrl(entry.thumbnailUrl),
   installCount: installCounts.get(entry.id) || 0
 });
@@ -325,14 +325,14 @@ const validatePackageSourceMetadata = (packageId, payload) => {
     );
   }
 
-  const discordURL = getOptionalTrimmedString(payload, "discordURL", 300);
+  const discordUrl = getOptionalTrimmedString(payload, "discordUrl", 300);
 
   return {
     name: requireTrimmedString(payload, "name", 120),
     version,
     author: requireTrimmedString(payload, "author", 120),
     authorProfileUrl: validateAidProfileUrl(requireTrimmedString(payload, "authorProfileUrl", 200)),
-    discordURL: discordURL ? validateDiscordUrl(discordURL) : "",
+    discordUrl: discordUrl ? validateDiscordUrl(discordUrl) : "",
     description: requireTrimmedString(payload, "description", 24000),
     minInstallerVersion
   };
@@ -371,7 +371,7 @@ const buildManifestFromSource = async (packageId) => {
     description: metadata.description,
     author: metadata.author,
     authorProfileUrl: metadata.authorProfileUrl,
-    ...(metadata.discordURL ? { discordURL: metadata.discordURL } : {}),
+    ...(metadata.discordUrl ? { discordUrl: metadata.discordUrl } : {}),
     ...(hasThumbnail ? { thumbnailUrl: buildPackageThumbnailUrl(packageId) } : {}),
     minInstallerVersion: metadata.minInstallerVersion,
     sharedLibrary,

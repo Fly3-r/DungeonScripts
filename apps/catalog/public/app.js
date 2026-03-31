@@ -62,13 +62,13 @@ const createAuthorValue = (pkg) => {
 };
 
 const createDiscordButton = (pkg) => {
-  if (!pkg.discordURL) {
+  if (!pkg.discordUrl) {
     return null;
   }
 
   const link = document.createElement("a");
   link.className = "action-button secondary";
-  link.href = pkg.discordURL;
+  link.href = pkg.discordUrl;
   link.target = "_blank";
   link.rel = "noreferrer noopener";
   link.textContent = "Discord";

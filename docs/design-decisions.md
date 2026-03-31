@@ -543,7 +543,7 @@ The packaged artifacts are release-style outputs rather than source apps. Separa
 ### Allow packages to expose an optional Discord discussion link on catalog cards
 
 Decision:
-Package source metadata may include an optional `discordURL`, and when present the catalog homepage should render it as a normal external `Discord` button alongside the existing package actions.
+Package source metadata may include an optional `discordUrl`, and when present the catalog homepage should render it as a normal external `Discord` button alongside the existing package actions.
 
 Reason:
 Some scripts have active support or discussion threads that are useful to surface directly from the catalog, but that link should remain optional so packages without a Discord thread do not carry extra metadata requirements.
