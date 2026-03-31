@@ -522,3 +522,11 @@ If either the catalog version or the extension version changes, the change shoul
 
 Reason:
 Version bumps are release signals, so they should prove the current install and rollback workflow still works rather than only updating labels, manifests, or artifacts.
+
+### Parameterize catalog Docker bind mounts for cross-platform deployment paths
+
+Decision:
+The catalog Docker Compose file should use environment-variable-driven bind mount paths so local Windows development can keep repo-relative defaults while Linux production can point runtime and data directories at stable host paths.
+
+Reason:
+The install counters live in the catalog runtime files and need to survive container replacement in production. Parameterized bind mounts keep that persistence straightforward without forcing one host-path layout onto both development and production environments.

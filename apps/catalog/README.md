@@ -18,6 +18,33 @@ The compose service:
 - passes through `DEFAULT_MIN_INSTALLER_VERSION`
 - persists package source files, generated package manifests, and telemetry data under [data](data)
 
+### Compose Path Overrides
+
+Docker Compose now supports bind-mount override variables so local development and Linux production can use different host paths:
+
+- `CATALOG_RUNTIME_BIND_PATH`
+- `CATALOG_PACKAGES_BIND_PATH`
+- `CATALOG_SCRIPTS_BIND_PATH`
+
+Local development can keep the repo-relative defaults from [.env.example](../../.env.example).
+
+For Linux production, the most important setting for install counters is:
+
+```env
+CATALOG_RUNTIME_BIND_PATH=/srv/dungeonscripts/catalog/runtime
+```
+
+That keeps `install-success.ndjson` and `install-success.ids.json` outside the container so install counters survive image rebuilds and container replacement.
+
+Example Linux production overrides:
+
+```env
+PUBLIC_BASE_URL=https://dungeonscripts.com
+CATALOG_RUNTIME_BIND_PATH=/srv/dungeonscripts/catalog/runtime
+CATALOG_PACKAGES_BIND_PATH=/srv/dungeonscripts/catalog/packages
+CATALOG_SCRIPTS_BIND_PATH=/srv/dungeonscripts/catalog/scripts
+```
+
 ## Direct Node Runtime
 
 If you do not want to use Docker, run the server directly:

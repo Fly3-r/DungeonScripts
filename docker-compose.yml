@@ -14,8 +14,8 @@ services:
       TELEMETRY_STORAGE_DIR: /app/data/runtime
       DEFAULT_MIN_INSTALLER_VERSION: "${DEFAULT_MIN_INSTALLER_VERSION:-1.0.0}"
     volumes:
-      - ./apps/catalog/data/runtime:/app/data/runtime
-      - ./apps/catalog/data/packages:/app/data/packages
-      - ./apps/catalog/data/scripts:/app/data/scripts
+      - "${CATALOG_RUNTIME_BIND_PATH:-./apps/catalog/data/runtime}:/app/data/runtime"
+      - "${CATALOG_PACKAGES_BIND_PATH:-./apps/catalog/data/packages}:/app/data/packages"
+      - "${CATALOG_SCRIPTS_BIND_PATH:-./apps/catalog/data/scripts}:/app/data/scripts"
     restart: unless-stopped
 

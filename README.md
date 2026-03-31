@@ -57,6 +57,7 @@ Firefox Android notes live in [firefox-android-extension.md](docs/firefox-androi
 - After installing or reinstalling the extension, it may be necessary to reload the AI Dungeon scenario edit page.
 - The current automated regression harness is still Chrome-based. Firefox desktop is supported through the shared runtime plus the Firefox-specific build manifest.
 - Run `npm run hooks:install` once in a local clone to enable the pre-commit hook that refreshes the packaged browser artifacts in `dist/` before each local commit.
+- Docker path overrides for local Windows vs Linux production are documented in [apps/catalog/README.md](apps/catalog/README.md) and [.env.example](.env.example).
 
 ## For Script Makers
 
