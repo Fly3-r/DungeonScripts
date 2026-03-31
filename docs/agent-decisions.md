@@ -482,3 +482,11 @@ The Android lint and run flows are implemented through Node wrapper scripts that
 
 Reason:
 The earlier manual commands were workable but brittle, especially on Windows PowerShell where `npx.ps1` policy issues and device/APK arguments were getting in the way. Node wrappers keep the workflow consistent across contributors.
+
+### Add a repo-root AGENTS.md for repeatable agent workflow expectations
+
+Decision:
+The repository now defines a root `AGENTS.md` that captures standing expectations for documentation updates, verification scope, browser-target testing, and local commit discipline.
+
+Reason:
+The project now spans Chrome, Firefox desktop, Firefox Android, and catalog-site behavior, and the repeated expectations around decision logs and regression coverage are important enough to be written down in one stable place.
