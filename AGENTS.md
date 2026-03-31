@@ -61,6 +61,15 @@ For catalog page changes that do not affect install logic:
 - syntax-check touched scripts when practical
 - verify the rendered behavior manually when possible
 
+## Versioning Expectations
+
+- Automatically bump version numbers as part of any release-worthy change instead of leaving versioning as a separate manual cleanup step.
+- Catalog versioning is independent from extension versioning.
+- The catalog version lives in [apps/catalog/src/version.js](apps/catalog/src/version.js) and should be bumped only when the catalog site or catalog-served API/runtime behavior changes.
+- The extension version must stay identical across [apps/extension/manifest.json](apps/extension/manifest.json), [apps/extension/manifest.firefox.json](apps/extension/manifest.firefox.json), and [apps/extension/manifest.firefox-android.json](apps/extension/manifest.firefox-android.json).
+- When extension version changes, rebuild the browser targets and refresh the packaged artifacts in [dist](dist).
+- When a change affects both the catalog and the extension, bump both version tracks in the same change batch.
+
 ## Current Build And Test Commands
 
 - Chrome build: `npm run extension:build:chrome`

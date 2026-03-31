@@ -13,7 +13,7 @@ There are currently two installation paths:
 ### Manual Chrome Installation
 
 Download the extension ZIP from:
-- https://github.com/Fly3-r/DungeonScripts/blob/main/dist/Chrome-Desktop-0.1.0.zip
+- https://github.com/Fly3-r/DungeonScripts/blob/main/dist/Chrome-Desktop-1.0.0.zip
 
 Then install it in Chrome:
 1. Download the extension ZIP file.
@@ -35,7 +35,7 @@ npm run extension:sync:artifacts
 Then install it in Firefox desktop:
 1. Open Firefox and go to `about:debugging#/runtime/this-firefox`.
 2. Click `Load Temporary Add-on...`.
-3. Select `dist/Firefox-Desktop-0.1.0.zip` or the latest matching `dist/Firefox-Desktop-<version>.zip`.
+3. Select `dist/Firefox-Desktop-1.0.0.zip` or the latest matching `dist/Firefox-Desktop-<version>.zip`.
 
 The artifact sync step writes packaged browser builds into the repo-root `dist/` directory.
 

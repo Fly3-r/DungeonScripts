@@ -3,6 +3,7 @@ import { createServer } from "node:http";
 import { access, appendFile, mkdir, readFile, readdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { CATALOG_VERSION } from "./version.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,7 +25,7 @@ const parsePositiveInteger = (value, fallback) => {
   const parsed = Number.parseInt(String(value ?? ""), 10);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 };
-const defaultMinInstallerVersion = process.env.DEFAULT_MIN_INSTALLER_VERSION || "0.1.0";
+const defaultMinInstallerVersion = process.env.DEFAULT_MIN_INSTALLER_VERSION || "1.0.0";
 const maxSourceScriptLength = parsePositiveInteger(process.env.MAX_SOURCE_SCRIPT_LENGTH, 5_000_000);
 const allowedEventKeys = [
   "event",
@@ -321,7 +322,7 @@ const validatePackageSourceMetadata = (packageId, payload) => {
     getOptionalTrimmedString(payload, "minInstallerVersion", 40) || defaultMinInstallerVersion;
   if (!SEMVER_PATTERN.test(minInstallerVersion)) {
     throw new Error(
-      `minInstallerVersion for ${packageId} must look like semantic versioning, for example 0.1.0.`
+      `minInstallerVersion for ${packageId} must look like semantic versioning, for example 1.0.0.`
     );
   }
 
@@ -560,6 +561,21 @@ const servePublicAsset = async (res, pathname) => {
   }
 };
 
+const serveCatalogIndex = async (res) => {
+  try {
+    const template = await readFile(path.join(publicDir, "index.html"), "utf8");
+    const rendered = template.replaceAll("__CATALOG_VERSION__", CATALOG_VERSION);
+    const body = Buffer.from(rendered, "utf8");
+    res.writeHead(200, {
+      "Content-Type": CONTENT_TYPES[".html"],
+      "Content-Length": body.byteLength
+    });
+    res.end(body);
+  } catch {
+    notFound(res);
+  }
+};
+
 const serveAbsoluteFile = async (res, filePath) => {
   try {
     const body = await readFile(filePath);
@@ -677,8 +693,8 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    if (req.method === "GET" && url.pathname === "/") {
-      await servePublicAsset(res, "/index.html");
+    if (req.method === "GET" && (url.pathname === "/" || url.pathname === "/index.html")) {
+      await serveCatalogIndex(res);
       return;
     }
 

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "DungeonScripts",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "One-click script installs for the AI Dungeon scenario root and playable leaves.",
   "permissions": [
     "storage",

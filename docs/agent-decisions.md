@@ -506,3 +506,11 @@ Decision:
 
 Reason:
 The spec is part of the project documentation rather than a top-level workflow entrypoint. Keeping it under `docs/` makes the repo root less noisy and keeps planning material grouped together.
+
+### Make version bumps part of the normal agent workflow
+
+Decision:
+The repo workflow now treats version bumps as part of the implementation pass: catalog changes should update the catalog version source, and extension changes should update the shared version across all extension manifests before finalizing the change.
+
+Reason:
+This project now ships distinct catalog and extension surfaces, and leaving version updates as an afterthought makes release state easy to misreport. Writing the expectation into `AGENTS.md` keeps release numbers aligned with the actual shipped change set.

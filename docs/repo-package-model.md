@@ -51,7 +51,7 @@ Example:
   "authorProfileUrl": "https://play.aidungeon.com/profile/Fly3_r",
   "discordUrl": "https://discord.com/channels/123456789012345678/123456789012345679",
   "description": "Long-form description or install notes. Markdown links are allowed.",
-  "minInstallerVersion": "0.1.0"
+  "minInstallerVersion": "1.0.0"
 }
 ```
 

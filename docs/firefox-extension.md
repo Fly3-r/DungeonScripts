@@ -21,7 +21,7 @@ This creates:
 
 1. Open `about:debugging#/runtime/this-firefox` in Firefox desktop.
 2. Click `Load Temporary Add-on...`.
-3. Select the packaged Firefox add-on zip, for example `dist/Firefox-Desktop-0.1.0.zip`.
+3. Select the packaged Firefox add-on zip, for example `dist/Firefox-Desktop-1.0.0.zip`.
 4. Open an AI Dungeon scenario edit page, then open the DungeonScripts catalog.
 
 Use the desktop Firefox `.zip` file for the local temporary add-on workflow.

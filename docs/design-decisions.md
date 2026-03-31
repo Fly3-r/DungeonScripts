@@ -547,3 +547,11 @@ Package source metadata may include an optional `discordUrl`, and when present t
 
 Reason:
 Some scripts have active support or discussion threads that are useful to surface directly from the catalog, but that link should remain optional so packages without a Discord thread do not carry extra metadata requirements.
+
+### Show the catalog version in the public footer and keep it independent from the extension version
+
+Decision:
+The catalog homepage footer should display the catalog's own version number, while the catalog and extension keep separate version tracks instead of pretending the website and browser add-ons always ship in lockstep.
+
+Reason:
+The project now has two real delivery surfaces with different change scopes. Showing the catalog version in the footer makes the web release visible, and keeping the catalog version independent from the extension version avoids unnecessary version churn when only one surface changes.

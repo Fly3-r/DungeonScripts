@@ -5,5 +5,5 @@
   "authorProfileUrl": "https://play.aidungeon.com/profile/Fly3_r",
   "discordUrl": "https://discord.com/channels/903327676884979802/1484895812428501173",
   "description": "Sample script package used to verify catalog browsing, one-click install, and rollback plumbing.",
-  "minInstallerVersion": "0.0.1"
+  "minInstallerVersion": "1.0.0"
 }
