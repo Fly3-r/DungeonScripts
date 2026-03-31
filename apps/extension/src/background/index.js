@@ -11,7 +11,9 @@ import {
   loadAuthState,
   loadEditorContext,
   loadInstallState,
+  loadScenarioTargetSnapshots,
   loadScenarioState,
+  removeRestorePoint,
   loadSettings,
   saveAuthError,
   saveAuthToken,
@@ -19,7 +21,8 @@ import {
   saveInstallState,
   saveScenarioState,
   saveSettings,
-  saveTelemetryTestMode
+  saveTelemetryTestMode,
+  upsertScenarioTargetSnapshots
 } from "../shared/storage.js";
 import { discoverScenarioLeaves } from "./aid/discover-leaves.js";
 import { fetchCatalogPackage, fetchCatalogPackages } from "./catalog.js";
@@ -367,12 +370,14 @@ const previewSelectedPackage = async (packageId, targetShortIds = null, catalogO
   const installTargets = requireInstallContext({ authState, scenarioState, targetShortIds });
   const catalogOrigin = await resolveCatalogOrigin(catalogOriginOverride);
   const pkg = await fetchCatalogPackage(catalogOrigin, packageId.trim());
+  const knownSnapshots = await loadScenarioTargetSnapshots();
   const preview = await createInstallPreview({
     token: authState.token,
     origin: scenarioState.origin,
     scenarioState,
     pkg,
-    targets: installTargets
+    targets: installTargets,
+    knownSnapshots
   });
 
   return { preview };
@@ -434,6 +439,7 @@ const installSelectedPackage = async (
       targets: installTargets,
       pkg
     });
+    await upsertScenarioTargetSnapshots(result.appliedSnapshots);
 
     const nextInstallState = buildInstallState({
       status: "ready",
@@ -544,6 +550,9 @@ const rollbackLatestInstall = async (targetShortIds = null) => {
       restorePoint: latestRestorePoint,
       targets: restoreTargets
     });
+    await upsertScenarioTargetSnapshots(result.restoredSnapshots);
+    const remainingRestorePoints = await removeRestorePoint(latestRestorePoint.id);
+    const nextLatestRestorePoint = remainingRestorePoints[0] || null;
 
     const nextInstallState = buildInstallState({
       status: "rolled_back",
@@ -559,7 +568,7 @@ const rollbackLatestInstall = async (targetShortIds = null) => {
 
     return {
       installState: nextInstallState,
-      latestRestorePoint: toPublicRestorePoint(latestRestorePoint)
+      latestRestorePoint: toPublicRestorePoint(nextLatestRestorePoint)
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

@@ -879,7 +879,7 @@ if (!globalThis[BRIDGE_FLAG]) {
         continue;
       }
 
-      button.textContent = "Rollback Latest";
+      button.textContent = "Rollback";
     }
 
     syncInstallModalSelection();

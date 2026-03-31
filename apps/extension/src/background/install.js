@@ -44,23 +44,55 @@ const getPackageScripts = (pkg) => ({
   onOutput: pkg?.onOutput || ""
 });
 
+const RECENT_KNOWN_SNAPSHOT_MS = 10 * 60_000;
+
 const countLeafTargets = (scenarioState, targets) =>
   targets.filter((target) => target.shortId && target.shortId !== scenarioState?.rootShortId).length;
 
-const loadTargetSnapshots = async ({ token, origin, scenarioState, targets }) => {
+const shouldPreferKnownSnapshot = (snapshot) => {
+  const updatedAtMs = Date.parse(snapshot?.updatedAt || "");
+  return Number.isFinite(updatedAtMs) && Date.now() - updatedAtMs <= RECENT_KNOWN_SNAPSHOT_MS;
+};
+
+const toKnownSnapshot = (snapshot) => ({
+  shortId: snapshot.shortId,
+  title: snapshot.title || "Untitled",
+  isRoot: !!snapshot.isRoot,
+  scriptsEnabled: !!snapshot.scriptsEnabled,
+  gameCode: toGameCode(snapshot.gameCode),
+  updatedAt: snapshot.updatedAt || new Date().toISOString()
+});
+
+const mergeKnownSnapshot = (liveSnapshot, knownSnapshot) => {
+  if (!knownSnapshot || !shouldPreferKnownSnapshot(knownSnapshot)) {
+    return liveSnapshot;
+  }
+
+  return {
+    ...liveSnapshot,
+    title: knownSnapshot.title || liveSnapshot.title,
+    isRoot: typeof knownSnapshot.isRoot === "boolean" ? knownSnapshot.isRoot : liveSnapshot.isRoot,
+    scriptsEnabled: !!knownSnapshot.scriptsEnabled,
+    gameCode: toGameCode(knownSnapshot.gameCode)
+  };
+};
+
+const loadTargetSnapshots = async ({ token, origin, scenarioState, targets, knownSnapshots = {} }) => {
   const url = getAidGraphqlUrl(origin);
   const installTargets = Array.isArray(targets) ? targets : buildInstallTargets(scenarioState);
   const snapshots = [];
 
   for (const target of installTargets) {
     const scenario = await queryScenarioInstallState(url, token, target.shortId);
-    snapshots.push({
+    const liveSnapshot = {
       shortId: scenario.shortId,
       title: scenario.title || target.title || "Untitled",
       isRoot: scenario.shortId === scenarioState?.rootShortId,
       scriptsEnabled: !!scenario.scriptsEnabled,
       gameCode: toGameCode(scenario.state?.scripts)
-    });
+    };
+
+    snapshots.push(mergeKnownSnapshot(liveSnapshot, knownSnapshots?.[target.shortId]));
   }
 
   return snapshots;
@@ -123,8 +155,21 @@ export const resolveRestoreTargets = (restorePoint, targetShortIds = null) => {
   return allTargets.filter((target) => selectedTargetIds.has(target.shortId));
 };
 
-export const createInstallPreview = async ({ token, origin, scenarioState, pkg, targets }) => {
-  const snapshots = await loadTargetSnapshots({ token, origin, scenarioState, targets });
+export const createInstallPreview = async ({
+  token,
+  origin,
+  scenarioState,
+  pkg,
+  targets,
+  knownSnapshots = {}
+}) => {
+  const snapshots = await loadTargetSnapshots({
+    token,
+    origin,
+    scenarioState,
+    targets,
+    knownSnapshots
+  });
 
   return {
     rootShortId: scenarioState.rootShortId,
@@ -164,6 +209,7 @@ export const createRestorePoint = async ({ token, origin, scenarioState, pkg, ta
     targets: snapshots.map((target) => ({
       shortId: target.shortId,
       title: target.title,
+      isRoot: target.isRoot,
       scriptsEnabled: target.scriptsEnabled,
       gameCode: target.gameCode
     }))
@@ -175,6 +221,8 @@ export const installPackageToTargets = async ({ token, origin, targets, pkg }) =
   const gameCode = getPackageScripts(pkg);
 
   let appliedCount = 0;
+  const updatedAt = new Date().toISOString();
+  const appliedSnapshots = [];
 
   for (const target of targets) {
     const updateScenarioResult = await updateScenario(url, token, {
@@ -196,15 +244,27 @@ export const installPackageToTargets = async ({ token, origin, targets, pkg }) =
     }
 
     appliedCount += 1;
+    appliedSnapshots.push(
+      toKnownSnapshot({
+        shortId: target.shortId,
+        title: target.title,
+        isRoot: !!target.isRoot,
+        scriptsEnabled: true,
+        gameCode,
+        updatedAt
+      })
+    );
   }
 
-  return { appliedCount };
+  return { appliedCount, appliedSnapshots };
 };
 
 export const restoreFromPoint = async ({ token, restorePoint, targets = null }) => {
   const url = getAidGraphqlUrl(restorePoint.origin);
   const restoreTargets = Array.isArray(targets) ? targets : getRestoreTargets(restorePoint);
   let restoredCount = 0;
+  const updatedAt = new Date().toISOString();
+  const restoredSnapshots = [];
 
   for (const target of restoreTargets) {
     const enableResult = await updateScenario(url, token, {
@@ -231,7 +291,17 @@ export const restoreFromPoint = async ({ token, restorePoint, targets = null }) 
     }
 
     restoredCount += 1;
+    restoredSnapshots.push(
+      toKnownSnapshot({
+        shortId: target.shortId,
+        title: target.title,
+        isRoot: !!target.isRoot || target.shortId === restorePoint.rootShortId,
+        scriptsEnabled: !!target.scriptsEnabled,
+        gameCode: target.gameCode,
+        updatedAt
+      })
+    );
   }
 
-  return { restoredCount };
+  return { restoredCount, restoredSnapshots };
 };

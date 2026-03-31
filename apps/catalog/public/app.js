@@ -191,7 +191,7 @@ const renderPackages = (packages) => {
     rollbackButton.dataset.oneclickRollback = "true";
     rollbackButton.dataset.packageId = pkg.id;
     rollbackButton.dataset.packageName = pkg.name;
-    rollbackButton.textContent = "Rollback Latest";
+    rollbackButton.textContent = "Rollback";
     rollbackButton.disabled = true;
     rollbackButton.hidden = true;
 

@@ -12,7 +12,8 @@ const STORAGE_KEYS = {
 const SESSION_KEYS = {
   authState: "authState",
   scenarioState: "scenarioState",
-  installState: "installState"
+  installState: "installState",
+  scenarioTargetSnapshots: "scenarioTargetSnapshots"
 };
 
 const MAX_RESTORE_POINTS = 10;
@@ -179,6 +180,44 @@ export const saveInstallState = async (installState) => {
   });
 };
 
+export const loadScenarioTargetSnapshots = async () => {
+  if (!extensionApi.storage.session) {
+    throw new Error("Extension session storage is not available.");
+  }
+
+  const result = await extensionApi.storage.session.get(SESSION_KEYS.scenarioTargetSnapshots);
+  return result[SESSION_KEYS.scenarioTargetSnapshots] || {};
+};
+
+export const saveScenarioTargetSnapshots = async (scenarioTargetSnapshots) => {
+  if (!extensionApi.storage.session) {
+    throw new Error("Extension session storage is not available.");
+  }
+
+  await extensionApi.storage.session.set({
+    [SESSION_KEYS.scenarioTargetSnapshots]: scenarioTargetSnapshots || {}
+  });
+};
+
+export const upsertScenarioTargetSnapshots = async (snapshots) => {
+  const currentSnapshots = await loadScenarioTargetSnapshots();
+  const nextSnapshots = { ...currentSnapshots };
+
+  for (const snapshot of Array.isArray(snapshots) ? snapshots : []) {
+    if (!snapshot?.shortId) {
+      continue;
+    }
+
+    nextSnapshots[snapshot.shortId] = {
+      ...nextSnapshots[snapshot.shortId],
+      ...snapshot
+    };
+  }
+
+  await saveScenarioTargetSnapshots(nextSnapshots);
+  return nextSnapshots;
+};
+
 export const loadRestorePoints = async () => {
   const result = await extensionApi.storage.local.get(STORAGE_KEYS.restorePoints);
   return result[STORAGE_KEYS.restorePoints] || [];
@@ -203,6 +242,17 @@ export const addRestorePoint = async (restorePoint) => {
 export const getLatestRestorePoint = async () => {
   const restorePoints = await loadRestorePoints();
   return restorePoints[0] || null;
+};
+
+export const removeRestorePoint = async (restorePointId) => {
+  if (!restorePointId) {
+    return loadRestorePoints();
+  }
+
+  const existing = await loadRestorePoints();
+  const next = existing.filter((entry) => entry?.id !== restorePointId);
+  await saveRestorePoints(next);
+  return next;
 };
 
 export const loadTelemetryQueue = async () => {
