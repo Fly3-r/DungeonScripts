@@ -498,3 +498,11 @@ Packaged browser artifacts are now written to a repo-root `dist/` directory usin
 
 Reason:
 Keeping packaged outputs under `apps/` blurred the line between source apps and release artifacts. A dedicated root `dist/` folder is cleaner for local testing, documentation, and Git staging.
+
+### Keep the installer MVP spec with the rest of the project docs
+
+Decision:
+`INSTALLER_MVP_SPEC.md` now lives under `docs/` instead of the repo root, and docs that reference it should point at the in-docs location.
+
+Reason:
+The spec is part of the project documentation rather than a top-level workflow entrypoint. Keeping it under `docs/` makes the repo root less noisy and keeps planning material grouped together.

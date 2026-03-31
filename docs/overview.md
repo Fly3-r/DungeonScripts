@@ -2,7 +2,7 @@
 
 Scaffold for the DungeonScripts catalog and browser extension.
 
-This repo now follows the MVP split described in [INSTALLER_MVP_SPEC.md](../INSTALLER_MVP_SPEC.md):
+This repo now follows the MVP split described in [INSTALLER_MVP_SPEC.md](INSTALLER_MVP_SPEC.md):
 - `apps/extension` is the browser extension client
 - `apps/catalog` is the external catalog/API service
 - `packages/contracts` holds shared manifest and telemetry shapes
