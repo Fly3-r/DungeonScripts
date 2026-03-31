@@ -436,10 +436,10 @@ Chrome behavior is still the reference feature set. Sharing the runtime keeps th
 ### Treat the packaged Firefox ZIP as the primary local validation artifact
 
 Decision:
-Local Firefox testing should use `apps/firefox-<version>.zip` through `about:debugging`, while the matching `.xpi` remains the package intended for signing and later distribution.
+Local Firefox testing should use `dist/Firefox-Desktop-<version>.zip` through `about:debugging`, while packaged browser artifacts now live together in the repo-root `dist/` folder instead of under `apps/`.
 
 Reason:
-The ZIP-based temporary add-on path was the reliable local validation flow during Firefox bring-up, while the XPI format still matches the eventual AMO/distribution workflow.
+The ZIP-based temporary add-on path was the reliable local validation flow during Firefox bring-up, and consolidating packaged artifacts under one root `dist/` directory makes the build outputs easier to find and stage.
 
 ### Move catalog-bridge activation onto manifest-declared content scripts for supported origins
 
@@ -490,3 +490,11 @@ The repository now defines a root `AGENTS.md` that captures standing expectation
 
 Reason:
 The project now spans Chrome, Firefox desktop, Firefox Android, and catalog-site behavior, and the repeated expectations around decision logs and regression coverage are important enough to be written down in one stable place.
+
+### Consolidate packaged extension artifacts under the repo-root dist folder
+
+Decision:
+Packaged browser artifacts are now written to a repo-root `dist/` directory using descriptive names such as `Chrome-Desktop-<version>.zip`, `Firefox-Desktop-<version>.zip`, and `Firefox-Mobile-<version>.xpi`, while the unpacked working builds stay under `apps/extension/dist/`.
+
+Reason:
+Keeping packaged outputs under `apps/` blurred the line between source apps and release artifacts. A dedicated root `dist/` folder is cleaner for local testing, documentation, and Git staging.

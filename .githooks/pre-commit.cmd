@@ -14,7 +14,7 @@ for /f "delims=" %%F in ('"%GIT%" diff --cached --name-only') do (
 exit /b 0
 
 :run_sync
-call "%NPM%" run extension:sync:firefox
+call "%NPM%" run extension:sync:artifacts
 if errorlevel 1 exit /b %errorlevel%
-"%GIT%" add --all apps/firefox-*
+"%GIT%" add --all dist
 exit /b %errorlevel%

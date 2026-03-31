@@ -32,7 +32,7 @@ docs/
    npm run catalog:compose:up
    ```
 
-2. Load [apps/extension](../apps/extension) in Chrome, or run `npm run extension:build:firefox` and load the generated Firefox build from `apps/extension/dist/firefox`.
+2. Load [apps/extension](../apps/extension) in Chrome, or run `npm run extension:sync:artifacts` and use the packaged browser builds from the repo-root `dist/` folder.
 
 3. Open an AI Dungeon scenario edit page.
 

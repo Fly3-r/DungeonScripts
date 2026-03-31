@@ -13,7 +13,7 @@ There are currently two installation paths:
 ### Manual Chrome Installation
 
 Download the extension ZIP from:
-- https://github.com/Fly3-r/DungeonScripts/blob/main/apps/extension-0.1.0.zip
+- https://github.com/Fly3-r/DungeonScripts/blob/main/dist/Chrome-Desktop-0.1.0.zip
 
 Then install it in Chrome:
 1. Download the extension ZIP file.
@@ -29,15 +29,15 @@ From the repo root:
 
 ```powershell
 npm run extension:build:firefox
-npm run extension:sync:firefox
+npm run extension:sync:artifacts
 ```
 
 Then install it in Firefox desktop:
 1. Open Firefox and go to `about:debugging#/runtime/this-firefox`.
 2. Click `Load Temporary Add-on...`.
-3. Select `apps/firefox-0.1.0.zip` or the latest matching `apps/firefox-<version>.zip`.
+3. Select `dist/Firefox-Desktop-0.1.0.zip` or the latest matching `dist/Firefox-Desktop-<version>.zip`.
 
-The sync step also creates `apps/firefox-<version>.xpi` for later signing/distribution workflows.
+The artifact sync step writes packaged browser builds into the repo-root `dist/` directory.
 
 More Firefox notes live in [firefox-extension.md](docs/firefox-extension.md).
 Firefox Android notes live in [firefox-android-extension.md](docs/firefox-android-extension.md).
@@ -56,7 +56,7 @@ Firefox Android notes live in [firefox-android-extension.md](docs/firefox-androi
 
 - After installing or reinstalling the extension, it may be necessary to reload the AI Dungeon scenario edit page.
 - The current automated regression harness is still Chrome-based. Firefox desktop is supported through the shared runtime plus the Firefox-specific build manifest.
-- Run `npm run hooks:install` once in a local clone to enable the pre-commit hook that refreshes both `apps/firefox-<version>.zip` and `apps/firefox-<version>.xpi` before each local commit.
+- Run `npm run hooks:install` once in a local clone to enable the pre-commit hook that refreshes the packaged browser artifacts in `dist/` before each local commit.
 
 ## For Script Makers
 

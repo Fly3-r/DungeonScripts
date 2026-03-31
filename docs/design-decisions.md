@@ -531,3 +531,11 @@ The Firefox Android path should continue using the shared extension runtime and 
 
 Reason:
 Recent emulator testing already proved the shared runtime can complete the real install flow on mobile. The remaining work is better framed as target-specific validation and UX hardening than as a rewrite.
+
+### Keep packaged browser artifacts in a single repo-root dist folder
+
+Decision:
+Compiled browser packages should be written to a repo-root `dist/` directory with explicit platform-focused names, while the internal unpacked extension targets remain in `apps/extension/dist/`.
+
+Reason:
+The packaged artifacts are release-style outputs rather than source apps. Separating them from `apps/` makes the repository layout clearer and gives every browser target one predictable output location.

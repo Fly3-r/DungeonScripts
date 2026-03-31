@@ -11,6 +11,13 @@ npm run extension:build:firefox-android
 ```
 
 This creates an Android-ready unpacked build at [apps/extension/dist/firefox-android](../apps/extension/dist/firefox-android).
+Packaged browser artifacts can be refreshed into the repo-root `dist/` folder with:
+
+```powershell
+npm run extension:sync:artifacts
+```
+
+That writes `dist/Firefox-Mobile-<extension-version>.xpi`.
 
 ## Lint For Firefox Android
 
