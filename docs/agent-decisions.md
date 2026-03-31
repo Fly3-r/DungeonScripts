@@ -514,3 +514,11 @@ The repo workflow now treats version bumps as part of the implementation pass: c
 
 Reason:
 This project now ships distinct catalog and extension surfaces, and leaving version updates as an afterthought makes release state easy to misreport. Writing the expectation into `AGENTS.md` keeps release numbers aligned with the actual shipped change set.
+
+### Treat version bumps as regression gates, not metadata-only edits
+
+Decision:
+If either the catalog version or the extension version changes, the change should trigger the main regression harness before finalizing the release-oriented update.
+
+Reason:
+Version bumps are release signals, so they should prove the current install and rollback workflow still works rather than only updating labels, manifests, or artifacts.

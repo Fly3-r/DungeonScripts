@@ -61,6 +61,14 @@ For catalog page changes that do not affect install logic:
 - syntax-check touched scripts when practical
 - verify the rendered behavior manually when possible
 
+### Version bumps and release cuts
+
+If either the catalog version or the extension version changes:
+
+- run [scripts/test-install-regression.ps1](scripts/test-install-regression.ps1) before finalizing the change
+- keep the normal target-specific checks as well, such as Firefox desktop rebuilds and Firefox Android lint/load steps when those surfaces are affected
+- say explicitly in the final response whether the regression pass succeeded or why it was not run
+
 ## Versioning Expectations
 
 - Automatically bump version numbers as part of any release-worthy change instead of leaving versioning as a separate manual cleanup step.
