@@ -6,6 +6,7 @@ This repo now follows the MVP split described in [INSTALLER_MVP_SPEC.md](INSTALL
 - `apps/extension` is the browser extension client
 - `apps/catalog` is the external catalog/API service
 - `packages/contracts` holds shared manifest and telemetry shapes
+- `dist` holds the packaged browser artifacts for release/testing
 - `docs/design-decisions.md` records product and architecture decisions
 - `docs/agent-decisions.md` records workflow and agent execution decisions
 - `docs/repo-package-model.md` records the repo-driven package source layout
@@ -18,6 +19,10 @@ apps/
   extension/     Browser extension source plus Chrome/Firefox build targets
 packages/
   contracts/     Shared JSON schema and examples
+dist/
+  Chrome-Desktop-<version>.zip
+  Firefox-Desktop-<version>.zip
+  Firefox-Mobile-<version>.xpi
 docs/
   design-decisions.md
   agent-decisions.md
@@ -57,9 +62,10 @@ This scaffold includes:
 - versioned JSON API under `/api/v1/*`
 - repo-driven package sources under `apps/catalog/data/scripts/<package-id>`
 - startup generation of public package manifests into `apps/catalog/data/packages`
+- packaged browser artifacts written to the repo-root `dist/` folder
 - sample package source files and shared JSON schemas for package metadata, package manifests, and telemetry payloads
 - a repeatable Chrome DevTools Protocol regression script for install selection, telemetry retry, and full-target install/rollback verification
-- a Firefox desktop build target that reuses the same extension runtime with a Firefox-specific manifest
+- Firefox desktop and Firefox Android targets that reuse the shared extension runtime
 
 ## Package Source Model
 
@@ -67,6 +73,12 @@ This scaffold includes:
 - Each package directory contains `metadata.json`, `Library.js`, `Input.js`, `Context.js`, `Output.js`, and an optional `Thumbnail.png`.
 - The catalog rebuilds [apps/catalog/data/packages](../apps/catalog/data/packages) from those source folders when the service starts.
 - The source layout is defined in [repo-package-model.md](repo-package-model.md).
+
+## Packaged Artifacts
+
+- Release-style browser packages are written to the repo-root [dist](../dist) folder.
+- Current artifact names are `Chrome-Desktop-<version>.zip`, `Firefox-Desktop-<version>.zip`, and `Firefox-Mobile-<version>.xpi`.
+- The unpacked working builds used during development remain under `apps/extension/dist/<target>`.
 
 ## Automation Testing
 
