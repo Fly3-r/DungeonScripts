@@ -44,6 +44,11 @@
       "minLength": 1,
       "format": "uri"
     },
+    "discordURL": {
+      "type": "string",
+      "minLength": 1,
+      "format": "uri"
+    },
     "thumbnailUrl": {
       "type": "string",
       "minLength": 1

@@ -38,6 +38,15 @@ const API_BASE_PATH = "/api/v1";
 const DEFAULT_THUMBNAIL_PATH = "/assets/thumbnail-placeholder.svg";
 const PACKAGE_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const SEMVER_PATTERN = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
+const DISCORD_HOSTS = new Set([
+  "discord.com",
+  "www.discord.com",
+  "ptb.discord.com",
+  "canary.discord.com",
+  "discordapp.com",
+  "www.discordapp.com",
+  "discord.gg"
+]);
 const SOURCE_FILE_NAMES = {
   metadata: "metadata.json",
   sharedLibrary: "Library.js",
@@ -215,6 +224,28 @@ const validateAidProfileUrl = (value) => {
   return url.toString();
 };
 
+const validateDiscordUrl = (value) => {
+  let url;
+
+  try {
+    url = new URL(value.trim());
+  } catch {
+    throw new Error("Discord URL must be a valid URL.");
+  }
+
+  if (url.protocol !== "https:") {
+    throw new Error("Discord URL must use https.");
+  }
+
+  const hostname = url.hostname.toLowerCase();
+  if (!DISCORD_HOSTS.has(hostname)) {
+    throw new Error("Discord URL must point to a Discord-hosted URL.");
+  }
+
+  url.hash = "";
+  return url.toString();
+};
+
 const ensureRuntimeDir = async () => {
   await mkdir(runtimeDir, { recursive: true });
 };
@@ -260,6 +291,7 @@ const normalizePackageManifest = (entry) => ({
   ...entry,
   author: isNonEmptyString(entry.author) ? entry.author.trim() : "Unknown",
   authorProfileUrl: getSafeUrl(entry.authorProfileUrl),
+  discordURL: getSafeUrl(entry.discordURL),
   thumbnailUrl: getPublicAssetUrl(entry.thumbnailUrl)
 });
 
@@ -270,6 +302,7 @@ const buildPackageSummary = (entry, installCounts) => ({
   description: buildDescriptionPreview(entry.description),
   author: entry.author,
   authorProfileUrl: entry.authorProfileUrl,
+  discordURL: getSafeUrl(entry.discordURL),
   thumbnailUrl: getPublicAssetUrl(entry.thumbnailUrl),
   installCount: installCounts.get(entry.id) || 0
 });
@@ -292,11 +325,14 @@ const validatePackageSourceMetadata = (packageId, payload) => {
     );
   }
 
+  const discordURL = getOptionalTrimmedString(payload, "discordURL", 300);
+
   return {
     name: requireTrimmedString(payload, "name", 120),
     version,
     author: requireTrimmedString(payload, "author", 120),
     authorProfileUrl: validateAidProfileUrl(requireTrimmedString(payload, "authorProfileUrl", 200)),
+    discordURL: discordURL ? validateDiscordUrl(discordURL) : "",
     description: requireTrimmedString(payload, "description", 24000),
     minInstallerVersion
   };
@@ -335,6 +371,7 @@ const buildManifestFromSource = async (packageId) => {
     description: metadata.description,
     author: metadata.author,
     authorProfileUrl: metadata.authorProfileUrl,
+    ...(metadata.discordURL ? { discordURL: metadata.discordURL } : {}),
     ...(hasThumbnail ? { thumbnailUrl: buildPackageThumbnailUrl(packageId) } : {}),
     minInstallerVersion: metadata.minInstallerVersion,
     sharedLibrary,

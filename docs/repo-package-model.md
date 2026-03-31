@@ -37,6 +37,7 @@ Rules:
 - `version`
 - `author`
 - `authorProfileUrl`
+- `discordURL` (optional)
 - `description`
 - `minInstallerVersion` (optional)
 
@@ -48,6 +49,7 @@ Example:
   "version": "1.0.0",
   "author": "Fly3_r",
   "authorProfileUrl": "https://play.aidungeon.com/profile/Fly3_r",
+  "discordURL": "https://discord.com/channels/123456789012345678/123456789012345679",
   "description": "Long-form description or install notes. Markdown links are allowed.",
   "minInstallerVersion": "0.1.0"
 }

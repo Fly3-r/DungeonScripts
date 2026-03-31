@@ -61,6 +61,20 @@ const createAuthorValue = (pkg) => {
   return link;
 };
 
+const createDiscordButton = (pkg) => {
+  if (!pkg.discordURL) {
+    return null;
+  }
+
+  const link = document.createElement("a");
+  link.className = "action-button secondary";
+  link.href = pkg.discordURL;
+  link.target = "_blank";
+  link.rel = "noreferrer noopener";
+  link.textContent = "Discord";
+  return link;
+};
+
 const getPackageSearchScore = (pkg, query) => {
   if (!query) {
     return 0;
@@ -198,7 +212,13 @@ const renderPackages = (packages) => {
     const packageId = document.createElement("code");
     packageId.textContent = pkg.id;
 
-    actions.append(previewButton, installButton, rollbackButton, packageId);
+    const discordButton = createDiscordButton(pkg);
+
+    actions.append(previewButton);
+    if (discordButton) {
+      actions.append(discordButton);
+    }
+    actions.append(installButton, rollbackButton, packageId);
     header.append(title);
     body.append(header, description, meta, actions);
     media.append(thumbnail);
