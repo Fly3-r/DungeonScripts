@@ -5,8 +5,8 @@ DungeonScripts is a project focused on easy and safe installation of AI Dungeon 
 ## Installation
 
 Preferred installation paths:
-- Chrome Web Store (`Desktop only`): [DungeonScripts on the Chrome Web Store](https://chromewebstore.google.com/detail/dungeonscripts/keookocbcbpgbiiakkgcdplohopfjibc)
-- Firefox Add-ons (`Desktop and Mobile`): link coming soon
+- Chrome Web Store (`Desktop only`): [DungeonScripts Chrome Extension](https://chromewebstore.google.com/detail/dungeonscripts/keookocbcbpgbiiakkgcdplohopfjibc)
+- Firefox Add-ons (`Desktop and Mobile`): [DungeonScripts Firefox Addon](https://addons.mozilla.org/en-US/firefox/addon/dungeonscripts/)
 
 Browser support:
 - Chrome: Desktop only
@@ -17,12 +17,12 @@ If you need to install from packaged files instead of a browser store listing, s
 ## Getting Started
 
 1. Go to `https://play.aidungeon.com` and log in.
-2. Be mindful of possible bugs. For extra safety, optionally duplicate your scenario first.
 3. Edit any scenario. The URL should end with `/edit`.
 4. Go to `https://dungeonscripts.com`.
 5. Verify the extension bridge status on the page.
 6. Use `Install` to apply the selected script.
 7. Optionally use `Preview` first to inspect the script changes before installing.
+8. Optionally for extra safety, optionally duplicate your scenario first.
 
 ## Troubleshooting
 
