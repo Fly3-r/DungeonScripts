@@ -2,6 +2,12 @@ const FALLBACK_THUMBNAIL_URL = "/assets/thumbnail-placeholder.svg";
 const packageList = document.getElementById("package-list");
 const packageSearch = document.getElementById("package-search");
 const packageSearchSummary = document.getElementById("package-search-summary");
+const installExtensionLink = document.querySelector("[data-oneclick-install-extension]");
+const INSTALL_EXTENSION_TARGETS = Object.freeze({
+  chrome: "https://chrome.dungeonscripts.com",
+  firefox: "https://firefox.dungeonscripts.com",
+  other: "https://github.com/Fly3-r/DungeonScripts"
+});
 
 let allPackages = [];
 
@@ -73,6 +79,42 @@ const createDiscordButton = (pkg) => {
   link.rel = "noreferrer noopener";
   link.textContent = "Discord";
   return link;
+};
+
+const detectInstallBrowser = (userAgent = globalThis.navigator?.userAgent || "") => {
+  const normalized = String(userAgent).toLowerCase();
+
+  if (normalized.includes("firefox") || normalized.includes("fxios")) {
+    return "firefox";
+  }
+
+  if (
+    normalized.includes("edg/") ||
+    normalized.includes("edge/") ||
+    normalized.includes("opr/") ||
+    normalized.includes("opera")
+  ) {
+    return "other";
+  }
+
+  if (
+    normalized.includes("chrome") ||
+    normalized.includes("chromium") ||
+    normalized.includes("crios")
+  ) {
+    return "chrome";
+  }
+
+  return "other";
+};
+
+const configureInstallExtensionLink = () => {
+  if (!installExtensionLink) {
+    return;
+  }
+
+  const browser = detectInstallBrowser();
+  installExtensionLink.href = INSTALL_EXTENSION_TARGETS[browser];
 };
 
 const getPackageSearchScore = (pkg, query) => {
@@ -270,4 +312,5 @@ packageSearch?.addEventListener("input", () => {
   renderFilteredPackages();
 });
 
+configureInstallExtensionLink();
 render();

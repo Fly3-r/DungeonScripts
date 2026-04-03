@@ -555,3 +555,11 @@ The catalog homepage footer should display the catalog's own version number, whi
 
 Reason:
 The project now has two real delivery surfaces with different change scopes. Showing the catalog version in the footer makes the web release visible, and keeping the catalog version independent from the extension version avoids unnecessary version churn when only one surface changes.
+
+### Route the missing-extension CTA to browser-specific landing pages
+
+Decision:
+When the catalog page shows the Install Extension CTA, it should open a browser-specific landing page: `https://chrome.dungeonscripts.com` for Chrome, `https://firefox.dungeonscripts.com` for Firefox, and the main GitHub repository for other browsers.
+
+Reason:
+The install CTA is most useful when it takes the user directly to the correct browser-specific destination. Using project-owned landing subdomains keeps the catalog simple while allowing the actual store redirects to be managed outside this repo.

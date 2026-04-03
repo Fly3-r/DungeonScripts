@@ -538,3 +538,11 @@ The root `README.md` should stay user-facing: store-first installation links, ge
 
 Reason:
 The README is the public front door for the project. Mixing contributor-only workflow notes into that page makes the main install path harder to scan and less useful to normal users.
+
+### Resolve install CTA routing on the catalog client instead of the server
+
+Decision:
+The browser-specific Install Extension destinations should be selected in the catalog page JavaScript from the current user agent rather than being hard-coded to one URL or pushed into server-side request handling.
+
+Reason:
+The routing decision is a lightweight presentation concern and does not need backend state. Keeping it client-side avoids adding proxy-domain knowledge to the catalog server while still letting the page send Chrome and Firefox users to different landing pages.
